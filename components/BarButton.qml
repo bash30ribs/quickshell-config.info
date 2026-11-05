@@ -22,42 +22,33 @@ Rectangle {
     implicitHeight: Appearance.barButtonHeight
     width: implicitWidth
     height: implicitHeight
-    radius: Appearance.buttonRadius > 0 ? Appearance.buttonRadius : 8
+    radius: Appearance.buttonRadius > 0 ? Appearance.buttonRadius : 6
     antialiasing: true
 
-    // Theme & wallpaper infused frosted glass micro-tile
-    gradient: Gradient {
-        GradientStop {
-            position: 0.0
-            color: {
-                if (root.active) return Theme.withAlpha(Theme.accent, 0.45)
-                if (mouseArea.containsMouse) return Theme.withAlpha(Theme.glassTint, 0.40)
-                return Theme.withAlpha(Theme.glassCrest, 0.20)
-            }
-        }
-        GradientStop {
-            position: 1.0
-            color: {
-                if (root.active) return Theme.withAlpha(Theme.accent, 0.22)
-                if (mouseArea.containsMouse) return Theme.withAlpha(Theme.glassSurface, 0.35)
-                return Theme.withAlpha(Theme.glassSurface, 0.18)
-            }
-        }
+    // Merged into the bar at rest; Apple-grade frosted glass pill on hover/active
+    color: {
+        if (root.active) return Theme.withAlpha(Theme.accent, 0.25)
+        if (mouseArea.containsMouse) return Theme.withAlpha(Theme.glassCrest, 0.14)
+        return "transparent"
     }
 
     border.color: {
-        if (root.active) return Theme.glassActiveBorder
-        if (mouseArea.containsMouse) return Theme.glassHoverBorder
-        return Theme.glassWidgetBorder
+        if (root.active) return Theme.withAlpha(Theme.accent, 0.65)
+        if (mouseArea.containsMouse) return Theme.withAlpha(Theme.glassCrest, 0.28)
+        return "transparent"
     }
-    border.width: 1
+    border.width: (root.active || mouseArea.containsMouse) ? 1 : 0
 
+    Behavior on color {
+        ColorAnimation { duration: Appearance.animDurationNormal }
+    }
     Behavior on border.color {
         ColorAnimation { duration: Appearance.animDurationNormal }
     }
 
-    // Top specular highlight line
+    // Top specular highlight (visible only on hover or active)
     Rectangle {
+        visible: root.active || mouseArea.containsMouse
         anchors.top: parent.top
         anchors.topMargin: 1
         anchors.left: parent.left
@@ -65,11 +56,7 @@ Rectangle {
         anchors.leftMargin: Math.max(3, root.radius / 2)
         anchors.rightMargin: Math.max(3, root.radius / 2)
         height: 1
-        color: {
-            if (root.active) return Theme.withAlpha(Theme.accent, 0.85)
-            if (mouseArea.containsMouse) return Theme.withAlpha(Theme.light_foreground, 0.75)
-            return Theme.withAlpha(Theme.glassCrest, 0.45)
-        }
+        color: root.active ? Theme.withAlpha(Theme.accent, 0.85) : Theme.withAlpha(Theme.glassCrest, 0.50)
         antialiasing: true
 
         Behavior on color {
@@ -77,24 +64,21 @@ Rectangle {
         }
     }
 
-    // Inner subtle sheen
+    // Inner subtle sheen on hover/active
     Rectangle {
+        visible: root.active || mouseArea.containsMouse
         anchors.top: parent.top
         anchors.topMargin: 2
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.leftMargin: Math.max(3, root.radius / 2)
         anchors.rightMargin: Math.max(3, root.radius / 2)
-        height: Math.min(6, parent.height / 3)
+        height: Math.min(5, parent.height / 3)
         antialiasing: true
         gradient: Gradient {
             GradientStop {
                 position: 0.0
-                color: {
-                    if (root.active) return Theme.withAlpha(Theme.accent, 0.28)
-                    if (mouseArea.containsMouse) return Theme.withAlpha(Theme.glassTint, 0.25)
-                    return Theme.withAlpha(Theme.glassTint, 0.12)
-                }
+                color: root.active ? Theme.withAlpha(Theme.accent, 0.22) : Theme.withAlpha(Theme.glassCrest, 0.15)
             }
             GradientStop {
                 position: 1.0

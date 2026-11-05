@@ -2,52 +2,14 @@ import QtQuick
 import "../theme"
 import "../services"
 
-// Outer container for workspaces on the bar
-Rectangle {
+// Merged workspace container on the glass bar
+Item {
     id: root
 
     required property WorkspacesService service
 
     implicitHeight: Appearance.barButtonHeight
     implicitWidth: wsRow.implicitWidth + (Appearance.workspacesPaddingHorizontal * 2)
-    radius: Appearance.buttonRadius > 0 ? Appearance.buttonRadius : 8
-    antialiasing: true
-
-    gradient: Gradient {
-        GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.20) }
-        GradientStop { position: 1.0; color: Theme.withAlpha(Theme.glassSurface, 0.18) }
-    }
-    border.color: Theme.glassWidgetBorder
-    border.width: 1
-
-    // Top specular edge highlight
-    Rectangle {
-        anchors.top: parent.top
-        anchors.topMargin: 1
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.leftMargin: Math.max(3, root.radius / 2)
-        anchors.rightMargin: Math.max(3, root.radius / 2)
-        height: 1
-        color: Theme.withAlpha(Theme.glassCrest, 0.45)
-        antialiasing: true
-    }
-
-    // Inner diffuse glass sheen
-    Rectangle {
-        anchors.top: parent.top
-        anchors.topMargin: 2
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.leftMargin: Math.max(3, root.radius / 2)
-        anchors.rightMargin: Math.max(3, root.radius / 2)
-        height: 5
-        antialiasing: true
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassTint, 0.15) }
-            GradientStop { position: 1.0; color: "transparent" }
-        }
-    }
 
     WheelHandler {
         onWheel: (event) => {
@@ -82,25 +44,15 @@ Rectangle {
 
                 color: {
                     if (isActive) return Theme.accent
-                    if (wsMouse.containsMouse) return Qt.rgba(1, 1, 1, 0.20)
-                    return Qt.rgba(1, 1, 1, 0.08)
+                    if (wsMouse.containsMouse) return Theme.withAlpha(Theme.glassCrest, 0.18)
+                    return "transparent"
                 }
-                border.color: isActive ? Qt.rgba(1, 1, 1, 0.50) : (wsMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.25) : "transparent")
-                border.width: 1
-
-                // Top specular highlight on active workspace
-                Rectangle {
-                    visible: wsCapsule.isActive
-                    anchors.top: parent.top
-                    anchors.topMargin: 1
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.leftMargin: 2
-                    anchors.rightMargin: 2
-                    height: 1
-                    color: Qt.rgba(1, 1, 1, 0.60)
-                    antialiasing: true
+                border.color: {
+                    if (isActive) return Theme.withAlpha(Theme.glassCrest, 0.45)
+                    if (wsMouse.containsMouse) return Theme.withAlpha(Theme.glassCrest, 0.28)
+                    return "transparent"
                 }
+                border.width: (isActive || wsMouse.containsMouse) ? 1 : 0
 
                 Behavior on width {
                     NumberAnimation {

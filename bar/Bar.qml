@@ -104,12 +104,12 @@ PanelWindow {
         border.width: 1
         antialiasing: true
 
-        // Multi-stop theme-infused frosted glass refraction gradient
+        // Multi-stop Apple-grade frosted glass refraction gradient
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.45) }
-            GradientStop { position: 0.10; color: Theme.withAlpha(Theme.glassTint, 0.35) }
-            GradientStop { position: 0.65; color: Theme.withAlpha(Theme.glassSurface, 0.40) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.48) }
+            GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.25) }
+            GradientStop { position: 0.12; color: Theme.withAlpha(Theme.glassTint, 0.16) }
+            GradientStop { position: 0.65; color: Theme.withAlpha(Theme.glassSurface, 0.22) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.32) }
         }
 
         // Frosted glass specular top edge highlight
@@ -165,9 +165,9 @@ PanelWindow {
         antialiasing: true
 
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.45) }
-            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.glassTint, 0.35) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.glassSurface, 0.42) }
+            GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.25) }
+            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.glassTint, 0.16) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.glassSurface, 0.26) }
         }
 
         Rectangle {
@@ -212,9 +212,9 @@ PanelWindow {
         antialiasing: true
 
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.45) }
-            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.glassTint, 0.35) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.glassSurface, 0.42) }
+            GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.25) }
+            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.glassTint, 0.16) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.glassSurface, 0.26) }
         }
 
         Rectangle {
@@ -259,9 +259,9 @@ PanelWindow {
         antialiasing: true
 
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.45) }
-            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.glassTint, 0.35) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.glassSurface, 0.42) }
+            GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.25) }
+            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.glassTint, 0.16) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.glassSurface, 0.26) }
         }
 
         Rectangle {

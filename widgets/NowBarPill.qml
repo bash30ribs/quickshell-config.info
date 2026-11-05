@@ -51,55 +51,18 @@ Item {
     Rectangle {
         id: pillBg
         anchors.fill: parent
-        radius: Appearance.buttonRadius > 0 ? Appearance.buttonRadius : 8
+        radius: height / 2
         antialiasing: true
 
-        gradient: Gradient {
-            GradientStop {
-                position: 0.0
-                color: pillMouse.containsMouse ? Theme.withAlpha(Theme.glassTint, 0.40) : Theme.withAlpha(Theme.glassCrest, 0.20)
-            }
-            GradientStop {
-                position: 1.0
-                color: pillMouse.containsMouse ? Theme.withAlpha(Theme.glassSurface, 0.35) : Theme.withAlpha(Theme.glassSurface, 0.18)
-            }
-        }
-        border.color: pillMouse.containsMouse ? Theme.glassHoverBorder : Theme.glassWidgetBorder
+        color: pillMouse.containsMouse ? Theme.withAlpha(Theme.glassCrest, 0.16) : Theme.withAlpha(Theme.glassCrest, 0.08)
+        border.color: pillMouse.containsMouse ? Theme.withAlpha(Theme.glassCrest, 0.35) : Theme.withAlpha(Theme.glassBorderColor, 0.20)
         border.width: 1
 
-        // Top specular edge highlight
-        Rectangle {
-            anchors.top: parent.top
-            anchors.topMargin: 1
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: Math.max(3, parent.radius / 2)
-            anchors.rightMargin: Math.max(3, parent.radius / 2)
-            height: 1
-            color: pillMouse.containsMouse ? Theme.withAlpha(Theme.light_foreground, 0.75) : Theme.withAlpha(Theme.glassCrest, 0.45)
-            antialiasing: true
+        Behavior on color {
+            ColorAnimation { duration: Appearance.animDurationNormal }
         }
-
-        // Inner diffuse glass sheen
-        Rectangle {
-            anchors.top: parent.top
-            anchors.topMargin: 2
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: Math.max(3, parent.radius / 2)
-            anchors.rightMargin: Math.max(3, parent.radius / 2)
-            height: 5
-            antialiasing: true
-            gradient: Gradient {
-                GradientStop {
-                    position: 0.0
-                    color: pillMouse.containsMouse ? Theme.withAlpha(Theme.glassTint, 0.25) : Theme.withAlpha(Theme.glassTint, 0.12)
-                }
-                GradientStop {
-                    position: 1.0
-                    color: "transparent"
-                }
-            }
+        Behavior on border.color {
+            ColorAnimation { duration: Appearance.animDurationNormal }
         }
 
         // Disappear smoothly when popup opens, bounce back into view when closed
