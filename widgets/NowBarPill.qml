@@ -57,11 +57,11 @@ Item {
         gradient: Gradient {
             GradientStop {
                 position: 0.0
-                color: pillMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.10)
+                color: pillMouse.containsMouse ? Theme.withAlpha(Theme.glassTint, 0.40) : Theme.withAlpha(Theme.glassCrest, 0.20)
             }
             GradientStop {
                 position: 1.0
-                color: pillMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.03)
+                color: pillMouse.containsMouse ? Theme.withAlpha(Theme.glassSurface, 0.35) : Theme.withAlpha(Theme.glassSurface, 0.18)
             }
         }
         border.color: pillMouse.containsMouse ? Theme.glassHoverBorder : Theme.glassWidgetBorder
@@ -76,7 +76,7 @@ Item {
             anchors.leftMargin: Math.max(3, parent.radius / 2)
             anchors.rightMargin: Math.max(3, parent.radius / 2)
             height: 1
-            color: pillMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.65) : Qt.rgba(1, 1, 1, 0.32)
+            color: pillMouse.containsMouse ? Theme.withAlpha(Theme.light_foreground, 0.75) : Theme.withAlpha(Theme.glassCrest, 0.45)
             antialiasing: true
         }
 
@@ -93,7 +93,7 @@ Item {
             gradient: Gradient {
                 GradientStop {
                     position: 0.0
-                    color: pillMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
+                    color: pillMouse.containsMouse ? Theme.withAlpha(Theme.glassTint, 0.25) : Theme.withAlpha(Theme.glassTint, 0.12)
                 }
                 GradientStop {
                     position: 1.0

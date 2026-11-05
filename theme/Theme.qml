@@ -62,25 +62,29 @@ QtObject {
     readonly property color barLighterBackground: root.lighter_background
     readonly property color barAccent: root.accent
     readonly property color barDominant: (root.hasWallpaperColors && _wp.dominant) ? _wp.dominant : root.foreground
-    readonly property color barBorderColor: Qt.rgba(root.light_foreground.r, root.light_foreground.g, root.light_foreground.b, 0.16)
+    readonly property color glassTint: (root.hasWallpaperColors && _wp.glass_tint) ? _wp.glass_tint : root.accent
+    readonly property color glassSurface: (root.hasWallpaperColors && _wp.glass_surface) ? _wp.glass_surface : root.lighter_background
+    readonly property color glassCrest: (root.hasWallpaperColors && _wp.glass_crest) ? _wp.glass_crest : root.light_foreground
+    readonly property color glassBorderColor: (root.hasWallpaperColors && _wp.glass_border) ? _wp.glass_border : root.accent
+    readonly property color barBorderColor: root.withAlpha(root.glassBorderColor, 0.35)
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Glassmorphism & Frosted Glass Tokens
+    // Glassmorphism & Frosted Glass Tokens (Theme & Wallpaper Infused)
     // ─────────────────────────────────────────────────────────────────────────
-    readonly property real glassOpacity: 0.20
-    readonly property real glassPillOpacity: 0.10
-    readonly property color glassBorder: Qt.rgba(1, 1, 1, 0.22)
-    readonly property color glassBorderLight: Qt.rgba(1, 1, 1, 0.38)
-    readonly property color glassSpecular: Qt.rgba(1, 1, 1, 0.55)
-    readonly property color glassInnerSheen: Qt.rgba(1, 1, 1, 0.16)
-    readonly property color glassBounce: Qt.rgba(1, 1, 1, 0.10)
-    readonly property color glassWidgetBg: Qt.rgba(1, 1, 1, 0.08)
-    readonly property color glassWidgetBorder: Qt.rgba(1, 1, 1, 0.18)
-    readonly property color glassHover: Qt.rgba(1, 1, 1, 0.18)
-    readonly property color glassHoverBorder: Qt.rgba(1, 1, 1, 0.42)
-    readonly property color glassActive: root.withAlpha(root.accent, 0.26)
-    readonly property color glassActiveBorder: root.withAlpha(root.accent, 0.75)
-    readonly property real glassPopupOpacity: 0.42
+    readonly property real glassOpacity: 0.35
+    readonly property real glassPillOpacity: 0.18
+    readonly property color glassBorder: root.withAlpha(root.glassBorderColor, 0.35)
+    readonly property color glassBorderLight: root.withAlpha(root.glassCrest, 0.55)
+    readonly property color glassSpecular: root.withAlpha(root.glassCrest, 0.65)
+    readonly property color glassInnerSheen: root.withAlpha(root.glassTint, 0.22)
+    readonly property color glassBounce: root.withAlpha(root.accent, 0.20)
+    readonly property color glassWidgetBg: root.withAlpha(root.glassSurface, 0.30)
+    readonly property color glassWidgetBorder: root.withAlpha(root.glassBorderColor, 0.30)
+    readonly property color glassHover: root.withAlpha(root.glassTint, 0.35)
+    readonly property color glassHoverBorder: root.withAlpha(root.accent, 0.70)
+    readonly property color glassActive: root.withAlpha(root.accent, 0.38)
+    readonly property color glassActiveBorder: root.withAlpha(root.accent, 0.90)
+    readonly property real glassPopupOpacity: 0.48
 
     // ─────────────────────────────────────────────────────────────────────────
     // Dual Alpha + Compositor Blur Architecture

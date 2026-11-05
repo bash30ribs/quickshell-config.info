@@ -90,6 +90,29 @@ def get_wallpaper_palette(wallpaper_path=None, theme_colors_path=None):
         except Exception:
             pass
 
+    def hex_to_rgb(h):
+        h = h.lstrip("#")
+        if len(h) == 3:
+            h = "".join(c * 2 for c in h)
+        return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+
+    def blend_hex(h1, h2, w1=0.5):
+        try:
+            rgb1 = hex_to_rgb(h1)
+            rgb2 = hex_to_rgb(h2)
+            w2 = 1.0 - w1
+            r = int(rgb1[0] * w1 + rgb2[0] * w2)
+            g = int(rgb1[1] * w1 + rgb2[1] * w2)
+            b = int(rgb1[2] * w1 + rgb2[2] * w2)
+            return f"#{r:02x}{g:02x}{b:02x}"
+        except Exception:
+            return h1
+
+    glass_tint = blend_hex(accent, dominant, 0.40)
+    glass_surface = blend_hex(dominant, background, 0.28)
+    glass_crest = blend_hex(dominant, "#ffffff", 0.35)
+    glass_border = blend_hex(accent, dominant, 0.60)
+
     data = {
         "wallpaper": real_wp_path,
         "accent": accent,
@@ -101,7 +124,11 @@ def get_wallpaper_palette(wallpaper_path=None, theme_colors_path=None):
         "foreground": foreground,
         "muted": muted,
         "border": accent,
-        "wallpaper_tint": wallpaper_tint or dark_background
+        "wallpaper_tint": wallpaper_tint or dark_background,
+        "glass_tint": glass_tint,
+        "glass_surface": glass_surface,
+        "glass_crest": glass_crest,
+        "glass_border": glass_border
     }
 
     try:

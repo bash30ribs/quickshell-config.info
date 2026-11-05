@@ -288,8 +288,8 @@ Item {
                             width: parent.width
                             height: 34
                             radius: Appearance.radiusSmall
-                            color: modelData.isDefault ? Theme.selection : (sinkMouse.containsMouse ? Theme.lighter_background : "transparent")
-                            border.color: modelData.isDefault ? Theme.accent : "transparent"
+                            color: modelData.isDefault ? Theme.withAlpha(Theme.accent, 0.25) : (sinkMouse.containsMouse ? Theme.withAlpha(Theme.glassTint, 0.22) : "transparent")
+                            border.color: modelData.isDefault ? Theme.withAlpha(Theme.accent, 0.75) : (sinkMouse.containsMouse ? Theme.glassWidgetBorder : "transparent")
                             border.width: 1
 
                             Row {
@@ -395,8 +395,8 @@ Item {
                             width: parent.width
                             height: 34
                             radius: Appearance.radiusSmall
-                            color: modelData.isDefault ? Theme.selection : (srcMouse.containsMouse ? Theme.lighter_background : "transparent")
-                            border.color: modelData.isDefault ? Theme.accent : "transparent"
+                            color: modelData.isDefault ? Theme.withAlpha(Theme.accent, 0.25) : (srcMouse.containsMouse ? Theme.withAlpha(Theme.glassTint, 0.22) : "transparent")
+                            border.color: modelData.isDefault ? Theme.withAlpha(Theme.accent, 0.75) : (srcMouse.containsMouse ? Theme.glassWidgetBorder : "transparent")
                             border.width: 1
 
                             Row {

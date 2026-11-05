@@ -14,8 +14,8 @@ Rectangle {
     antialiasing: true
 
     gradient: Gradient {
-        GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.10) }
-        GradientStop { position: 1.0; color: Qt.rgba(1, 1, 1, 0.03) }
+        GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.20) }
+        GradientStop { position: 1.0; color: Theme.withAlpha(Theme.glassSurface, 0.18) }
     }
     border.color: Theme.glassWidgetBorder
     border.width: 1
@@ -29,7 +29,7 @@ Rectangle {
         anchors.leftMargin: Math.max(3, root.radius / 2)
         anchors.rightMargin: Math.max(3, root.radius / 2)
         height: 1
-        color: Qt.rgba(1, 1, 1, 0.32)
+        color: Theme.withAlpha(Theme.glassCrest, 0.45)
         antialiasing: true
     }
 
@@ -44,7 +44,7 @@ Rectangle {
         height: 5
         antialiasing: true
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.08) }
+            GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassTint, 0.15) }
             GradientStop { position: 1.0; color: "transparent" }
         }
     }
