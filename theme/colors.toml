@@ -1,41 +1,59 @@
 # ==============================================================================
-# QDeck Color Configuration
+# Gruvbox Dark Color Configuration
 # ==============================================================================
-# This file defines the active color tokens used across the shell.
-# Themes managed by qdeck-theme-switch provide their own colors.toml in ~/.config/themes/current/.
-# If running without a current theme symlink, this file serves as the default palette.
 
 # ── Primary Accents ───────────────────────────────────────────────────────────
-accent = "#7aa2f7"             # Primary accent color (active items, highlights, focus rings)
-selection = "#292e42"          # Selection / container hover backgrounds & card outlines
-muted = "#414868"              # Muted captions, subtext, inactive icons, subtle dividers
+accent = "#7daea3"
+selection = "#3c3836"
+muted = "#7c6f64"
+cursor = "#bdae93"
 
 # ── Surfaces & Backgrounds ────────────────────────────────────────────────────
-background = "#1a1b26"         # Primary surface background (bar, modal dialogs)
-dark_background = "#13141c"    # Secondary elevated surface (cards, popups, inputs)
-darker_background = "#0e0e14"  # Deep contrast background (scrims, badges, bottom sheets)
-lighter_background = "#24283b" # Elevated hover / active button surface
+background = "#282828"
+dark_background = "#1d2021"
+darker_background = "#141617"
+lighter_background = "#3c3836"
+selection_foreground = "#ebdbb2"
+selection_background = "#504945"
 
 # ── Typography & Foregrounds ──────────────────────────────────────────────────
-foreground = "#a9b1d6"         # Primary body text and standard icons
-dark_foreground = "#565f89"    # Subdued / secondary text
-light_foreground = "#b4bee6"   # Enhanced readability text
-bright_foreground = "#c0caf5"  # High-contrast headings and prominent values
+foreground = "#ebdbb2"
+dark_foreground = "#928374"
+light_foreground = "#d5c4a1"
+bright_foreground = "#fbf1c7"
 
 # ── Semantic & Accent Palette ─────────────────────────────────────────────────
-red = "#f7768e"                # Critical warnings, battery low, mute states, error flashes
-yellow = "#e0af68"             # Cautionary alerts, reboot actions, battery warning
-orange = "#eb927b"             # Notifications, secondary warnings
-green = "#9ece6a"              # Success states, normal battery charging, connected state
-cyan = "#449dab"               # Informational labels and highlights
-blue = "#7aa2f7"               # Alternate accent, primary actions
-magenta = "#ad8ee6"            # Special highlights, media player accents
-brown = "#75493d"              # Earthy accents
+red = "#ea6962"
+yellow = "#d8a657"
+orange = "#e78a4e"
+green = "#a9b665"
+cyan = "#89b482"
+blue = "#7daea3"
+magenta = "#d3869b"
+brown = "#bd6f3e"
 
 # ── High-Vibrancy Variants ────────────────────────────────────────────────────
-bright_red = "#ff7a93"
-bright_yellow = "#ff9e64"
-bright_green = "#b9f27c"
-bright_cyan = "#0db9d7"
-bright_blue = "#7da6ff"
-bright_magenta = "#bb9af7"
+bright_red = "#fb4934"
+bright_yellow = "#fabd2f"
+bright_green = "#b8bb26"
+bright_cyan = "#8ec07c"
+bright_blue = "#83a598"
+bright_magenta = "#d3869b"
+
+# ── Base16 ANSI Terminal Palette ──────────────────────────────────────────────
+color0 = "#3c3836"
+color1 = "#ea6962"
+color2 = "#a9b665"
+color3 = "#d8a657"
+color4 = "#7daea3"
+color5 = "#d3869b"
+color6 = "#89b482"
+color7 = "#d4be98"
+color8 = "#504945"
+color9 = "#ea6962"
+color10 = "#a9b665"
+color11 = "#d8a657"
+color12 = "#7daea3"
+color13 = "#d3869b"
+color14 = "#89b482"
+color15 = "#ebdbb2"

@@ -53,9 +53,13 @@ Item {
         anchors.fill: parent
         radius: Appearance.mediaPillRadius
 
-        color: pillMouse.containsMouse ? Theme.lighter_background : Theme.dark_background
-        border.color: "transparent"
-        border.width: 0
+        color: pillMouse.containsMouse ? Theme.barLighterBackground : Theme.withAlpha(Theme.barDarkBackground, 0.78)
+        border.color: Appearance.barBorder ? Theme.barBorderColor : Theme.withAlpha(Theme.selection, 0.4)
+        border.width: 1
+
+        Behavior on color {
+            ColorAnimation { duration: Appearance.animDurationNormal }
+        }
 
         // Disappear smoothly when popup opens, bounce back into view when closed
         opacity: mediaPopup.open ? 0.0 : 1.0
@@ -73,8 +77,6 @@ Item {
                 easing.overshoot: 1.45
             }
         }
-
-        Behavior on color { ColorAnimation { duration: 150 } }
 
         // ── 1. Mini Rounded Album Art on Left Side ────────────────────────
         Item {

@@ -51,6 +51,20 @@ QtObject {
     readonly property color bright_magenta: _c.bright_magenta || _c.color13 || root.magenta
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Dynamic Wallpaper & Harmony Palette
+    // Harmonizes wallpaper tones with theme colors for the bar & widgets
+    // ─────────────────────────────────────────────────────────────────────────
+    property var _wp: ({})
+    readonly property bool hasWallpaperColors: !!(_wp && _wp.accent)
+
+    readonly property color barBackground: (root.hasWallpaperColors && _wp.background) ? _wp.background : root.background
+    readonly property color barDarkBackground: (root.hasWallpaperColors && _wp.dark_background) ? _wp.dark_background : root.dark_background
+    readonly property color barLighterBackground: (root.hasWallpaperColors && _wp.lighter_background) ? _wp.lighter_background : root.lighter_background
+    readonly property color barAccent: (root.hasWallpaperColors && _wp.accent) ? _wp.accent : root.accent
+    readonly property color barDominant: (root.hasWallpaperColors && _wp.dominant) ? _wp.dominant : root.foreground
+    readonly property color barBorderColor: root.hasWallpaperColors ? root.withAlpha(_wp.border || _wp.accent, 0.28) : root.withAlpha(root.accent, 0.28)
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Dual Alpha + Compositor Blur Architecture
     // ─────────────────────────────────────────────────────────────────────────
     property bool blurEnabled: true
@@ -83,6 +97,15 @@ QtObject {
         function reload(): string {
             root.reloadTheme()
             return "reloaded"
+        }
+
+        function reloadWallpaper(): string {
+            root.reloadWallpaperPalette()
+            return "reloaded-wallpaper"
+        }
+
+        function getPalette(): string {
+            return JSON.stringify(root._wp || {})
         }
 
         function toggleBlur(): string {
@@ -214,22 +237,63 @@ QtObject {
         }
     }
 
+    readonly property string wallpaperPaletteScript: (Quickshell.env("QS_CONFIG_PATH") || (Quickshell.env("HOME") + "/.config/quickshell")) + "/src/qdeck-wallpaper-palette.py"
+
+    property Process wallpaperPaletteProc: Process {
+        id: wallpaperPaletteProc
+        command: ["python3", root.wallpaperPaletteScript]
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                var raw = String(text || "").trim()
+                if (raw.length > 0) {
+                    try {
+                        var parsed = JSON.parse(raw)
+                        if (parsed && parsed.accent) {
+                            root._wp = parsed
+                        }
+                    } catch (e) {
+                        // ignore parse errors
+                    }
+                }
+            }
+        }
+    }
+
+    function reloadWallpaperPalette() {
+        if (!wallpaperPaletteProc.running) {
+            wallpaperPaletteProc.running = true
+        }
+    }
+
     function reloadTheme() {
         if (!themeReaderProc.running) {
             themeReaderProc.running = true
         }
+        root.reloadWallpaperPalette()
     }
 
     property string _lastCurrentTarget: ""
+    property string _lastWallpaperTarget: ""
     property Process linkCheckProc: Process {
         id: linkCheckProc
-        command: ["readlink", "-f", Quickshell.env("HOME") + "/.config/themes/current"]
+        command: ["sh", "-c", "readlink -f \"$HOME/.config/themes/current\" 2>/dev/null; readlink -f \"$HOME/.config/themes/current/default.png\" 2>/dev/null"]
         stdout: StdioCollector {
             waitForEnd: true
             onStreamFinished: {
-                var target = text.trim()
-                if (target && target !== root._lastCurrentTarget) {
-                    root._lastCurrentTarget = target
+                var lines = String(text || "").trim().split("\n")
+                var curTarget = (lines.length > 0) ? lines[0].trim() : ""
+                var wpTarget = (lines.length > 1) ? lines[1].trim() : ""
+                var changed = false
+                if (curTarget && curTarget !== root._lastCurrentTarget) {
+                    root._lastCurrentTarget = curTarget
+                    changed = true
+                }
+                if (wpTarget && wpTarget !== root._lastWallpaperTarget) {
+                    root._lastWallpaperTarget = wpTarget
+                    changed = true
+                }
+                if (changed) {
                     root.reloadTheme()
                 }
             }
@@ -249,6 +313,7 @@ QtObject {
 
     Component.onCompleted: {
         root.reloadTheme()
+        root.reloadWallpaperPalette()
 
         if (colorsFile.text()) {
             root.parseThemeFile(colorsFile.text())

@@ -26,7 +26,7 @@ Rectangle {
 
     color: {
         if (active) return Theme.selection
-        if (mouseArea.containsMouse) return Theme.lighter_background
+        if (mouseArea.containsMouse) return Theme.barLighterBackground
         return "transparent"
     }
 
@@ -45,11 +45,15 @@ Rectangle {
             font.family: Icons.effectiveFont(root.icon)
             font.pixelSize: root.iconSize
             color: {
-                if (root.accentActive || root.active) return Theme.accent
+                if (root.accentActive || root.active) return Theme.barAccent
                 if (root.customColor.a > 0) return root.customColor
                 return Theme.foreground
             }
             anchors.verticalCenter: parent.verticalCenter
+
+            Behavior on color {
+                ColorAnimation { duration: Appearance.animDurationNormal }
+            }
         }
 
         Text {
@@ -58,8 +62,12 @@ Rectangle {
             font.family: Fonts.uiFont
             font.pixelSize: root.textSize
             font.bold: root.active
-            color: root.active ? Theme.accent : Theme.foreground
+            color: root.active ? Theme.barAccent : Theme.foreground
             anchors.verticalCenter: parent.verticalCenter
+
+            Behavior on color {
+                ColorAnimation { duration: Appearance.animDurationNormal }
+            }
         }
     }
 
@@ -71,7 +79,11 @@ Rectangle {
         width: Math.min(parent.width - 4, 16)
         height: Appearance.borderWidthMedium
         radius: Appearance.borderWidthThin
-        color: Theme.accent
+        color: Theme.barAccent
+
+        Behavior on color {
+            ColorAnimation { duration: Appearance.animDurationNormal }
+        }
     }
 
     MouseArea {

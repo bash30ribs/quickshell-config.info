@@ -12,10 +12,14 @@ Rectangle {
     implicitWidth: wsRow.implicitWidth + (Appearance.workspacesPaddingHorizontal * 2)
     radius: height / 2
 
-    color: Theme.withAlpha(Theme.dark_background, 0.75)
-    border.color: Appearance.barBorder ? Theme.selection : "transparent"
-    border.width: Appearance.barBorder ? Appearance.borderWidthThin : 0
+    color: Theme.withAlpha(Theme.barDarkBackground, 0.78)
+    border.color: Appearance.barBorder ? Theme.barBorderColor : Theme.withAlpha(Theme.selection, 0.4)
+    border.width: 1
     antialiasing: true
+
+    Behavior on color {
+        ColorAnimation { duration: Appearance.animDurationNormal }
+    }
 
     WheelHandler {
         onWheel: (event) => {
@@ -49,7 +53,7 @@ Rectangle {
                 antialiasing: true
 
                 color: {
-                    if (isActive) return Theme.accent
+                    if (isActive) return Theme.barAccent
                     if (wsMouse.containsMouse) return Theme.withAlpha(Theme.foreground, 0.16)
                     return Theme.withAlpha(Theme.foreground, 0.08)
                 }

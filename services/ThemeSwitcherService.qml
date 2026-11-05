@@ -43,6 +43,7 @@ QtObject {
             root.isSwitching = false
             root.switchingTo = ""
             root.refresh()
+            Theme.reloadTheme()
         }
     }
 

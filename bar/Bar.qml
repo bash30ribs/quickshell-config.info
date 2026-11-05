@@ -99,9 +99,14 @@ PanelWindow {
         topRightRadius: 0
         bottomLeftRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
         bottomRightRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
-        color: Theme.withAlpha(Theme.background, Theme.baseOpacity)
-        border.color: Appearance.barBorder ? Theme.selection : "transparent"
-        border.width: Appearance.barBorder ? Appearance.borderWidthThin : 0
+        color: Theme.withAlpha(Theme.barBackground, Theme.baseOpacity)
+        border.color: Appearance.barBorder ? Theme.barBorderColor : Theme.withAlpha(Theme.selection, 0.4)
+        border.width: 1
+        antialiasing: true
+
+        Behavior on color {
+            ColorAnimation { duration: Appearance.animDurationNormal }
+        }
     }
 
     // Left island capsule (islands mode)
@@ -113,9 +118,14 @@ PanelWindow {
         width: leftSection.width + 12
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
-        color: Theme.withAlpha(Theme.background, Theme.baseOpacity)
-        border.color: Appearance.barBorder ? Theme.selection : "transparent"
-        border.width: Appearance.barBorder ? Appearance.borderWidthThin : 0
+        color: Theme.withAlpha(Theme.barBackground, Theme.baseOpacity)
+        border.color: Appearance.barBorder ? Theme.barBorderColor : Theme.withAlpha(Theme.selection, 0.4)
+        border.width: 1
+        antialiasing: true
+
+        Behavior on color {
+            ColorAnimation { duration: Appearance.animDurationNormal }
+        }
     }
 
     // Center island capsule (islands mode)
@@ -127,9 +137,14 @@ PanelWindow {
         width: clockWidget.width + 16
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
-        color: Theme.withAlpha(Theme.background, Theme.baseOpacity)
-        border.color: Appearance.barBorder ? Theme.selection : "transparent"
-        border.width: Appearance.barBorder ? Appearance.borderWidthThin : 0
+        color: Theme.withAlpha(Theme.barBackground, Theme.baseOpacity)
+        border.color: Appearance.barBorder ? Theme.barBorderColor : Theme.withAlpha(Theme.selection, 0.4)
+        border.width: 1
+        antialiasing: true
+
+        Behavior on color {
+            ColorAnimation { duration: Appearance.animDurationNormal }
+        }
     }
 
     // Right island capsule (islands mode)
@@ -141,9 +156,14 @@ PanelWindow {
         width: rightSection.width + 12
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
-        color: Theme.withAlpha(Theme.background, Theme.baseOpacity)
-        border.color: Appearance.barBorder ? Theme.selection : "transparent"
-        border.width: Appearance.barBorder ? Appearance.borderWidthThin : 0
+        color: Theme.withAlpha(Theme.barBackground, Theme.baseOpacity)
+        border.color: Appearance.barBorder ? Theme.barBorderColor : Theme.withAlpha(Theme.selection, 0.4)
+        border.width: 1
+        antialiasing: true
+
+        Behavior on color {
+            ColorAnimation { duration: Appearance.animDurationNormal }
+        }
     }
 
     // Widget content container
@@ -181,41 +201,59 @@ PanelWindow {
             powerService: root.powerService
         }
 
-        // Right section: hardware and status controls
-        Row {
+        // Right section: hardware and status controls in unified pill container
+        Rectangle {
             id: rightSection
             anchors.verticalCenter: parent.verticalCenter
-            spacing: Appearance.barSpacing
+            implicitWidth: rightRow.implicitWidth + (Appearance.paddingSmall * 2)
+            implicitHeight: Appearance.barButtonHeight
             width: implicitWidth
             height: implicitHeight
             x: root.isCompact
                 ? (clockWidget.x + clockWidget.width + (Appearance.barSectionSpacing * 2))
                 : Math.round(barContainer.width - width - Appearance.barMarginHorizontal)
+            radius: height / 2
+            color: Theme.withAlpha(Theme.barDarkBackground, 0.78)
+            border.color: Appearance.barBorder ? Theme.barBorderColor : Theme.withAlpha(Theme.selection, 0.4)
+            border.width: 1
+            antialiasing: true
 
-            BluetoothWidget {
-                id: bluetoothWidget
-                service: root.bluetoothService
+            Behavior on color {
+                ColorAnimation { duration: Appearance.animDurationNormal }
             }
 
-            NetworkWidget {
-                id: networkWidget
-                service: root.networkService
-            }
+            Row {
+                id: rightRow
+                anchors.centerIn: parent
+                spacing: Appearance.barSpacing
+                width: implicitWidth
+                height: implicitHeight
 
-            AudioWidget {
-                id: audioWidget
-                service: root.audioService
-            }
+                BluetoothWidget {
+                    id: bluetoothWidget
+                    service: root.bluetoothService
+                }
 
-            MonitorWidget {
-                id: monitorWidget
-                service: root.brightnessService
-            }
+                NetworkWidget {
+                    id: networkWidget
+                    service: root.networkService
+                }
 
-            BatteryWidget {
-                id: batteryWidget
-                batteryService: root.batteryService
-                powerService: root.powerService
+                AudioWidget {
+                    id: audioWidget
+                    service: root.audioService
+                }
+
+                MonitorWidget {
+                    id: monitorWidget
+                    service: root.brightnessService
+                }
+
+                BatteryWidget {
+                    id: batteryWidget
+                    batteryService: root.batteryService
+                    powerService: root.powerService
+                }
             }
         }
     }
