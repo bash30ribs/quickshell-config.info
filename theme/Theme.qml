@@ -67,12 +67,20 @@ QtObject {
     // ─────────────────────────────────────────────────────────────────────────
     // Glassmorphism & Frosted Glass Tokens
     // ─────────────────────────────────────────────────────────────────────────
-    readonly property real glassOpacity: 0.48
-    readonly property real glassPillOpacity: 0.62
-    readonly property color glassBorder: Qt.rgba(root.light_foreground.r, root.light_foreground.g, root.light_foreground.b, 0.16)
-    readonly property color glassSpecular: Qt.rgba(1, 1, 1, 0.18)
-    readonly property color glassHover: root.withAlpha(root.lighter_background, 0.45)
-    readonly property color glassActive: root.withAlpha(root.selection, 0.65)
+    readonly property real glassOpacity: 0.20
+    readonly property real glassPillOpacity: 0.10
+    readonly property color glassBorder: Qt.rgba(1, 1, 1, 0.22)
+    readonly property color glassBorderLight: Qt.rgba(1, 1, 1, 0.38)
+    readonly property color glassSpecular: Qt.rgba(1, 1, 1, 0.55)
+    readonly property color glassInnerSheen: Qt.rgba(1, 1, 1, 0.16)
+    readonly property color glassBounce: Qt.rgba(1, 1, 1, 0.10)
+    readonly property color glassWidgetBg: Qt.rgba(1, 1, 1, 0.08)
+    readonly property color glassWidgetBorder: Qt.rgba(1, 1, 1, 0.18)
+    readonly property color glassHover: Qt.rgba(1, 1, 1, 0.18)
+    readonly property color glassHoverBorder: Qt.rgba(1, 1, 1, 0.42)
+    readonly property color glassActive: root.withAlpha(root.accent, 0.26)
+    readonly property color glassActiveBorder: root.withAlpha(root.accent, 0.75)
+    readonly property real glassPopupOpacity: 0.42
 
     // ─────────────────────────────────────────────────────────────────────────
     // Dual Alpha + Compositor Blur Architecture
@@ -93,7 +101,7 @@ QtObject {
         var stateStr = enabled ? "on" : "off"
         var cmd = "mkdir -p \"$(dirname \"" + root.blurStatePath + "\")\" && printf '%s' \"" + stateStr + "\" > \"" + root.blurStatePath + "\""
         if (enabled) {
-            cmd += " && hyprctl eval 'hl.layer_rule({ name = \"qdeck-blur\", match = { namespace = \"^quickshell-.*\" }, blur = true, blur_popups = true, ignore_alpha = 0.1 })' 2>/dev/null || true"
+            cmd += " && hyprctl eval 'hl.layer_rule({ name = \"qdeck-blur\", match = { namespace = \"^quickshell-.*\" }, blur = true, blur_popups = true, ignore_alpha = 0 })' 2>/dev/null || true"
         } else {
             cmd += " && hyprctl eval 'hl.layer_rule({ name = \"qdeck-blur\", match = { namespace = \"^quickshell-.*\" }, blur = false, blur_popups = false })' 2>/dev/null || true"
         }

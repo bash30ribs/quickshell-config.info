@@ -99,13 +99,17 @@ PanelWindow {
         topRightRadius: 0
         bottomLeftRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
         bottomRightRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
-        color: Theme.withAlpha(Theme.background, Theme.glassOpacity)
+        color: "transparent"
         border.color: Theme.glassBorder
         border.width: 1
         antialiasing: true
 
-        Behavior on color {
-            ColorAnimation { duration: Appearance.animDurationNormal }
+        // Multi-stop crystal frosted glass refraction gradient
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.22) }
+            GradientStop { position: 0.10; color: Theme.withAlpha(Theme.lighter_background, 0.20) }
+            GradientStop { position: 0.75; color: Theme.withAlpha(Theme.background, 0.14) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.22) }
         }
 
         // Frosted glass specular top edge highlight
@@ -115,6 +119,33 @@ PanelWindow {
             anchors.right: parent.right
             height: 1
             color: Theme.glassSpecular
+            antialiasing: true
+        }
+
+        // Inner diffuse glass sheen glow
+        Rectangle {
+            anchors.top: parent.top
+            anchors.topMargin: 1
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 8
+            antialiasing: true
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Theme.glassInnerSheen }
+                GradientStop { position: 1.0; color: "transparent" }
+            }
+        }
+
+        // Bottom specular bounce reflection line
+        Rectangle {
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 1
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: Math.max(8, parent.bottomLeftRadius / 2)
+            anchors.rightMargin: Math.max(8, parent.bottomRightRadius / 2)
+            height: 1
+            color: Theme.glassBounce
             antialiasing: true
         }
     }
@@ -128,13 +159,15 @@ PanelWindow {
         width: leftSection.width + 12
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
-        color: Theme.withAlpha(Theme.background, Theme.glassOpacity)
+        color: "transparent"
         border.color: Theme.glassBorder
         border.width: 1
         antialiasing: true
 
-        Behavior on color {
-            ColorAnimation { duration: Appearance.animDurationNormal }
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.22) }
+            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.lighter_background, 0.20) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.22) }
         }
 
         Rectangle {
@@ -146,6 +179,21 @@ PanelWindow {
             height: 1
             color: Theme.glassSpecular
             antialiasing: true
+        }
+
+        Rectangle {
+            anchors.top: parent.top
+            anchors.topMargin: 1
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: 6
+            anchors.rightMargin: 6
+            height: 7
+            antialiasing: true
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Theme.glassInnerSheen }
+                GradientStop { position: 1.0; color: "transparent" }
+            }
         }
     }
 
@@ -158,13 +206,15 @@ PanelWindow {
         width: clockWidget.width + 16
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
-        color: Theme.withAlpha(Theme.background, Theme.glassOpacity)
+        color: "transparent"
         border.color: Theme.glassBorder
         border.width: 1
         antialiasing: true
 
-        Behavior on color {
-            ColorAnimation { duration: Appearance.animDurationNormal }
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.22) }
+            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.lighter_background, 0.20) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.22) }
         }
 
         Rectangle {
@@ -176,6 +226,21 @@ PanelWindow {
             height: 1
             color: Theme.glassSpecular
             antialiasing: true
+        }
+
+        Rectangle {
+            anchors.top: parent.top
+            anchors.topMargin: 1
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: 6
+            anchors.rightMargin: 6
+            height: 7
+            antialiasing: true
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Theme.glassInnerSheen }
+                GradientStop { position: 1.0; color: "transparent" }
+            }
         }
     }
 
@@ -188,13 +253,15 @@ PanelWindow {
         width: rightSection.width + 12
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
-        color: Theme.withAlpha(Theme.background, Theme.glassOpacity)
+        color: "transparent"
         border.color: Theme.glassBorder
         border.width: 1
         antialiasing: true
 
-        Behavior on color {
-            ColorAnimation { duration: Appearance.animDurationNormal }
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.22) }
+            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.lighter_background, 0.20) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.22) }
         }
 
         Rectangle {
@@ -206,6 +273,21 @@ PanelWindow {
             height: 1
             color: Theme.glassSpecular
             antialiasing: true
+        }
+
+        Rectangle {
+            anchors.top: parent.top
+            anchors.topMargin: 1
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: 6
+            anchors.rightMargin: 6
+            height: 7
+            antialiasing: true
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Theme.glassInnerSheen }
+                GradientStop { position: 1.0; color: "transparent" }
+            }
         }
     }
 

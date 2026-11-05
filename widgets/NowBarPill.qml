@@ -47,18 +47,59 @@ Item {
         visible: false
     }
 
-    // Outer Capsule Pill Container (Black pill matching frame_pill.png)
+    // Outer Frosted Glass Container
     Rectangle {
         id: pillBg
         anchors.fill: parent
-        radius: Appearance.mediaPillRadius
+        radius: Appearance.buttonRadius > 0 ? Appearance.buttonRadius : 8
+        antialiasing: true
 
-        color: pillMouse.containsMouse ? Theme.glassHover : Theme.withAlpha(Theme.dark_background, Theme.glassPillOpacity)
-        border.color: Theme.glassBorder
+        gradient: Gradient {
+            GradientStop {
+                position: 0.0
+                color: pillMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.22) : Qt.rgba(1, 1, 1, 0.10)
+            }
+            GradientStop {
+                position: 1.0
+                color: pillMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(1, 1, 1, 0.03)
+            }
+        }
+        border.color: pillMouse.containsMouse ? Theme.glassHoverBorder : Theme.glassWidgetBorder
         border.width: 1
 
-        Behavior on color {
-            ColorAnimation { duration: Appearance.animDurationNormal }
+        // Top specular edge highlight
+        Rectangle {
+            anchors.top: parent.top
+            anchors.topMargin: 1
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: Math.max(3, parent.radius / 2)
+            anchors.rightMargin: Math.max(3, parent.radius / 2)
+            height: 1
+            color: pillMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.65) : Qt.rgba(1, 1, 1, 0.32)
+            antialiasing: true
+        }
+
+        // Inner diffuse glass sheen
+        Rectangle {
+            anchors.top: parent.top
+            anchors.topMargin: 2
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: Math.max(3, parent.radius / 2)
+            anchors.rightMargin: Math.max(3, parent.radius / 2)
+            height: 5
+            antialiasing: true
+            gradient: Gradient {
+                GradientStop {
+                    position: 0.0
+                    color: pillMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.18) : Qt.rgba(1, 1, 1, 0.08)
+                }
+                GradientStop {
+                    position: 1.0
+                    color: "transparent"
+                }
+            }
         }
 
         // Disappear smoothly when popup opens, bounce back into view when closed

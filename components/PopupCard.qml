@@ -110,17 +110,53 @@ PanelWindow {
         return Math.max(Appearance.barHeight + 6, itemBottomScreenY + 6)
     }
 
-    // Outer Card Container
+    // Outer Card Container with Frosted Glassmorphism
     Rectangle {
         id: cardRect
         x: Math.round(root.cardX)
         y: Math.round(root.cardY)
         width: root.contentWidth
         height: root.contentHeight
-        color: Theme.withAlpha(Theme.dark_background, Theme.baseOpacity)
-        border.color: "transparent"
-        border.width: Appearance.borderWidthNone
+        color: "transparent"
+        border.color: Theme.glassBorder
+        border.width: 1
         radius: Appearance.popupRadius
+        antialiasing: true
+
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.20) }
+            GradientStop { position: 0.08; color: Theme.withAlpha(Theme.lighter_background, 0.38) }
+            GradientStop { position: 0.80; color: Theme.withAlpha(Theme.background, 0.30) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.45) }
+        }
+
+        // Frosted glass specular top edge highlight
+        Rectangle {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: Math.max(4, parent.radius / 2)
+            anchors.rightMargin: Math.max(4, parent.radius / 2)
+            height: 1
+            color: Theme.glassSpecular
+            antialiasing: true
+        }
+
+        // Inner diffuse glass sheen
+        Rectangle {
+            anchors.top: parent.top
+            anchors.topMargin: 1
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: Math.max(4, parent.radius / 2)
+            anchors.rightMargin: Math.max(4, parent.radius / 2)
+            height: 10
+            antialiasing: true
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Theme.glassInnerSheen }
+                GradientStop { position: 1.0; color: "transparent" }
+            }
+        }
 
         // Prevent clicks inside the card from closing the popup
         MouseArea {

@@ -81,6 +81,7 @@ Item {
         icon: ""
         text: root.formatDayTime(root.now)
         active: clockPopup.open
+        customPadding: 10
         onClicked: {
             clockPopup.toggle()
             if (clockPopup.open) root.goToToday()
