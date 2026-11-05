@@ -101,7 +101,7 @@ Item {
             Rectangle {
                 width: parent.width
                 height: 1
-                color: Theme.selection
+                color: Qt.rgba(1, 1, 1, 0.12)
             }
 
             // --- 2. BRIGHTNESS Section ---
@@ -147,7 +147,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         height: 4
                         radius: Appearance.radiusXs
-                        color: Theme.selection
+                        color: Qt.rgba(1, 1, 1, 0.12)
 
                         Rectangle {
                             anchors.left: parent.left
@@ -206,7 +206,7 @@ Item {
             Rectangle {
                 width: parent.width
                 height: 1
-                color: Theme.selection
+                color: Qt.rgba(1, 1, 1, 0.12)
             }
 
             // --- 3. TEXT SIZE Section (Stepped Notch Slider) ---
@@ -275,7 +275,7 @@ Item {
                                 width: (textSliderItem.width - (4 * (textSliderItem.stops.length - 2))) / (textSliderItem.stops.length - 1)
                                 height: 4
                                 radius: Appearance.radiusXs
-                                color: (index < textSliderItem.activeIndex) ? Theme.accent : Theme.selection
+                                color: (index < textSliderItem.activeIndex) ? Theme.accent : Qt.rgba(1, 1, 1, 0.12)
                             }
                         }
                     }
@@ -331,7 +331,7 @@ Item {
             Rectangle {
                 width: parent.width
                 height: 1
-                color: Theme.selection
+                color: Qt.rgba(1, 1, 1, 0.12)
             }
 
             // --- 4. SCALE Section (Segmented Pill Buttons) ---
@@ -389,8 +389,8 @@ Item {
                             width: scaleRow.pillWidth
                             height: 28
                             radius: Appearance.radiusSmall
-                            color: isActive ? Theme.selection : (pillMouse.containsMouse ? Theme.lighter_background : Theme.dark_background)
-                            border.color: isActive ? Theme.accent : Theme.selection
+                            color: isActive ? Theme.withAlpha(Theme.accent, 0.22) : (pillMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
+                            border.color: isActive ? Theme.accent : Qt.rgba(1, 1, 1, 0.12)
                             border.width: 1
 
                             Text {
@@ -418,7 +418,7 @@ Item {
             Rectangle {
                 width: parent.width
                 height: 1
-                color: Theme.selection
+                color: Qt.rgba(1, 1, 1, 0.12)
             }
 
             // --- 5. REFRESH RATE Section (Segmented Pill Buttons) ---
@@ -480,8 +480,8 @@ Item {
 
                         readonly property bool isActive: Math.abs(root.service.currentRefreshRate - 60) <= 2
 
-                        color: isActive ? Theme.selection : (p60Mouse.containsMouse ? Theme.lighter_background : Theme.dark_background)
-                        border.color: isActive ? Theme.accent : Theme.selection
+                        color: isActive ? Theme.withAlpha(Theme.accent, 0.22) : (p60Mouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
+                        border.color: isActive ? Theme.accent : Qt.rgba(1, 1, 1, 0.12)
                         border.width: 1
 
                         Text {
@@ -512,8 +512,8 @@ Item {
 
                         readonly property bool isActive: Math.abs(root.service.currentRefreshRate - hzRow.maxHz) <= 2
 
-                        color: isActive ? Theme.selection : (pMaxMouse.containsMouse ? Theme.lighter_background : Theme.dark_background)
-                        border.color: isActive ? Theme.accent : Theme.selection
+                        color: isActive ? Theme.withAlpha(Theme.accent, 0.22) : (pMaxMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
+                        border.color: isActive ? Theme.accent : Qt.rgba(1, 1, 1, 0.12)
                         border.width: 1
 
                         Text {

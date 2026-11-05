@@ -42,7 +42,7 @@ PanelWindow {
 
     Timer {
         id: closeTimer
-        interval: 140
+        interval: 130
         repeat: false
         onTriggered: {
             root._animatingClose = false
@@ -135,75 +135,44 @@ PanelWindow {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Multi-Layer 3D Spatial Shadows (Levitation Depth)
-    // ─────────────────────────────────────────────────────────────────────────
-    // Soft outer ambient drop shadow
-    Rectangle {
-        x: Math.round(cardRect.x - 10)
-        y: Math.round(cardRect.y - 4)
-        width: cardRect.width + 20
-        height: cardRect.height + 22
-        radius: cardRect.radius + 8
-        color: Qt.rgba(0, 0, 0, 0.42)
-        antialiasing: true
-        opacity: cardRect.opacity
-        scale: cardRect.scale
-        transformOrigin: cardRect.transformOrigin
-    }
-
-    // Sharp contact shadow
-    Rectangle {
-        x: Math.round(cardRect.x - 2)
-        y: Math.round(cardRect.y)
-        width: cardRect.width + 4
-        height: cardRect.height + 6
-        radius: cardRect.radius + 3
-        color: Qt.rgba(0, 0, 0, 0.35)
-        antialiasing: true
-        opacity: cardRect.opacity
-        scale: cardRect.scale
-        transformOrigin: cardRect.transformOrigin
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Outer Card Container with Apple-Grade Frosted Glass & Fast Dramatic Spring
+    // Outer Card Container with True Apple-Grade Frosted Glass & Snappy Spring
     // ─────────────────────────────────────────────────────────────────────────
     Rectangle {
         id: cardRect
         x: Math.round(root.cardX)
-        y: Math.round(root.cardY) + (root.isCardActive ? 0 : -10)
+        y: Math.round(root.cardY) + (root.isCardActive ? 0 : -8)
         width: root.contentWidth
         height: root.contentHeight
         color: "transparent"
-        border.color: Theme.withAlpha(Theme.glassBorderColor, 0.30)
+        border.color: Qt.rgba(1, 1, 1, 0.20)
         border.width: 1
         radius: Appearance.popupRadius > 0 ? Appearance.popupRadius : 14
         antialiasing: true
 
         opacity: root.isCardActive ? 1.0 : 0.0
-        scale: root.isCardActive ? 1.0 : 0.88
+        scale: root.isCardActive ? 1.0 : 0.90
         transformOrigin: Item.Top
 
         Behavior on y {
-            NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: 170; easing.type: Easing.OutCubic }
         }
         Behavior on opacity {
-            NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+            NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
         }
         Behavior on scale {
             NumberAnimation {
-                duration: 180
+                duration: 170
                 easing.type: Easing.OutBack
-                easing.overshoot: 1.25
+                easing.overshoot: 1.20
             }
         }
 
-        // Apple-grade frosted liquid glass refraction gradient
+        // True Apple-grade frosted liquid glass: high translucency letting Kawase blur shine through
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.35) }
-            GradientStop { position: 0.08; color: Theme.withAlpha(Theme.glassTint, 0.22) }
-            GradientStop { position: 0.65; color: Theme.withAlpha(Theme.glassSurface, 0.36) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.52) }
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.16) }
+            GradientStop { position: 0.12; color: Qt.rgba(1, 1, 1, 0.07) }
+            GradientStop { position: 0.65; color: Theme.withAlpha(Theme.background, 0.12) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.18) }
         }
 
         // Frosted glass specular top edge highlight
@@ -214,7 +183,7 @@ PanelWindow {
             anchors.leftMargin: Math.max(4, parent.radius / 2)
             anchors.rightMargin: Math.max(4, parent.radius / 2)
             height: 1
-            color: Theme.withAlpha(Theme.glassCrest, 0.70)
+            color: Qt.rgba(1, 1, 1, 0.40)
             antialiasing: true
         }
 
@@ -226,15 +195,15 @@ PanelWindow {
             anchors.right: parent.right
             anchors.leftMargin: Math.max(4, parent.radius / 2)
             anchors.rightMargin: Math.max(4, parent.radius / 2)
-            height: 14
+            height: 10
             antialiasing: true
             gradient: Gradient {
-                GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.18) }
+                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.12) }
                 GradientStop { position: 1.0; color: "transparent" }
             }
         }
 
-        // Bottom ambient bounce reflection line
+        // Bottom ambient bounce line
         Rectangle {
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 1
@@ -243,7 +212,7 @@ PanelWindow {
             anchors.leftMargin: Math.max(4, parent.radius / 2)
             anchors.rightMargin: Math.max(4, parent.radius / 2)
             height: 1
-            color: Theme.withAlpha(Theme.accent, 0.15)
+            color: Qt.rgba(1, 1, 1, 0.08)
             antialiasing: true
         }
 
@@ -269,7 +238,7 @@ PanelWindow {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 height: Appearance.borderWidthThin
-                color: Theme.withAlpha(Theme.glassBorderColor, 0.25)
+                color: Qt.rgba(1, 1, 1, 0.14)
             }
 
             Row {

@@ -173,7 +173,7 @@ Item {
                         id: yearTrack
                         height: 5
                         radius: 2.5
-                        color: Theme.selection
+                        color: Qt.rgba(1, 1, 1, 0.12)
                         anchors.verticalCenter: parent.verticalCenter
                         width: parent.width - 76
 
@@ -212,7 +212,7 @@ Item {
                     y: 20
                     width: 1
                     height: 195
-                    color: Theme.selection
+                    color: Qt.rgba(1, 1, 1, 0.12)
                 }
 
                 Column {

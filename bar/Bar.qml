@@ -100,16 +100,16 @@ PanelWindow {
         bottomLeftRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
         bottomRightRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
         color: "transparent"
-        border.color: Theme.glassBorder
+        border.color: Qt.rgba(1, 1, 1, 0.15)
         border.width: 1
         antialiasing: true
 
         // Multi-stop Apple-grade frosted glass refraction gradient
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.25) }
-            GradientStop { position: 0.12; color: Theme.withAlpha(Theme.glassTint, 0.16) }
-            GradientStop { position: 0.65; color: Theme.withAlpha(Theme.glassSurface, 0.22) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.32) }
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.15) }
+            GradientStop { position: 0.12; color: Qt.rgba(1, 1, 1, 0.06) }
+            GradientStop { position: 0.70; color: Theme.withAlpha(Theme.background, 0.10) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.14) }
         }
 
         // Frosted glass specular top edge highlight
@@ -118,7 +118,7 @@ PanelWindow {
             anchors.left: parent.left
             anchors.right: parent.right
             height: 1
-            color: Theme.glassSpecular
+            color: Qt.rgba(1, 1, 1, 0.32)
             antialiasing: true
         }
 
@@ -131,7 +131,7 @@ PanelWindow {
             height: 8
             antialiasing: true
             gradient: Gradient {
-                GradientStop { position: 0.0; color: Theme.glassInnerSheen }
+                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.08) }
                 GradientStop { position: 1.0; color: "transparent" }
             }
         }
@@ -145,7 +145,7 @@ PanelWindow {
             anchors.leftMargin: Math.max(8, parent.bottomLeftRadius / 2)
             anchors.rightMargin: Math.max(8, parent.bottomRightRadius / 2)
             height: 1
-            color: Theme.glassBounce
+            color: Qt.rgba(1, 1, 1, 0.06)
             antialiasing: true
         }
     }
@@ -160,14 +160,14 @@ PanelWindow {
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
         color: "transparent"
-        border.color: Theme.glassBorder
+        border.color: Qt.rgba(1, 1, 1, 0.15)
         border.width: 1
         antialiasing: true
 
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.25) }
-            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.glassTint, 0.16) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.glassSurface, 0.26) }
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.16) }
+            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.lighter_background, 0.14) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.16) }
         }
 
         Rectangle {
@@ -177,7 +177,7 @@ PanelWindow {
             anchors.leftMargin: 6
             anchors.rightMargin: 6
             height: 1
-            color: Theme.glassSpecular
+            color: Qt.rgba(1, 1, 1, 0.32)
             antialiasing: true
         }
 
@@ -191,7 +191,7 @@ PanelWindow {
             height: 7
             antialiasing: true
             gradient: Gradient {
-                GradientStop { position: 0.0; color: Theme.glassInnerSheen }
+                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.08) }
                 GradientStop { position: 1.0; color: "transparent" }
             }
         }
@@ -207,14 +207,14 @@ PanelWindow {
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
         color: "transparent"
-        border.color: Theme.glassBorder
+        border.color: Qt.rgba(1, 1, 1, 0.15)
         border.width: 1
         antialiasing: true
 
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.25) }
-            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.glassTint, 0.16) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.glassSurface, 0.26) }
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.16) }
+            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.lighter_background, 0.14) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.16) }
         }
 
         Rectangle {
@@ -224,7 +224,7 @@ PanelWindow {
             anchors.leftMargin: 6
             anchors.rightMargin: 6
             height: 1
-            color: Theme.glassSpecular
+            color: Qt.rgba(1, 1, 1, 0.32)
             antialiasing: true
         }
 
@@ -238,7 +238,7 @@ PanelWindow {
             height: 7
             antialiasing: true
             gradient: Gradient {
-                GradientStop { position: 0.0; color: Theme.glassInnerSheen }
+                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.08) }
                 GradientStop { position: 1.0; color: "transparent" }
             }
         }
@@ -254,14 +254,14 @@ PanelWindow {
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
         color: "transparent"
-        border.color: Theme.glassBorder
+        border.color: Qt.rgba(1, 1, 1, 0.15)
         border.width: 1
         antialiasing: true
 
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.25) }
-            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.glassTint, 0.16) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.glassSurface, 0.26) }
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.16) }
+            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.lighter_background, 0.14) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.16) }
         }
 
         Rectangle {
@@ -271,7 +271,7 @@ PanelWindow {
             anchors.leftMargin: 6
             anchors.rightMargin: 6
             height: 1
-            color: Theme.glassSpecular
+            color: Qt.rgba(1, 1, 1, 0.32)
             antialiasing: true
         }
 
@@ -285,7 +285,7 @@ PanelWindow {
             height: 7
             antialiasing: true
             gradient: Gradient {
-                GradientStop { position: 0.0; color: Theme.glassInnerSheen }
+                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.08) }
                 GradientStop { position: 1.0; color: "transparent" }
             }
         }

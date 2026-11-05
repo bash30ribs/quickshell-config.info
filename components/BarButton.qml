@@ -25,16 +25,16 @@ Rectangle {
     radius: Appearance.buttonRadius > 0 ? Appearance.buttonRadius : 6
     antialiasing: true
 
-    // Merged into the bar at rest; Apple-grade frosted glass pill on hover/active
+    // Seamlessly merged into the bar; soft frosted glass highlight on hover, subtle accent wash on active
     color: {
-        if (root.active) return Theme.withAlpha(Theme.accent, 0.25)
-        if (mouseArea.containsMouse) return Theme.withAlpha(Theme.glassCrest, 0.14)
+        if (root.active) return Theme.withAlpha(Theme.accent, 0.18)
+        if (mouseArea.containsMouse) return Qt.rgba(1, 1, 1, 0.08)
         return "transparent"
     }
 
     border.color: {
-        if (root.active) return Theme.withAlpha(Theme.accent, 0.65)
-        if (mouseArea.containsMouse) return Theme.withAlpha(Theme.glassCrest, 0.28)
+        if (root.active) return Theme.withAlpha(Theme.accent, 0.35)
+        if (mouseArea.containsMouse) return Qt.rgba(1, 1, 1, 0.12)
         return "transparent"
     }
     border.width: (root.active || mouseArea.containsMouse) ? 1 : 0
@@ -44,47 +44,6 @@ Rectangle {
     }
     Behavior on border.color {
         ColorAnimation { duration: Appearance.animDurationNormal }
-    }
-
-    // Top specular highlight (visible only on hover or active)
-    Rectangle {
-        visible: root.active || mouseArea.containsMouse
-        anchors.top: parent.top
-        anchors.topMargin: 1
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.leftMargin: Math.max(3, root.radius / 2)
-        anchors.rightMargin: Math.max(3, root.radius / 2)
-        height: 1
-        color: root.active ? Theme.withAlpha(Theme.accent, 0.85) : Theme.withAlpha(Theme.glassCrest, 0.50)
-        antialiasing: true
-
-        Behavior on color {
-            ColorAnimation { duration: Appearance.animDurationNormal }
-        }
-    }
-
-    // Inner subtle sheen on hover/active
-    Rectangle {
-        visible: root.active || mouseArea.containsMouse
-        anchors.top: parent.top
-        anchors.topMargin: 2
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.leftMargin: Math.max(3, root.radius / 2)
-        anchors.rightMargin: Math.max(3, root.radius / 2)
-        height: Math.min(5, parent.height / 3)
-        antialiasing: true
-        gradient: Gradient {
-            GradientStop {
-                position: 0.0
-                color: root.active ? Theme.withAlpha(Theme.accent, 0.22) : Theme.withAlpha(Theme.glassCrest, 0.15)
-            }
-            GradientStop {
-                position: 1.0
-                color: "transparent"
-            }
-        }
     }
 
     Row {

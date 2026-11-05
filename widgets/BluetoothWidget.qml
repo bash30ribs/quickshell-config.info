@@ -121,7 +121,7 @@ Item {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 1
-                color: Theme.selection
+                color: Qt.rgba(1, 1, 1, 0.12)
             }
 
             // ── Bluetooth Turned Off Message ──────────────────────────
@@ -177,8 +177,8 @@ Item {
                                     width: parent.width
                                     height: 44
                                     radius: Appearance.radiusSmall
-                                    color: Theme.selection
-                                    border.color: Theme.selection
+                                    color: Qt.rgba(1, 1, 1, 0.08)
+                                    border.color: Qt.rgba(1, 1, 1, 0.12)
                                     border.width: 1
 
                                     RowLayout {
@@ -224,8 +224,8 @@ Item {
                                             Layout.preferredHeight: 24
                                             Layout.alignment: Qt.AlignVCenter
                                             radius: Appearance.radiusSmall
-                                            color: disMouse.containsMouse ? Theme.darker_background : Theme.dark_background
-                                            border.color: disMouse.containsMouse ? Theme.red : Theme.selection
+                                            color: disMouse.containsMouse ? Qt.rgba(1, 0.3, 0.3, 0.20) : Qt.rgba(1, 1, 1, 0.06)
+                                            border.color: disMouse.containsMouse ? Theme.red : Qt.rgba(1, 1, 1, 0.12)
                                             border.width: 1
 
                                             Text {
@@ -253,7 +253,7 @@ Item {
                         Rectangle {
                             width: parent.width
                             height: 1
-                            color: Theme.selection
+                            color: Qt.rgba(1, 1, 1, 0.12)
                             visible: root.service.connectedDevices.length > 0 && (root.service.pairedDevices.length > 0 || root.service.availableDevices.length > 0)
                         }
 
@@ -283,8 +283,8 @@ Item {
                                     width: parent.width
                                     height: 44
                                     radius: Appearance.radiusSmall
-                                    color: isConnecting ? Theme.selection : (pMouse.containsMouse ? Theme.lighter_background : "transparent")
-                                    border.color: isConnecting ? Theme.selection : "transparent"
+                                    color: isConnecting ? Theme.withAlpha(Theme.accent, 0.18) : (pMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : "transparent")
+                                    border.color: isConnecting ? Theme.accent : "transparent"
                                     border.width: isConnecting ? 1 : 0
 
                                     RowLayout {
@@ -331,8 +331,8 @@ Item {
                                             Layout.preferredHeight: 24
                                             Layout.alignment: Qt.AlignVCenter
                                             radius: Appearance.radiusSmall
-                                            color: pairedRow.isConnecting ? Theme.selection : (cMouse.containsMouse ? Theme.selection : Theme.dark_background)
-                                            border.color: pairedRow.isConnecting ? Theme.accent : (cMouse.containsMouse ? Theme.accent : Theme.selection)
+                                            color: pairedRow.isConnecting ? Theme.withAlpha(Theme.accent, 0.20) : (cMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
+                                            border.color: pairedRow.isConnecting ? Theme.accent : (cMouse.containsMouse ? Theme.accent : Qt.rgba(1, 1, 1, 0.12))
                                             border.width: 1
 
                                             Text {
@@ -400,7 +400,7 @@ Item {
                         Rectangle {
                             width: parent.width
                             height: 1
-                            color: Theme.selection
+                            color: Qt.rgba(1, 1, 1, 0.12)
                             visible: root.service.pairedDevices.length > 0 && root.service.availableDevices.length > 0
                         }
 
@@ -431,8 +431,8 @@ Item {
                                     width: parent.width
                                     height: (isPairing || isConnecting || hasError) ? 44 : 36
                                     radius: Appearance.radiusSmall
-                                    color: (isPairing || isConnecting) ? Theme.selection : (aMouse.containsMouse ? Theme.lighter_background : "transparent")
-                                    border.color: (isPairing || isConnecting) ? Theme.selection : "transparent"
+                                    color: (isPairing || isConnecting) ? Theme.withAlpha(Theme.accent, 0.18) : (aMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : "transparent")
+                                    border.color: (isPairing || isConnecting) ? Theme.accent : "transparent"
                                     border.width: (isPairing || isConnecting) ? 1 : 0
 
                                     RowLayout {
@@ -478,8 +478,8 @@ Item {
                                             Layout.preferredHeight: 24
                                             Layout.alignment: Qt.AlignVCenter
                                             radius: Appearance.radiusSmall
-                                            color: (availRow.isPairing || availRow.isConnecting) ? Theme.selection : (pairMouse.containsMouse ? Theme.selection : Theme.dark_background)
-                                            border.color: (availRow.isPairing || availRow.isConnecting) ? Theme.accent : (pairMouse.containsMouse ? Theme.accent : Theme.selection)
+                                            color: (availRow.isPairing || availRow.isConnecting) ? Theme.withAlpha(Theme.accent, 0.20) : (pairMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
+                                            border.color: (availRow.isPairing || availRow.isConnecting) ? Theme.accent : (pairMouse.containsMouse ? Theme.accent : Qt.rgba(1, 1, 1, 0.12))
                                             border.width: 1
 
                                             Text {

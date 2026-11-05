@@ -136,8 +136,8 @@ Item {
                         width: 28
                         height: 28
                         radius: Appearance.radiusSmall
-                        color: topDisMouse.containsMouse ? Theme.darker_background : Theme.dark_background
-                        border.color: topDisMouse.containsMouse ? Theme.red : Theme.selection
+                        color: topDisMouse.containsMouse ? Qt.rgba(1, 0.3, 0.3, 0.20) : Qt.rgba(1, 1, 1, 0.06)
+                        border.color: topDisMouse.containsMouse ? Theme.red : Qt.rgba(1, 1, 1, 0.12)
                         border.width: 1
 
                         Text {
@@ -162,8 +162,8 @@ Item {
                         width: 28
                         height: 28
                         radius: Appearance.radiusSmall
-                        color: root.showQrView ? Theme.selection : (qrMouse.containsMouse ? Theme.lighter_background : Theme.dark_background)
-                        border.color: root.showQrView ? Theme.accent : Theme.selection
+                        color: root.showQrView ? Theme.withAlpha(Theme.accent, 0.22) : (qrMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
+                        border.color: root.showQrView ? Theme.accent : Qt.rgba(1, 1, 1, 0.12)
                         border.width: 1
 
                         Text {
@@ -345,8 +345,8 @@ Item {
                                 width: dnsRow.cellWidth
                                 height: 28
                                 radius: Appearance.radiusSmall
-                                color: isActive ? Theme.selection : (dnsMouse.containsMouse ? Theme.lighter_background : Theme.dark_background)
-                                border.color: isActive ? Theme.accent : (dnsMouse.containsMouse ? Theme.muted : Theme.selection)
+                                color: isActive ? Theme.withAlpha(Theme.accent, 0.22) : (dnsMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
+                                border.color: isActive ? Theme.accent : (dnsMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.20) : Qt.rgba(1, 1, 1, 0.12))
                                 border.width: 1
 
                                 Text {
@@ -536,8 +536,8 @@ Item {
                             width: parent.width
                             height: 42
                             radius: Appearance.radiusSmall
-                            color: isConnected ? Theme.selection : (isSelected || isConnecting ? Theme.selection : (kMouse.containsMouse ? Theme.lighter_background : "transparent"))
-                            border.color: isConnected ? Theme.accent : (isSelected || isConnecting ? Theme.selection : "transparent")
+                            color: isConnected ? Theme.withAlpha(Theme.accent, 0.18) : (isSelected || isConnecting ? Theme.withAlpha(Theme.accent, 0.12) : (kMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"))
+                            border.color: isConnected ? Theme.accent : (isSelected || isConnecting ? Theme.withAlpha(Theme.accent, 0.35) : "transparent")
                             border.width: (isConnected || isSelected || isConnecting) ? 1 : 0
 
                             Row {
@@ -600,8 +600,8 @@ Item {
                                     width: knownRow.isConnecting ? 76 : (knownRow.isConnected ? 68 : 54)
                                     height: 24
                                     radius: Appearance.radiusSmall
-                                    color: knownRow.isConnecting ? Theme.selection : (knownRow.isConnected ? (connMouse.containsMouse ? Theme.darker_background : Theme.dark_background) : (connMouse.containsMouse ? Theme.selection : Theme.dark_background))
-                                    border.color: knownRow.isConnecting ? Theme.accent : (knownRow.isConnected ? (connMouse.containsMouse ? Theme.red : Theme.selection) : (connMouse.containsMouse ? Theme.accent : Theme.selection))
+                                    color: knownRow.isConnecting ? Theme.withAlpha(Theme.accent, 0.20) : (knownRow.isConnected ? (connMouse.containsMouse ? Qt.rgba(1, 0.3, 0.3, 0.20) : Qt.rgba(1, 1, 1, 0.06)) : (connMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.22) : Qt.rgba(1, 1, 1, 0.06)))
+                                    border.color: knownRow.isConnecting ? Theme.accent : (knownRow.isConnected ? (connMouse.containsMouse ? Theme.red : Qt.rgba(1, 1, 1, 0.12)) : (connMouse.containsMouse ? Theme.accent : Qt.rgba(1, 1, 1, 0.12)))
                                     border.width: 1
                                     anchors.verticalCenter: parent.verticalCenter
 
@@ -637,8 +637,8 @@ Item {
                                     width: 48
                                     height: 24
                                     radius: Appearance.radiusSmall
-                                    color: fgtMouse.containsMouse ? Theme.darker_background : Theme.dark_background
-                                    border.color: fgtMouse.containsMouse ? Theme.red : Theme.selection
+                                    color: fgtMouse.containsMouse ? Qt.rgba(1, 0.3, 0.3, 0.20) : Qt.rgba(1, 1, 1, 0.06)
+                                    border.color: fgtMouse.containsMouse ? Theme.red : Qt.rgba(1, 1, 1, 0.12)
                                     border.width: 1
                                     anchors.verticalCenter: parent.verticalCenter
 
@@ -720,8 +720,8 @@ Item {
                                 width: otherList.width
                                 height: (isConnecting || hasError) ? 40 : 34
                                 radius: Appearance.radiusSmall
-                                color: isConnecting ? Theme.selection : (oMouse.containsMouse ? Theme.lighter_background : "transparent")
-                                border.color: isConnecting ? Theme.selection : "transparent"
+                                color: isConnecting ? Theme.withAlpha(Theme.accent, 0.18) : (oMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
+                                border.color: isConnecting ? Theme.accent : "transparent"
                                 border.width: isConnecting ? 1 : 0
 
                                 Row {
@@ -784,8 +784,8 @@ Item {
                                         width: otherRow.isConnecting ? 76 : 54
                                         height: 24
                                         radius: Appearance.radiusSmall
-                                        color: otherRow.isConnecting ? Theme.selection : (oConnMouse.containsMouse ? Theme.selection : Theme.dark_background)
-                                        border.color: otherRow.isConnecting ? Theme.accent : (oConnMouse.containsMouse ? Theme.accent : Theme.selection)
+                                        color: otherRow.isConnecting ? Theme.withAlpha(Theme.accent, 0.20) : (oConnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.22) : Qt.rgba(1, 1, 1, 0.06))
+                                        border.color: otherRow.isConnecting ? Theme.accent : (oConnMouse.containsMouse ? Theme.accent : Qt.rgba(1, 1, 1, 0.12))
                                         border.width: 1
                                         anchors.verticalCenter: parent.verticalCenter
 

@@ -116,14 +116,17 @@ Item {
                 width: parent.width
                 height: 8
                 radius: Appearance.radiusSmall
-                color: Theme.selection
+                color: Qt.rgba(1, 1, 1, 0.10)
+                border.color: Qt.rgba(1, 1, 1, 0.14)
+                border.width: 1
 
                 Rectangle {
                     anchors.left: parent.left
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
-                    width: Math.max(8, Math.min(parent.width, parent.width * (root.batteryService.capacity / 100.0)))
-                    radius: 4
+                    anchors.margins: 1
+                    width: Math.max(8, Math.min(parent.width - 2, (parent.width - 2) * (root.batteryService.capacity / 100.0)))
+                    radius: 3
                     color: {
                         if (root.batteryService.capacity <= 20) return Theme.red
                         if (root.batteryService.capacity <= 40) return Theme.yellow
@@ -310,7 +313,7 @@ Item {
             Rectangle {
                 width: parent.width
                 height: 1
-                color: Theme.selection
+                color: Qt.rgba(1, 1, 1, 0.12)
             }
 
             // Power Profile Section Header
@@ -346,12 +349,12 @@ Item {
                         readonly property bool isActive: root.powerService.activeProfile === modelData.id
 
                         color: {
-                            if (isActive) return Theme.selection
-                            if (profMouse.containsMouse) return Theme.lighter_background
-                            return Theme.dark_background
+                            if (isActive) return Theme.withAlpha(Theme.accent, 0.22)
+                            if (profMouse.containsMouse) return Qt.rgba(1, 1, 1, 0.12)
+                            return Qt.rgba(1, 1, 1, 0.06)
                         }
 
-                        border.color: isActive ? Theme.accent : Theme.selection
+                        border.color: isActive ? Theme.accent : Qt.rgba(1, 1, 1, 0.12)
                         border.width: 1
 
                         Row {

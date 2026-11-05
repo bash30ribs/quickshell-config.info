@@ -477,8 +477,8 @@ Item {
                         width: parent.width
                         height: 58
                         radius: Appearance.radiusSmall
-                        color: Theme.dark_background
-                        border.color: Theme.selection
+                        color: Qt.rgba(1, 1, 1, 0.06)
+                        border.color: Qt.rgba(1, 1, 1, 0.12)
                         border.width: 1
 
                         Column {
