@@ -88,7 +88,9 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             height: Appearance.audioSliderTrackHeight
             radius: Appearance.audioSliderTrackRadius
-            color: Theme.selection
+            color: Theme.withAlpha(Theme.glassSurface, 0.45)
+            border.color: Theme.withAlpha(Theme.glassBorderColor, 0.20)
+            border.width: 1
 
             Rectangle {
                 anchors.left: parent.left
@@ -231,7 +233,7 @@ Item {
             Rectangle {
                 width: parent.width
                 height: 1
-                color: Theme.selection
+                color: Theme.withAlpha(Theme.glassBorderColor, 0.22)
             }
 
             // ================= 2. OUTPUT SECTION =================
@@ -336,7 +338,7 @@ Item {
             Rectangle {
                 width: parent.width
                 height: 1
-                color: Theme.selection
+                color: Theme.withAlpha(Theme.glassBorderColor, 0.22)
                 visible: root.service.sources.length > 0 || root.service.source !== null
             }
 
@@ -443,7 +445,7 @@ Item {
             Rectangle {
                 width: parent.width
                 height: 1
-                color: Theme.selection
+                color: Theme.withAlpha(Theme.glassBorderColor, 0.22)
                 visible: root.service.audioStreams.length > 0
             }
 

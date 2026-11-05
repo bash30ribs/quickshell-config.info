@@ -18,12 +18,36 @@ PanelWindow {
     property double lastClearedTime: 0
     property int keyboardFocus: WlrKeyboardFocus.None
 
+    property bool _animatingClose: false
+    readonly property bool isCardActive: root.open && !root._animatingClose
+
     function toggle() {
         if (Date.now() - root.lastClearedTime < 250) {
-            root.open = false
+            root.closeAnimated()
             return
         }
-        root.open = !root.open
+        if (root.open) {
+            root.closeAnimated()
+        } else {
+            root._animatingClose = false
+            root.open = true
+        }
+    }
+
+    function closeAnimated() {
+        if (!root.open || root._animatingClose) return
+        root._animatingClose = true
+        closeTimer.start()
+    }
+
+    Timer {
+        id: closeTimer
+        interval: 140
+        repeat: false
+        onTriggered: {
+            root._animatingClose = false
+            root.open = false
+        }
     }
 
     default property alias content: bodyContainer.data
@@ -44,7 +68,7 @@ PanelWindow {
         windows: [root]
         onCleared: {
             root.lastClearedTime = Date.now()
-            root.open = false
+            root.closeAnimated()
         }
     }
 
@@ -53,7 +77,7 @@ PanelWindow {
         anchors.fill: parent
         onClicked: {
             root.lastClearedTime = Date.now()
-            root.open = false
+            root.closeAnimated()
         }
     }
 
@@ -63,7 +87,7 @@ PanelWindow {
         sequence: "Escape"
         onActivated: {
             root.lastClearedTime = Date.now()
-            root.open = false
+            root.closeAnimated()
         }
     }
 
@@ -110,24 +134,76 @@ PanelWindow {
         return Math.max(Appearance.barHeight + 6, itemBottomScreenY + 6)
     }
 
-    // Outer Card Container with Frosted Glassmorphism
+    // ─────────────────────────────────────────────────────────────────────────
+    // Multi-Layer 3D Spatial Shadows (Levitation Depth)
+    // ─────────────────────────────────────────────────────────────────────────
+    // Soft outer ambient drop shadow
+    Rectangle {
+        x: Math.round(cardRect.x - 10)
+        y: Math.round(cardRect.y - 4)
+        width: cardRect.width + 20
+        height: cardRect.height + 22
+        radius: cardRect.radius + 8
+        color: Qt.rgba(0, 0, 0, 0.42)
+        antialiasing: true
+        opacity: cardRect.opacity
+        scale: cardRect.scale
+        transformOrigin: cardRect.transformOrigin
+    }
+
+    // Sharp contact shadow
+    Rectangle {
+        x: Math.round(cardRect.x - 2)
+        y: Math.round(cardRect.y)
+        width: cardRect.width + 4
+        height: cardRect.height + 6
+        radius: cardRect.radius + 3
+        color: Qt.rgba(0, 0, 0, 0.35)
+        antialiasing: true
+        opacity: cardRect.opacity
+        scale: cardRect.scale
+        transformOrigin: cardRect.transformOrigin
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Outer Card Container with Apple-Grade Frosted Glass & Fast Dramatic Spring
+    // ─────────────────────────────────────────────────────────────────────────
     Rectangle {
         id: cardRect
         x: Math.round(root.cardX)
-        y: Math.round(root.cardY)
+        y: Math.round(root.cardY) + (root.isCardActive ? 0 : -10)
         width: root.contentWidth
         height: root.contentHeight
         color: "transparent"
-        border.color: Theme.glassBorder
+        border.color: Theme.withAlpha(Theme.glassBorderColor, 0.30)
         border.width: 1
-        radius: Appearance.popupRadius
+        radius: Appearance.popupRadius > 0 ? Appearance.popupRadius : 14
         antialiasing: true
 
+        opacity: root.isCardActive ? 1.0 : 0.0
+        scale: root.isCardActive ? 1.0 : 0.88
+        transformOrigin: Item.Top
+
+        Behavior on y {
+            NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+        }
+        Behavior on opacity {
+            NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+        }
+        Behavior on scale {
+            NumberAnimation {
+                duration: 180
+                easing.type: Easing.OutBack
+                easing.overshoot: 1.25
+            }
+        }
+
+        // Apple-grade frosted liquid glass refraction gradient
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.40) }
-            GradientStop { position: 0.08; color: Theme.withAlpha(Theme.glassTint, 0.35) }
-            GradientStop { position: 0.65; color: Theme.withAlpha(Theme.glassSurface, 0.48) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.60) }
+            GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.35) }
+            GradientStop { position: 0.08; color: Theme.withAlpha(Theme.glassTint, 0.22) }
+            GradientStop { position: 0.65; color: Theme.withAlpha(Theme.glassSurface, 0.36) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.52) }
         }
 
         // Frosted glass specular top edge highlight
@@ -138,11 +214,11 @@ PanelWindow {
             anchors.leftMargin: Math.max(4, parent.radius / 2)
             anchors.rightMargin: Math.max(4, parent.radius / 2)
             height: 1
-            color: Theme.glassSpecular
+            color: Theme.withAlpha(Theme.glassCrest, 0.70)
             antialiasing: true
         }
 
-        // Inner diffuse glass sheen
+        // Inner diffuse glass sheen glow
         Rectangle {
             anchors.top: parent.top
             anchors.topMargin: 1
@@ -150,12 +226,25 @@ PanelWindow {
             anchors.right: parent.right
             anchors.leftMargin: Math.max(4, parent.radius / 2)
             anchors.rightMargin: Math.max(4, parent.radius / 2)
-            height: 10
+            height: 14
             antialiasing: true
             gradient: Gradient {
-                GradientStop { position: 0.0; color: Theme.glassInnerSheen }
+                GradientStop { position: 0.0; color: Theme.withAlpha(Theme.glassCrest, 0.18) }
                 GradientStop { position: 1.0; color: "transparent" }
             }
+        }
+
+        // Bottom ambient bounce reflection line
+        Rectangle {
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 1
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: Math.max(4, parent.radius / 2)
+            anchors.rightMargin: Math.max(4, parent.radius / 2)
+            height: 1
+            color: Theme.withAlpha(Theme.accent, 0.15)
+            antialiasing: true
         }
 
         // Prevent clicks inside the card from closing the popup
@@ -174,13 +263,13 @@ PanelWindow {
             anchors.right: parent.right
             height: root.showDefaultHeader ? Appearance.popupHeaderHeight : 0
 
-            // Bottom border of header
+            // Hairline glass border of header
             Rectangle {
                 anchors.bottom: parent.bottom
                 anchors.left: parent.left
                 anchors.right: parent.right
                 height: Appearance.borderWidthThin
-                color: Theme.selection
+                color: Theme.withAlpha(Theme.glassBorderColor, 0.25)
             }
 
             Row {

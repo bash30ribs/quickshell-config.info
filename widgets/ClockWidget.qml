@@ -301,9 +301,9 @@ Item {
                                     width: 42
                                     height: 30
                                     radius: Appearance.radiusXs
-                                    color: "transparent"
+                                    color: modelData.today ? Theme.withAlpha(Theme.accent, 0.25) : "transparent"
                                     border.width: modelData.today ? 1 : 0
-                                    border.color: modelData.today ? Theme.selection : "transparent"
+                                    border.color: modelData.today ? Theme.accent : "transparent"
 
                                     Text {
                                         anchors.centerIn: parent
