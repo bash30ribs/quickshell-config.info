@@ -90,7 +90,7 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Auto
 
-    // Unified background surface with rounded bottom corners (floating, wide, compact modes)
+    // Unified background surface with frosted glassmorphism (floating, wide, compact modes)
     Rectangle {
         id: barBackground
         visible: !root.isIslands
@@ -99,13 +99,23 @@ PanelWindow {
         topRightRadius: 0
         bottomLeftRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
         bottomRightRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
-        color: Theme.withAlpha(Theme.barBackground, Theme.baseOpacity)
-        border.color: Appearance.barBorder ? Theme.barBorderColor : Theme.withAlpha(Theme.selection, 0.4)
+        color: Theme.withAlpha(Theme.background, Theme.glassOpacity)
+        border.color: Theme.glassBorder
         border.width: 1
         antialiasing: true
 
         Behavior on color {
             ColorAnimation { duration: Appearance.animDurationNormal }
+        }
+
+        // Frosted glass specular top edge highlight
+        Rectangle {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 1
+            color: Theme.glassSpecular
+            antialiasing: true
         }
     }
 
@@ -118,13 +128,24 @@ PanelWindow {
         width: leftSection.width + 12
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
-        color: Theme.withAlpha(Theme.barBackground, Theme.baseOpacity)
-        border.color: Appearance.barBorder ? Theme.barBorderColor : Theme.withAlpha(Theme.selection, 0.4)
+        color: Theme.withAlpha(Theme.background, Theme.glassOpacity)
+        border.color: Theme.glassBorder
         border.width: 1
         antialiasing: true
 
         Behavior on color {
             ColorAnimation { duration: Appearance.animDurationNormal }
+        }
+
+        Rectangle {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: 6
+            anchors.rightMargin: 6
+            height: 1
+            color: Theme.glassSpecular
+            antialiasing: true
         }
     }
 
@@ -137,13 +158,24 @@ PanelWindow {
         width: clockWidget.width + 16
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
-        color: Theme.withAlpha(Theme.barBackground, Theme.baseOpacity)
-        border.color: Appearance.barBorder ? Theme.barBorderColor : Theme.withAlpha(Theme.selection, 0.4)
+        color: Theme.withAlpha(Theme.background, Theme.glassOpacity)
+        border.color: Theme.glassBorder
         border.width: 1
         antialiasing: true
 
         Behavior on color {
             ColorAnimation { duration: Appearance.animDurationNormal }
+        }
+
+        Rectangle {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: 6
+            anchors.rightMargin: 6
+            height: 1
+            color: Theme.glassSpecular
+            antialiasing: true
         }
     }
 
@@ -156,13 +188,24 @@ PanelWindow {
         width: rightSection.width + 12
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
-        color: Theme.withAlpha(Theme.barBackground, Theme.baseOpacity)
-        border.color: Appearance.barBorder ? Theme.barBorderColor : Theme.withAlpha(Theme.selection, 0.4)
+        color: Theme.withAlpha(Theme.background, Theme.glassOpacity)
+        border.color: Theme.glassBorder
         border.width: 1
         antialiasing: true
 
         Behavior on color {
             ColorAnimation { duration: Appearance.animDurationNormal }
+        }
+
+        Rectangle {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: 6
+            anchors.rightMargin: 6
+            height: 1
+            color: Theme.glassSpecular
+            antialiasing: true
         }
     }
 
@@ -201,59 +244,41 @@ PanelWindow {
             powerService: root.powerService
         }
 
-        // Right section: hardware and status controls in unified pill container
-        Rectangle {
+        // Right section: hardware and status controls
+        Row {
             id: rightSection
             anchors.verticalCenter: parent.verticalCenter
-            implicitWidth: rightRow.implicitWidth + (Appearance.paddingSmall * 2)
-            implicitHeight: Appearance.barButtonHeight
+            spacing: Appearance.barSpacing
             width: implicitWidth
             height: implicitHeight
             x: root.isCompact
                 ? (clockWidget.x + clockWidget.width + (Appearance.barSectionSpacing * 2))
                 : Math.round(barContainer.width - width - Appearance.barMarginHorizontal)
-            radius: height / 2
-            color: Theme.withAlpha(Theme.barDarkBackground, 0.78)
-            border.color: Appearance.barBorder ? Theme.barBorderColor : Theme.withAlpha(Theme.selection, 0.4)
-            border.width: 1
-            antialiasing: true
 
-            Behavior on color {
-                ColorAnimation { duration: Appearance.animDurationNormal }
+            BluetoothWidget {
+                id: bluetoothWidget
+                service: root.bluetoothService
             }
 
-            Row {
-                id: rightRow
-                anchors.centerIn: parent
-                spacing: Appearance.barSpacing
-                width: implicitWidth
-                height: implicitHeight
+            NetworkWidget {
+                id: networkWidget
+                service: root.networkService
+            }
 
-                BluetoothWidget {
-                    id: bluetoothWidget
-                    service: root.bluetoothService
-                }
+            AudioWidget {
+                id: audioWidget
+                service: root.audioService
+            }
 
-                NetworkWidget {
-                    id: networkWidget
-                    service: root.networkService
-                }
+            MonitorWidget {
+                id: monitorWidget
+                service: root.brightnessService
+            }
 
-                AudioWidget {
-                    id: audioWidget
-                    service: root.audioService
-                }
-
-                MonitorWidget {
-                    id: monitorWidget
-                    service: root.brightnessService
-                }
-
-                BatteryWidget {
-                    id: batteryWidget
-                    batteryService: root.batteryService
-                    powerService: root.powerService
-                }
+            BatteryWidget {
+                id: batteryWidget
+                batteryService: root.batteryService
+                powerService: root.powerService
             }
         }
     }

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-QDeck Wallpaper & Theme Palette Extractor
-Fast, cached color extractor that harmonizes wallpaper colors with theme tokens.
-Designed for 165Hz smooth dynamic bar and widget theming.
+QDeck Theme & Wallpaper Color Extractor
+Parses the active theme's colors.toml accurately (Nord, Gruvbox, Catppuccin, etc.)
+and harmonizes with wallpaper presence for authentic glassmorphism.
 """
 
 import sys
 import os
+import re
 import json
 import hashlib
-import colorsys
 from PIL import Image
 
 def get_wallpaper_palette(wallpaper_path=None, theme_colors_path=None):
@@ -17,27 +17,48 @@ def get_wallpaper_palette(wallpaper_path=None, theme_colors_path=None):
     if not wallpaper_path:
         wallpaper_path = os.path.join(home, ".config/themes/current/default.png")
     
-    if not os.path.exists(wallpaper_path):
-        # Fallback if no wallpaper found
-        return {
-            "wallpaper": "",
-            "accent": "#7daea3",
-            "dominant": "#a29972",
-            "background": "#232420",
-            "dark_background": "#1a1b18",
-            "lighter_background": "#33352d",
-            "border": "#7daea3"
-        }
-    
-    real_path = os.path.realpath(wallpaper_path)
-    
-    # Fast cache check using file path and mtime
+    if not theme_colors_path:
+        theme_colors_path = os.path.join(home, ".config/themes/current/colors.toml")
+
+    # Resolve real path to follow symlinks accurately
+    real_theme_path = os.path.realpath(theme_colors_path) if os.path.exists(theme_colors_path) else ""
+    real_wp_path = os.path.realpath(wallpaper_path) if os.path.exists(wallpaper_path) else ""
+
+    theme_tokens = {}
+    if real_theme_path and os.path.exists(real_theme_path):
+        try:
+            with open(real_theme_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#") or line.startswith(";"):
+                        continue
+                    m = re.match(r"^([a-zA-Z0-9_-]+)\s*=\s*[\"']?([#0-9a-zA-Z]+)", line)
+                    if m:
+                        val = m.group(2)
+                        if not val.startswith("#") and len(val) in (3, 6, 8):
+                            val = f"#{val}"
+                        theme_tokens[m.group(1)] = val
+        except Exception:
+            pass
+
+    # Fallbacks if a key is missing
+    accent = theme_tokens.get("accent", "#88c0d0")
+    background = theme_tokens.get("background", "#2e3440")
+    dark_background = theme_tokens.get("dark_background", "#242933")
+    lighter_background = theme_tokens.get("lighter_background", "#3b4252")
+    selection = theme_tokens.get("selection", "#3b4252")
+    foreground = theme_tokens.get("foreground", "#d8dee9")
+    muted = theme_tokens.get("muted", "#616e88")
+
+    # Fast cache check using resolved file path and mtime
     try:
-        mtime = os.path.getmtime(real_path)
+        wp_mtime = os.path.getmtime(real_wp_path) if real_wp_path else 0
+        th_mtime = os.path.getmtime(real_theme_path) if real_theme_path else 0
     except OSError:
-        mtime = 0
+        wp_mtime = 0
+        th_mtime = 0
         
-    cache_key = hashlib.md5(f"{real_path}:{mtime}".encode()).hexdigest()
+    cache_key = hashlib.md5(f"{real_theme_path}:{th_mtime}:{real_wp_path}:{wp_mtime}".encode()).hexdigest()
     cache_path = f"/tmp/qs-palette-{cache_key}.json"
     
     if os.path.exists(cache_path):
@@ -47,105 +68,49 @@ def get_wallpaper_palette(wallpaper_path=None, theme_colors_path=None):
         except Exception:
             pass
 
-    # Read current theme accent as fallback / blend anchor if available
-    theme_accent = None
-    if not theme_colors_path:
-        theme_colors_path = os.path.join(home, ".config/themes/current/colors.toml")
-    if os.path.exists(theme_colors_path):
+    dominant = "#88c0d0"
+    wallpaper_tint = None
+
+    if real_wp_path and os.path.exists(real_wp_path):
         try:
-            with open(theme_colors_path, "r", encoding="utf-8") as f:
-                for line in f:
-                    if line.strip().startswith("accent"):
-                        parts = line.split("=")
-                        if len(parts) > 1:
-                            val = parts[1].split("#")[0].split(";")[0].strip().strip('"\'')
-                            if val:
-                                theme_accent = val if val.startswith("#") else f"#{val}"
-                                break
+            with Image.open(real_wp_path) as im:
+                im.thumbnail((128, 128))
+                im_rgb = im.convert("RGB")
+                pal_img = im_rgb.convert("P", palette=Image.ADAPTIVE, colors=8)
+                raw_pal = pal_img.getpalette()[:24]
+
+                colors = []
+                for i in range(0, len(raw_pal), 3):
+                    r, g, b = raw_pal[i], raw_pal[i+1], raw_pal[i+2]
+                    colors.append(f"#{r:02x}{g:02x}{b:02x}")
+
+                if colors:
+                    dominant = colors[0]
+                    wallpaper_tint = colors[-1]
         except Exception:
             pass
 
+    data = {
+        "wallpaper": real_wp_path,
+        "accent": accent,
+        "dominant": dominant,
+        "background": background,
+        "dark_background": dark_background,
+        "lighter_background": lighter_background,
+        "selection": selection,
+        "foreground": foreground,
+        "muted": muted,
+        "border": accent,
+        "wallpaper_tint": wallpaper_tint or dark_background
+    }
+
     try:
-        with Image.open(real_path) as im:
-            # Fast downsampling for high-performance extraction (<100ms)
-            im.thumbnail((128, 128))
-            im_rgb = im.convert("RGB")
-            pal_img = im_rgb.convert("P", palette=Image.ADAPTIVE, colors=16)
-            raw_pal = pal_img.getpalette()[:48]
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+    except Exception:
+        pass
 
-            colors = []
-            for i in range(0, len(raw_pal), 3):
-                r, g, b = raw_pal[i], raw_pal[i+1], raw_pal[i+2]
-                h, s, v = colorsys.rgb_to_hsv(r / 255.0, g / 255.0, b / 255.0)
-                colors.append({
-                    "hex": f"#{r:02x}{g:02x}{b:02x}",
-                    "r": r, "g": g, "b": b,
-                    "h": h, "s": s, "v": v
-                })
-
-            # 1. Best vibrant accent from wallpaper
-            accent_candidates = [c for c in colors if c["s"] > 0.18 and c["v"] > 0.35]
-            if accent_candidates:
-                best_accent = max(accent_candidates, key=lambda c: c["s"] * 0.65 + c["v"] * 0.35)["hex"]
-            elif theme_accent:
-                best_accent = theme_accent
-            else:
-                best_accent = max(colors, key=lambda c: c["v"])["hex"]
-
-            # 2. Dominant tone from wallpaper
-            dominant = colors[0]["hex"]
-
-            # 3. Darkest tone for rich wallpaper-tinted dark background
-            dark_candidates = sorted(colors, key=lambda c: c["v"])
-            darkest = dark_candidates[0]
-
-            # Blend 35% darkest wallpaper tone with 65% deep charcoal (#181818) for ultra-clean UI contrast
-            bg_r = int(darkest["r"] * 0.35 + 24 * 0.65)
-            bg_g = int(darkest["g"] * 0.35 + 24 * 0.65)
-            bg_b = int(darkest["b"] * 0.35 + 24 * 0.65)
-            bg_hex = f"#{bg_r:02x}{bg_g:02x}{bg_b:02x}"
-
-            # Secondary elevated dark surface (for widget pills / cards)
-            dark_bg_r = max(0, int(bg_r * 0.72))
-            dark_bg_g = max(0, int(bg_g * 0.72))
-            dark_bg_b = max(0, int(bg_b * 0.72))
-            dark_bg_hex = f"#{dark_bg_r:02x}{dark_bg_g:02x}{dark_bg_b:02x}"
-
-            # Hover & active surface
-            light_bg_r = min(255, int(bg_r * 1.35 + 12))
-            light_bg_g = min(255, int(bg_g * 1.35 + 12))
-            light_bg_b = min(255, int(bg_b * 1.35 + 12))
-            light_bg_hex = f"#{light_bg_r:02x}{light_bg_g:02x}{light_bg_b:02x}"
-
-            data = {
-                "wallpaper": real_path,
-                "accent": best_accent,
-                "dominant": dominant,
-                "background": bg_hex,
-                "dark_background": dark_bg_hex,
-                "lighter_background": light_bg_hex,
-                "border": best_accent
-            }
-
-            try:
-                with open(cache_path, "w", encoding="utf-8") as f:
-                    json.dump(data, f)
-            except Exception:
-                pass
-
-            return data
-
-    except Exception as e:
-        return {
-            "wallpaper": real_path if "real_path" in locals() else "",
-            "accent": theme_accent or "#7daea3",
-            "dominant": "#a29972",
-            "background": "#232420",
-            "dark_background": "#1a1b18",
-            "lighter_background": "#33352d",
-            "border": theme_accent or "#7daea3",
-            "error": str(e)
-        }
+    return data
 
 if __name__ == "__main__":
     wp = sys.argv[1] if len(sys.argv) > 1 else None

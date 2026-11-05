@@ -71,37 +71,19 @@ Item {
         return days[d.getDay()] + " " + formatTime(d)
     }
 
-    implicitWidth: clockPill.implicitWidth
-    implicitHeight: clockPill.implicitHeight
+    implicitWidth: clockButton.implicitWidth
+    implicitHeight: clockButton.implicitHeight
     width: implicitWidth
     height: implicitHeight
 
-    Rectangle {
-        id: clockPill
-        implicitWidth: clockButton.implicitWidth + 8
-        implicitHeight: Appearance.barButtonHeight
-        width: implicitWidth
-        height: implicitHeight
-        radius: height / 2
-        color: Theme.withAlpha(Theme.barDarkBackground, 0.78)
-        border.color: Appearance.barBorder ? Theme.barBorderColor : Theme.withAlpha(Theme.selection, 0.4)
-        border.width: 1
-        antialiasing: true
-
-        Behavior on color {
-            ColorAnimation { duration: Appearance.animDurationNormal }
-        }
-
-        BarButton {
-            id: clockButton
-            anchors.centerIn: parent
-            icon: ""
-            text: root.formatDayTime(root.now)
-            active: clockPopup.open
-            onClicked: {
-                clockPopup.toggle()
-                if (clockPopup.open) root.goToToday()
-            }
+    BarButton {
+        id: clockButton
+        icon: ""
+        text: root.formatDayTime(root.now)
+        active: clockPopup.open
+        onClicked: {
+            clockPopup.toggle()
+            if (clockPopup.open) root.goToToday()
         }
     }
 

@@ -12,8 +12,8 @@ Rectangle {
     implicitWidth: wsRow.implicitWidth + (Appearance.workspacesPaddingHorizontal * 2)
     radius: height / 2
 
-    color: Theme.withAlpha(Theme.barDarkBackground, 0.78)
-    border.color: Appearance.barBorder ? Theme.barBorderColor : Theme.withAlpha(Theme.selection, 0.4)
+    color: Theme.withAlpha(Theme.dark_background, Theme.glassPillOpacity)
+    border.color: Theme.glassBorder
     border.width: 1
     antialiasing: true
 
@@ -53,7 +53,7 @@ Rectangle {
                 antialiasing: true
 
                 color: {
-                    if (isActive) return Theme.barAccent
+                    if (isActive) return Theme.accent
                     if (wsMouse.containsMouse) return Theme.withAlpha(Theme.foreground, 0.16)
                     return Theme.withAlpha(Theme.foreground, 0.08)
                 }

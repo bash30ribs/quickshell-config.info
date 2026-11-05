@@ -57,12 +57,22 @@ QtObject {
     property var _wp: ({})
     readonly property bool hasWallpaperColors: !!(_wp && _wp.accent)
 
-    readonly property color barBackground: (root.hasWallpaperColors && _wp.background) ? _wp.background : root.background
-    readonly property color barDarkBackground: (root.hasWallpaperColors && _wp.dark_background) ? _wp.dark_background : root.dark_background
-    readonly property color barLighterBackground: (root.hasWallpaperColors && _wp.lighter_background) ? _wp.lighter_background : root.lighter_background
-    readonly property color barAccent: (root.hasWallpaperColors && _wp.accent) ? _wp.accent : root.accent
+    readonly property color barBackground: root.background
+    readonly property color barDarkBackground: root.dark_background
+    readonly property color barLighterBackground: root.lighter_background
+    readonly property color barAccent: root.accent
     readonly property color barDominant: (root.hasWallpaperColors && _wp.dominant) ? _wp.dominant : root.foreground
-    readonly property color barBorderColor: root.hasWallpaperColors ? root.withAlpha(_wp.border || _wp.accent, 0.28) : root.withAlpha(root.accent, 0.28)
+    readonly property color barBorderColor: Qt.rgba(root.light_foreground.r, root.light_foreground.g, root.light_foreground.b, 0.16)
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Glassmorphism & Frosted Glass Tokens
+    // ─────────────────────────────────────────────────────────────────────────
+    readonly property real glassOpacity: 0.48
+    readonly property real glassPillOpacity: 0.62
+    readonly property color glassBorder: Qt.rgba(root.light_foreground.r, root.light_foreground.g, root.light_foreground.b, 0.16)
+    readonly property color glassSpecular: Qt.rgba(1, 1, 1, 0.18)
+    readonly property color glassHover: root.withAlpha(root.lighter_background, 0.45)
+    readonly property color glassActive: root.withAlpha(root.selection, 0.65)
 
     // ─────────────────────────────────────────────────────────────────────────
     // Dual Alpha + Compositor Blur Architecture
@@ -83,7 +93,7 @@ QtObject {
         var stateStr = enabled ? "on" : "off"
         var cmd = "mkdir -p \"$(dirname \"" + root.blurStatePath + "\")\" && printf '%s' \"" + stateStr + "\" > \"" + root.blurStatePath + "\""
         if (enabled) {
-            cmd += " && hyprctl eval 'hl.layer_rule({ name = \"qdeck-blur\", match = { namespace = \"^quickshell-.*\" }, blur = true, blur_popups = true, ignore_alpha = 0.57 })' 2>/dev/null || true"
+            cmd += " && hyprctl eval 'hl.layer_rule({ name = \"qdeck-blur\", match = { namespace = \"^quickshell-.*\" }, blur = true, blur_popups = true, ignore_alpha = 0.1 })' 2>/dev/null || true"
         } else {
             cmd += " && hyprctl eval 'hl.layer_rule({ name = \"qdeck-blur\", match = { namespace = \"^quickshell-.*\" }, blur = false, blur_popups = false })' 2>/dev/null || true"
         }

@@ -25,10 +25,17 @@ Rectangle {
     radius: Appearance.buttonRadius
 
     color: {
-        if (active) return Theme.selection
-        if (mouseArea.containsMouse) return Theme.barLighterBackground
+        if (active) return Theme.glassActive
+        if (mouseArea.containsMouse) return Theme.glassHover
         return "transparent"
     }
+
+    border.color: {
+        if (active) return Theme.withAlpha(Theme.accent, 0.40)
+        if (mouseArea.containsMouse) return Qt.rgba(1, 1, 1, 0.12)
+        return "transparent"
+    }
+    border.width: (active || mouseArea.containsMouse) ? 1 : 0
 
     Behavior on color {
         ColorAnimation { duration: Appearance.animDurationNormal }
@@ -45,7 +52,7 @@ Rectangle {
             font.family: Icons.effectiveFont(root.icon)
             font.pixelSize: root.iconSize
             color: {
-                if (root.accentActive || root.active) return Theme.barAccent
+                if (root.accentActive || root.active) return Theme.accent
                 if (root.customColor.a > 0) return root.customColor
                 return Theme.foreground
             }
@@ -62,7 +69,7 @@ Rectangle {
             font.family: Fonts.uiFont
             font.pixelSize: root.textSize
             font.bold: root.active
-            color: root.active ? Theme.barAccent : Theme.foreground
+            color: root.active ? Theme.accent : Theme.foreground
             anchors.verticalCenter: parent.verticalCenter
 
             Behavior on color {
@@ -79,7 +86,7 @@ Rectangle {
         width: Math.min(parent.width - 4, 16)
         height: Appearance.borderWidthMedium
         radius: Appearance.borderWidthThin
-        color: Theme.barAccent
+        color: Theme.accent
 
         Behavior on color {
             ColorAnimation { duration: Appearance.animDurationNormal }

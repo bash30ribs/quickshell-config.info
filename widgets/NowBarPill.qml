@@ -53,8 +53,8 @@ Item {
         anchors.fill: parent
         radius: Appearance.mediaPillRadius
 
-        color: pillMouse.containsMouse ? Theme.barLighterBackground : Theme.withAlpha(Theme.barDarkBackground, 0.78)
-        border.color: Appearance.barBorder ? Theme.barBorderColor : Theme.withAlpha(Theme.selection, 0.4)
+        color: pillMouse.containsMouse ? Theme.glassHover : Theme.withAlpha(Theme.dark_background, Theme.glassPillOpacity)
+        border.color: Theme.glassBorder
         border.width: 1
 
         Behavior on color {
