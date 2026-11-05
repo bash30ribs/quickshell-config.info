@@ -81,7 +81,7 @@ Item {
     property bool isBusy: false
     property var activeTask: null
 
-    function parseAction(action: string, defaultStep: int) {
+    function parseAction(action: string, defaultStep: int): var {
         if (!action) return null
         var a = action.trim().toLowerCase()
         if (a === "mute-toggle" || a === "toggle-mute" || a === "mute" || a === "toggle") {
