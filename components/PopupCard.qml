@@ -135,38 +135,8 @@ PanelWindow {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Multi-Layer 3D Spatial Shadows (Levitation Depth)
-    // ─────────────────────────────────────────────────────────────────────────
-    // Soft outer ambient drop shadow
-    Rectangle {
-        x: Math.round(cardRect.x - 12)
-        y: Math.round(cardRect.y - 2)
-        width: cardRect.width + 24
-        height: cardRect.height + 28
-        radius: cardRect.radius + 8
-        color: Qt.rgba(0, 0, 0, 0.35)
-        antialiasing: true
-        opacity: cardRect.opacity
-        scale: cardRect.scale
-        transformOrigin: cardRect.transformOrigin
-    }
-
-    // Sharp contact shadow
-    Rectangle {
-        x: Math.round(cardRect.x - 3)
-        y: Math.round(cardRect.y + 1)
-        width: cardRect.width + 6
-        height: cardRect.height + 8
-        radius: cardRect.radius + 3
-        color: Qt.rgba(0, 0, 0, 0.25)
-        antialiasing: true
-        opacity: cardRect.opacity
-        scale: cardRect.scale
-        transformOrigin: cardRect.transformOrigin
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Outer Card Container with True Apple-Grade Frosted Glass & Snappy Spring
+    // Card Container with Single Clean Liquid Frosted Glass Surface
+    // (Compositor blur handles native background frosting without stacked layers)
     // ─────────────────────────────────────────────────────────────────────────
     Rectangle {
         id: cardRect
