@@ -171,30 +171,37 @@ PanelWindow {
     Rectangle {
         id: cardRect
         x: Math.round(root.cardX)
-        y: Math.round(root.cardY) + (root.isCardActive ? 0 : -8)
+        y: Math.round(root.cardY) + (root.isCardActive ? 0 : -12)
         width: root.contentWidth
         height: root.contentHeight
         color: "transparent"
-        border.color: Qt.rgba(1, 1, 1, 0.18)
+        border.color: Theme.glassBorder
         border.width: 1
         radius: Appearance.popupRadius > 0 ? Appearance.popupRadius : 14
         antialiasing: true
 
         opacity: root.isCardActive ? 1.0 : 0.0
-        scale: root.isCardActive ? 1.0 : 0.90
+        scale: root.isCardActive ? 1.0 : 0.85
         transformOrigin: Item.Top
 
         Behavior on y {
-            NumberAnimation { duration: 170; easing.type: Easing.OutCubic }
+            NumberAnimation {
+                duration: root.isCardActive ? 190 : 120
+                easing.type: root.isCardActive ? Easing.OutBack : Easing.InCubic
+                easing.overshoot: 1.15
+            }
         }
         Behavior on opacity {
-            NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+            NumberAnimation {
+                duration: root.isCardActive ? 160 : 110
+                easing.type: root.isCardActive ? Easing.OutQuad : Easing.InQuad
+            }
         }
         Behavior on scale {
             NumberAnimation {
-                duration: 170
-                easing.type: Easing.OutBack
-                easing.overshoot: 1.20
+                duration: root.isCardActive ? 190 : 120
+                easing.type: root.isCardActive ? Easing.OutBack : Easing.InCubic
+                easing.overshoot: root.isCardActive ? 1.32 : 1.0
             }
         }
 

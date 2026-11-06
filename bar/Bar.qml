@@ -100,7 +100,7 @@ PanelWindow {
         bottomLeftRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
         bottomRightRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
         color: "transparent"
-        border.color: Qt.rgba(1, 1, 1, 0.15)
+        border.color: Theme.glassBorder
         border.width: 1
         antialiasing: true
 
@@ -136,7 +136,7 @@ PanelWindow {
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
         color: "transparent"
-        border.color: Qt.rgba(1, 1, 1, 0.15)
+        border.color: Theme.glassBorder
         border.width: 1
         antialiasing: true
 
@@ -170,7 +170,7 @@ PanelWindow {
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
         color: "transparent"
-        border.color: Qt.rgba(1, 1, 1, 0.15)
+        border.color: Theme.glassBorder
         border.width: 1
         antialiasing: true
 
@@ -204,7 +204,7 @@ PanelWindow {
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
         color: "transparent"
-        border.color: Qt.rgba(1, 1, 1, 0.15)
+        border.color: Theme.glassBorder
         border.width: 1
         antialiasing: true
 

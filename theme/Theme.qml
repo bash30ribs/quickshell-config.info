@@ -78,7 +78,7 @@ QtObject {
     // ─────────────────────────────────────────────────────────────────────────
     readonly property real glassOpacity: 0.78
     readonly property real glassPillOpacity: 0.16
-    readonly property color glassBorder: Qt.rgba(255, 255, 255, 0.16)
+    readonly property color glassBorder: root.hasWallpaperColors ? Qt.tint(Qt.rgba(255, 255, 255, 0.16), root.withAlpha(root.glassBorderColor, 0.12)) : Qt.rgba(255, 255, 255, 0.16)
     readonly property color glassBorderLight: Qt.rgba(255, 255, 255, 0.24)
     readonly property color glassSpecular: Qt.rgba(255, 255, 255, 0.28)
     readonly property color glassInnerSheen: Qt.rgba(255, 255, 255, 0.08)
