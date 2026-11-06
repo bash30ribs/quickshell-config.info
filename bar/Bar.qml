@@ -104,28 +104,17 @@ PanelWindow {
         border.width: 1
         antialiasing: true
 
-        // Multi-stop Apple-grade frosted glass refraction gradient
+        // Cohesive Apple-grade smoked frosted glass refraction gradient
         gradient: Gradient {
             GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.15) }
-            GradientStop { position: 0.12; color: Qt.rgba(1, 1, 1, 0.06) }
-            GradientStop { position: 0.70; color: Theme.withAlpha(Theme.background, 0.10) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.14) }
+            GradientStop { position: 0.06; color: Theme.withAlpha(Theme.lighter_background, 0.68) }
+            GradientStop { position: 0.60; color: Theme.withAlpha(Theme.background, 0.75) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.82) }
         }
 
-        // Frosted glass specular top edge highlight
+        // Inner diffuse glass sheen glow (seamless full-width curve)
         Rectangle {
             anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 1
-            color: Qt.rgba(1, 1, 1, 0.32)
-            antialiasing: true
-        }
-
-        // Inner diffuse glass sheen glow
-        Rectangle {
-            anchors.top: parent.top
-            anchors.topMargin: 1
             anchors.left: parent.left
             anchors.right: parent.right
             height: 8
@@ -134,19 +123,6 @@ PanelWindow {
                 GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.08) }
                 GradientStop { position: 1.0; color: "transparent" }
             }
-        }
-
-        // Bottom specular bounce reflection line
-        Rectangle {
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 1
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: Math.max(8, parent.bottomLeftRadius / 2)
-            anchors.rightMargin: Math.max(8, parent.bottomRightRadius / 2)
-            height: 1
-            color: Qt.rgba(1, 1, 1, 0.06)
-            antialiasing: true
         }
     }
 
@@ -165,30 +141,17 @@ PanelWindow {
         antialiasing: true
 
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.16) }
-            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.lighter_background, 0.14) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.16) }
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.15) }
+            GradientStop { position: 0.08; color: Theme.withAlpha(Theme.lighter_background, 0.68) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.78) }
         }
 
         Rectangle {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.leftMargin: 6
-            anchors.rightMargin: 6
-            height: 1
-            color: Qt.rgba(1, 1, 1, 0.32)
-            antialiasing: true
-        }
-
-        Rectangle {
-            anchors.top: parent.top
-            anchors.topMargin: 1
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: 6
-            anchors.rightMargin: 6
             height: 7
+            radius: parent.radius
             antialiasing: true
             gradient: Gradient {
                 GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.08) }
@@ -212,30 +175,17 @@ PanelWindow {
         antialiasing: true
 
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.16) }
-            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.lighter_background, 0.14) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.16) }
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.15) }
+            GradientStop { position: 0.08; color: Theme.withAlpha(Theme.lighter_background, 0.68) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.78) }
         }
 
         Rectangle {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.leftMargin: 6
-            anchors.rightMargin: 6
-            height: 1
-            color: Qt.rgba(1, 1, 1, 0.32)
-            antialiasing: true
-        }
-
-        Rectangle {
-            anchors.top: parent.top
-            anchors.topMargin: 1
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: 6
-            anchors.rightMargin: 6
             height: 7
+            radius: parent.radius
             antialiasing: true
             gradient: Gradient {
                 GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.08) }
@@ -259,30 +209,17 @@ PanelWindow {
         antialiasing: true
 
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.16) }
-            GradientStop { position: 0.15; color: Theme.withAlpha(Theme.lighter_background, 0.14) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.16) }
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.15) }
+            GradientStop { position: 0.08; color: Theme.withAlpha(Theme.lighter_background, 0.68) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.78) }
         }
 
         Rectangle {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.leftMargin: 6
-            anchors.rightMargin: 6
-            height: 1
-            color: Qt.rgba(1, 1, 1, 0.32)
-            antialiasing: true
-        }
-
-        Rectangle {
-            anchors.top: parent.top
-            anchors.topMargin: 1
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: 6
-            anchors.rightMargin: 6
             height: 7
+            radius: parent.radius
             antialiasing: true
             gradient: Gradient {
                 GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.08) }

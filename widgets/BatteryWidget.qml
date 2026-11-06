@@ -49,7 +49,7 @@ Item {
         anchorItem: batButton
         showDefaultHeader: false
         contentWidth: 360
-        contentHeight: (root.showCycles && root.showHealth) ? 250 : 225
+        contentHeight: (root.showCycles && root.showHealth) ? 265 : 240
 
         Column {
             anchors.fill: parent
@@ -73,7 +73,7 @@ Item {
                             if (root.batteryService.isCharging || root.batteryService.isPluggedIn) return Theme.accent
                             if (root.batteryService.capacity <= 20) return Theme.red
                             if (root.batteryService.capacity <= 40) return Theme.yellow
-                            return Theme.foreground
+                            return Theme.bright_foreground
                         }
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -87,7 +87,7 @@ Item {
                             font.family: Fonts.uiFont
                             font.pixelSize: Fonts.sizeLarge
                             font.bold: true
-                            color: Theme.foreground
+                            color: Theme.bright_foreground
                         }
 
                         Text {
@@ -95,7 +95,7 @@ Item {
                             font.family: Fonts.uiFont
                             font.pixelSize: 10
                             font.bold: true
-                            color: (root.batteryService.isCharging || root.batteryService.isPluggedIn) ? Theme.accent : Theme.muted
+                            color: (root.batteryService.isCharging || root.batteryService.isPluggedIn) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.75)
                         }
                     }
                 }
@@ -107,7 +107,7 @@ Item {
                     font.family: Fonts.monoFont
                     font.pixelSize: 28
                     font.bold: true
-                    color: Theme.foreground
+                    color: Theme.bright_foreground
                 }
             }
 
@@ -116,8 +116,8 @@ Item {
                 width: parent.width
                 height: 8
                 radius: Appearance.radiusSmall
-                color: Qt.rgba(1, 1, 1, 0.10)
-                border.color: Qt.rgba(1, 1, 1, 0.14)
+                color: Qt.rgba(0, 0, 0, 0.35)
+                border.color: Qt.rgba(255, 255, 255, 0.10)
                 border.width: 1
 
                 Rectangle {
@@ -131,189 +131,193 @@ Item {
                         if (root.batteryService.capacity <= 20) return Theme.red
                         if (root.batteryService.capacity <= 40) return Theme.yellow
                         if (root.batteryService.isCharging || root.batteryService.isPluggedIn) return Theme.accent
-                        return Theme.foreground
+                        return Theme.bright_foreground
                     }
                 }
             }
 
-            // Stats 2-Column Grid (Battery size, Health/Cycles, Time to full, Power source/Rate)
-            Row {
-                width: parent.width
-                spacing: 16
-
-                readonly property real colWidth: (width - spacing) / 2
-
-                // Left Column
-                Column {
-                    width: parent.colWidth
-                    spacing: 6
-
-                    // Battery size
-                    Item {
-                        width: parent.width
-                        height: 18
-
-                        Text {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "Battery size"
-                            font.family: Fonts.uiFont
-                            font.pixelSize: Fonts.sizeSmall
-                            color: Theme.muted
-                        }
-
-                        Text {
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: root.batteryService.batterySize
-                            font.family: Fonts.monoFont
-                            font.pixelSize: Fonts.sizeSmall
-                            font.bold: true
-                            color: Theme.foreground
-                        }
-                    }
-
-                    // Battery health (if enabled)
-                    Item {
-                        visible: root.showHealth
-                        width: parent.width
-                        height: visible ? 18 : 0
-
-                        Text {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "Battery health"
-                            font.family: Fonts.uiFont
-                            font.pixelSize: Fonts.sizeSmall
-                            color: Theme.muted
-                        }
-
-                        Text {
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: root.batteryService.batteryHealth
-                            font.family: Fonts.monoFont
-                            font.pixelSize: Fonts.sizeSmall
-                            font.bold: true
-                            color: Theme.foreground
-                        }
-                    }
-
-                    // Charge cycles (if enabled)
-                    Item {
-                        visible: root.showCycles
-                        width: parent.width
-                        height: visible ? 18 : 0
-
-                        Text {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "Charge cycles"
-                            font.family: Fonts.uiFont
-                            font.pixelSize: Fonts.sizeSmall
-                            color: Theme.muted
-                        }
-
-                        Text {
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: (root.cycleOverride > 0) ? String(root.cycleOverride) : root.batteryService.cycleCount
-                            font.family: Fonts.monoFont
-                            font.pixelSize: Fonts.sizeSmall
-                            font.bold: true
-                            color: Theme.foreground
-                        }
-                    }
-                }
-
-                // Right Column
-                Column {
-                    width: parent.colWidth
-                    spacing: 6
-
-                    // Time to full (or Time to empty)
-                    Item {
-                        width: parent.width
-                        height: 18
-
-                        Text {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: root.batteryService.timeLabel
-                            font.family: Fonts.uiFont
-                            font.pixelSize: Fonts.sizeSmall
-                            color: Theme.muted
-                        }
-
-                        Text {
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: (root.batteryService.timeToFull === "-" || !root.batteryService.timeToFull) ? "Idle" : root.batteryService.timeToFull
-                            font.family: Fonts.monoFont
-                            font.pixelSize: Fonts.sizeSmall
-                            font.bold: true
-                            color: Theme.foreground
-                        }
-                    }
-
-                    // Power source
-                    Item {
-                        visible: root.showCycles && root.showHealth
-                        width: parent.width
-                        height: visible ? 18 : 0
-
-                        Text {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "Power source"
-                            font.family: Fonts.uiFont
-                            font.pixelSize: Fonts.sizeSmall
-                            color: Theme.muted
-                        }
-
-                        Text {
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: root.batteryService.powerSource
-                            font.family: Fonts.monoFont
-                            font.pixelSize: Fonts.sizeSmall
-                            font.bold: true
-                            color: Theme.foreground
-                        }
-                    }
-
-                    // Charging rate
-                    Item {
-                        width: parent.width
-                        height: 18
-
-                        Text {
-                            anchors.left: parent.left
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: (root.showCycles && root.showHealth) ? root.batteryService.rateLabel : (root.batteryService.rateLabel || "Charging")
-                            font.family: Fonts.uiFont
-                            font.pixelSize: Fonts.sizeSmall
-                            color: Theme.muted
-                        }
-
-                        Text {
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: (root.batteryService.chargingRate === "-" || !root.batteryService.chargingRate) ? "Idle" : root.batteryService.chargingRate
-                            font.family: Fonts.monoFont
-                            font.pixelSize: Fonts.sizeSmall
-                            font.bold: true
-                            color: Theme.foreground
-                        }
-                    }
-                }
-            }
-
-            // Divider
+            // Stats Inset Well Container
             Rectangle {
                 width: parent.width
-                height: 1
-                color: Qt.rgba(1, 1, 1, 0.12)
+                height: statsGrid.implicitHeight + 16
+                radius: 10
+                color: Qt.rgba(0, 0, 0, 0.22)
+                border.color: Qt.rgba(255, 255, 255, 0.08)
+                border.width: 1
+
+                Row {
+                    id: statsGrid
+                    anchors.centerIn: parent
+                    width: parent.width - 20
+                    spacing: 16
+
+                    readonly property real colWidth: (width - spacing) / 2
+
+                    // Left Column
+                    Column {
+                        width: parent.colWidth
+                        spacing: 6
+
+                        // Battery size
+                        Item {
+                            width: parent.width
+                            height: 18
+
+                            Text {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "Battery size"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: Fonts.sizeSmall
+                                color: Theme.withAlpha(Theme.foreground, 0.72)
+                            }
+
+                            Text {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: root.batteryService.batterySize
+                                font.family: Fonts.monoFont
+                                font.pixelSize: Fonts.sizeSmall
+                                font.bold: true
+                                color: Theme.bright_foreground
+                            }
+                        }
+
+                        // Battery health (if enabled)
+                        Item {
+                            visible: root.showHealth
+                            width: parent.width
+                            height: visible ? 18 : 0
+
+                            Text {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "Battery health"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: Fonts.sizeSmall
+                                color: Theme.withAlpha(Theme.foreground, 0.72)
+                            }
+
+                            Text {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: root.batteryService.batteryHealth
+                                font.family: Fonts.monoFont
+                                font.pixelSize: Fonts.sizeSmall
+                                font.bold: true
+                                color: Theme.bright_foreground
+                            }
+                        }
+
+                        // Charge cycles (if enabled)
+                        Item {
+                            visible: root.showCycles
+                            width: parent.width
+                            height: visible ? 18 : 0
+
+                            Text {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "Charge cycles"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: Fonts.sizeSmall
+                                color: Theme.withAlpha(Theme.foreground, 0.72)
+                            }
+
+                            Text {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: (root.cycleOverride > 0) ? String(root.cycleOverride) : root.batteryService.cycleCount
+                                font.family: Fonts.monoFont
+                                font.pixelSize: Fonts.sizeSmall
+                                font.bold: true
+                                color: Theme.bright_foreground
+                            }
+                        }
+                    }
+
+                    // Right Column
+                    Column {
+                        width: parent.colWidth
+                        spacing: 6
+
+                        // Time to full (or Time to empty)
+                        Item {
+                            width: parent.width
+                            height: 18
+
+                            Text {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: root.batteryService.timeLabel
+                                font.family: Fonts.uiFont
+                                font.pixelSize: Fonts.sizeSmall
+                                color: Theme.withAlpha(Theme.foreground, 0.72)
+                            }
+
+                            Text {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: (root.batteryService.timeToFull === "-" || !root.batteryService.timeToFull) ? "Idle" : root.batteryService.timeToFull
+                                font.family: Fonts.monoFont
+                                font.pixelSize: Fonts.sizeSmall
+                                font.bold: true
+                                color: Theme.bright_foreground
+                            }
+                        }
+
+                        // Power source
+                        Item {
+                            visible: root.showCycles && root.showHealth
+                            width: parent.width
+                            height: visible ? 18 : 0
+
+                            Text {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "Power source"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: Fonts.sizeSmall
+                                color: Theme.withAlpha(Theme.foreground, 0.72)
+                            }
+
+                            Text {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: root.batteryService.powerSource
+                                font.family: Fonts.monoFont
+                                font.pixelSize: Fonts.sizeSmall
+                                font.bold: true
+                                color: Theme.bright_foreground
+                            }
+                        }
+
+                        // Charging rate
+                        Item {
+                            width: parent.width
+                            height: 18
+
+                            Text {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: (root.showCycles && root.showHealth) ? root.batteryService.rateLabel : (root.batteryService.rateLabel || "Charging")
+                                font.family: Fonts.uiFont
+                                font.pixelSize: Fonts.sizeSmall
+                                color: Theme.withAlpha(Theme.foreground, 0.72)
+                            }
+
+                            Text {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: (root.batteryService.chargingRate === "-" || !root.batteryService.chargingRate) ? "Idle" : root.batteryService.chargingRate
+                                font.family: Fonts.monoFont
+                                font.pixelSize: Fonts.sizeSmall
+                                font.bold: true
+                                color: Theme.bright_foreground
+                            }
+                        }
+                    }
+                }
             }
 
             // Power Profile Section Header
@@ -322,7 +326,8 @@ Item {
                 font.family: Fonts.uiFont
                 font.pixelSize: 10
                 font.bold: true
-                color: Theme.muted
+                font.letterSpacing: 1.0
+                color: Theme.withAlpha(Theme.foreground, 0.65)
             }
 
             // Power Profiles Row (Power-saver, Balanced, Performance)
@@ -349,12 +354,12 @@ Item {
                         readonly property bool isActive: root.powerService.activeProfile === modelData.id
 
                         color: {
-                            if (isActive) return Theme.withAlpha(Theme.accent, 0.22)
-                            if (profMouse.containsMouse) return Qt.rgba(1, 1, 1, 0.12)
-                            return Qt.rgba(1, 1, 1, 0.06)
+                            if (isActive) return Theme.withAlpha(Theme.accent, 0.25)
+                            if (profMouse.containsMouse) return Qt.rgba(255, 255, 255, 0.10)
+                            return Qt.rgba(0, 0, 0, 0.22)
                         }
 
-                        border.color: isActive ? Theme.accent : Qt.rgba(1, 1, 1, 0.12)
+                        border.color: isActive ? Theme.accent : Qt.rgba(255, 255, 255, 0.08)
                         border.width: 1
 
                         Row {
@@ -365,7 +370,7 @@ Item {
                                 text: profBtn.modelData.icon
                                 font.family: Icons.effectiveFont(profBtn.modelData.icon)
                                 font.pixelSize: Fonts.sizeRegular
-                                color: profBtn.isActive ? Theme.accent : Theme.muted
+                                color: profBtn.isActive ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.70)
                                 anchors.verticalCenter: parent.verticalCenter
                             }
 
@@ -374,7 +379,7 @@ Item {
                                 font.family: Fonts.uiFont
                                 font.pixelSize: 11
                                 font.bold: profBtn.isActive 
-                                color: profBtn.isActive ? Theme.accent : Theme.foreground
+                                color: profBtn.isActive ? Theme.accent : Theme.bright_foreground
                                 anchors.verticalCenter: parent.verticalCenter
                             }
                         }

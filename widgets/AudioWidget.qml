@@ -215,7 +215,7 @@ Item {
                             font.pixelSize: 10
                             font.bold: true
                             font.letterSpacing: 1.1
-                            color: Theme.muted
+                            color: Theme.glassLabel
                         }
                     }
                 }
@@ -252,7 +252,8 @@ Item {
                         font.family: Fonts.uiFont
                         font.pixelSize: 11
                         font.bold: true
-                        color: Theme.muted
+                        font.letterSpacing: 1.0
+                        color: Theme.glassLabel
                     }
 
                     Text {
@@ -262,7 +263,7 @@ Item {
                         font.family: Fonts.monoFont
                         font.pixelSize: 11
                         font.bold: true
-                        color: Theme.foreground
+                        color: Theme.bright_foreground
                     }
                 }
 
@@ -359,7 +360,8 @@ Item {
                         font.family: Fonts.uiFont
                         font.pixelSize: 11
                         font.bold: true
-                        color: Theme.muted
+                        font.letterSpacing: 1.0
+                        color: Theme.glassLabel
                     }
 
                     Text {
@@ -369,7 +371,7 @@ Item {
                         font.family: Fonts.monoFont
                         font.pixelSize: 11
                         font.bold: true
-                        color: Theme.foreground
+                        color: Theme.bright_foreground
                     }
                 }
 
@@ -460,7 +462,8 @@ Item {
                     font.family: Fonts.uiFont
                     font.pixelSize: 11
                     font.bold: true
-                    color: Theme.muted
+                    font.letterSpacing: 1.0
+                    color: Theme.glassLabel
                 }
 
                 Repeater {

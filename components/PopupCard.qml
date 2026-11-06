@@ -135,6 +135,37 @@ PanelWindow {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Multi-Layer 3D Spatial Shadows (Levitation Depth)
+    // ─────────────────────────────────────────────────────────────────────────
+    // Soft outer ambient drop shadow
+    Rectangle {
+        x: Math.round(cardRect.x - 12)
+        y: Math.round(cardRect.y - 2)
+        width: cardRect.width + 24
+        height: cardRect.height + 28
+        radius: cardRect.radius + 8
+        color: Qt.rgba(0, 0, 0, 0.35)
+        antialiasing: true
+        opacity: cardRect.opacity
+        scale: cardRect.scale
+        transformOrigin: cardRect.transformOrigin
+    }
+
+    // Sharp contact shadow
+    Rectangle {
+        x: Math.round(cardRect.x - 3)
+        y: Math.round(cardRect.y + 1)
+        width: cardRect.width + 6
+        height: cardRect.height + 8
+        radius: cardRect.radius + 3
+        color: Qt.rgba(0, 0, 0, 0.25)
+        antialiasing: true
+        opacity: cardRect.opacity
+        scale: cardRect.scale
+        transformOrigin: cardRect.transformOrigin
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Outer Card Container with True Apple-Grade Frosted Glass & Snappy Spring
     // ─────────────────────────────────────────────────────────────────────────
     Rectangle {
@@ -144,7 +175,7 @@ PanelWindow {
         width: root.contentWidth
         height: root.contentHeight
         color: "transparent"
-        border.color: Qt.rgba(1, 1, 1, 0.20)
+        border.color: Qt.rgba(1, 1, 1, 0.18)
         border.width: 1
         radius: Appearance.popupRadius > 0 ? Appearance.popupRadius : 14
         antialiasing: true
@@ -167,53 +198,26 @@ PanelWindow {
             }
         }
 
-        // True Apple-grade frosted liquid glass: high translucency letting Kawase blur shine through
+        // Apple-grade smoked frosted liquid glass: rich contrast + compositor blur
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.16) }
-            GradientStop { position: 0.12; color: Qt.rgba(1, 1, 1, 0.07) }
-            GradientStop { position: 0.65; color: Theme.withAlpha(Theme.background, 0.12) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.18) }
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.18) }
+            GradientStop { position: 0.04; color: Theme.withAlpha(Theme.lighter_background, 0.72) }
+            GradientStop { position: 0.55; color: Theme.withAlpha(Theme.background, 0.78) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.84) }
         }
 
-        // Frosted glass specular top edge highlight
+        // Seamless top curvature sheen (curves naturally with card corners, zero cut-off lines)
         Rectangle {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.leftMargin: Math.max(4, parent.radius / 2)
-            anchors.rightMargin: Math.max(4, parent.radius / 2)
-            height: 1
-            color: Qt.rgba(1, 1, 1, 0.40)
-            antialiasing: true
-        }
-
-        // Inner diffuse glass sheen glow
-        Rectangle {
-            anchors.top: parent.top
-            anchors.topMargin: 1
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: Math.max(4, parent.radius / 2)
-            anchors.rightMargin: Math.max(4, parent.radius / 2)
-            height: 10
+            height: 12
+            radius: parent.radius
             antialiasing: true
             gradient: Gradient {
-                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.12) }
+                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.10) }
                 GradientStop { position: 1.0; color: "transparent" }
             }
-        }
-
-        // Bottom ambient bounce line
-        Rectangle {
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 1
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.leftMargin: Math.max(4, parent.radius / 2)
-            anchors.rightMargin: Math.max(4, parent.radius / 2)
-            height: 1
-            color: Qt.rgba(1, 1, 1, 0.08)
-            antialiasing: true
         }
 
         // Prevent clicks inside the card from closing the popup

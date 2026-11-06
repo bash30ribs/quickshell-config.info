@@ -84,14 +84,14 @@ Item {
                             font.family: Fonts.uiFont
                             font.pixelSize: Fonts.sizeLarge
                             font.bold: true
-                            color: Theme.foreground
+                            color: Theme.bright_foreground
                         }
 
                         Text {
                             text: root.service.brightnessName || "Internal Display"
                             font.family: Fonts.uiFont
                             font.pixelSize: 11
-                            color: Theme.muted
+                            color: Theme.glassLabel
                         }
                     }
                 }
@@ -118,9 +118,10 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "BRIGHTNESS"
                         font.family: Fonts.uiFont
-                        font.pixelSize: 11
+                        font.pixelSize: 10
                         font.bold: true
-                        color: Theme.muted
+                        font.letterSpacing: 1.0
+                        color: Theme.glassLabel
                     }
 
                     Text {
@@ -130,7 +131,7 @@ Item {
                         font.family: Fonts.monoFont
                         font.pixelSize: 12
                         font.bold: true
-                        color: Theme.foreground
+                        color: Theme.bright_foreground
                     }
                 }
 
@@ -223,9 +224,10 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "TEXT SIZE"
                         font.family: Fonts.uiFont
-                        font.pixelSize: 11
+                        font.pixelSize: 10
                         font.bold: true
-                        color: Theme.muted
+                        font.letterSpacing: 1.0
+                        color: Theme.glassLabel
                     }
 
                     Text {
@@ -235,7 +237,7 @@ Item {
                         font.family: Fonts.monoFont
                         font.pixelSize: 12
                         font.bold: true
-                        color: Theme.foreground
+                        color: Theme.bright_foreground
                     }
                 }
 
@@ -348,9 +350,10 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "SCALE"
                         font.family: Fonts.uiFont
-                        font.pixelSize: 11
+                        font.pixelSize: 10
                         font.bold: true
-                        color: Theme.muted
+                        font.letterSpacing: 1.0
+                        color: Theme.glassLabel
                     }
 
                     Text {
@@ -360,7 +363,7 @@ Item {
                         text: root.service.focusedMonitor
                         font.family: Fonts.uiFont
                         font.pixelSize: 10
-                        color: Theme.dark_foreground
+                        color: Theme.glassLabel
                     }
                 }
 
@@ -389,8 +392,8 @@ Item {
                             width: scaleRow.pillWidth
                             height: 28
                             radius: Appearance.radiusSmall
-                            color: isActive ? Theme.withAlpha(Theme.accent, 0.22) : (pillMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
-                            border.color: isActive ? Theme.accent : Qt.rgba(1, 1, 1, 0.12)
+                            color: isActive ? Theme.withAlpha(Theme.accent, 0.25) : (pillMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.10) : Qt.rgba(0, 0, 0, 0.22))
+                            border.color: isActive ? Theme.accent : Qt.rgba(255, 255, 255, 0.08)
                             border.width: 1
 
                             Text {
@@ -399,7 +402,7 @@ Item {
                                 font.family: Fonts.uiFont
                                 font.pixelSize: 11
                                 font.bold: scalePill.isActive 
-                                color: scalePill.isActive ? Theme.accent : Theme.foreground
+                                color: scalePill.isActive ? Theme.accent : Theme.bright_foreground
                             }
 
                             MouseArea {
@@ -435,9 +438,10 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "REFRESH RATE"
                         font.family: Fonts.uiFont
-                        font.pixelSize: 11
+                        font.pixelSize: 10
                         font.bold: true
-                        color: Theme.muted
+                        font.letterSpacing: 1.0
+                        color: Theme.glassLabel
                     }
 
                     Row {
@@ -450,7 +454,7 @@ Item {
                             text: root.service.activeMonitorName
                             font.family: Fonts.uiFont
                             font.pixelSize: 10
-                            color: Theme.dark_foreground
+                            color: Theme.glassLabel
                         }
 
                         Text {
@@ -458,7 +462,7 @@ Item {
                             font.family: Fonts.monoFont
                             font.pixelSize: 12
                             font.bold: true
-                            color: Theme.foreground
+                            color: Theme.bright_foreground
                         }
                     }
                 }
@@ -480,8 +484,8 @@ Item {
 
                         readonly property bool isActive: Math.abs(root.service.currentRefreshRate - 60) <= 2
 
-                        color: isActive ? Theme.withAlpha(Theme.accent, 0.22) : (p60Mouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
-                        border.color: isActive ? Theme.accent : Qt.rgba(1, 1, 1, 0.12)
+                        color: isActive ? Theme.withAlpha(Theme.accent, 0.25) : (p60Mouse.containsMouse ? Qt.rgba(255, 255, 255, 0.10) : Qt.rgba(0, 0, 0, 0.22))
+                        border.color: isActive ? Theme.accent : Qt.rgba(255, 255, 255, 0.08)
                         border.width: 1
 
                         Text {
@@ -490,7 +494,7 @@ Item {
                             font.family: Fonts.uiFont
                             font.pixelSize: 11
                             font.bold: hz60Pill.isActive 
-                            color: hz60Pill.isActive ? Theme.accent : Theme.foreground
+                            color: hz60Pill.isActive ? Theme.accent : Theme.bright_foreground
                         }
 
                         MouseArea {
@@ -512,8 +516,8 @@ Item {
 
                         readonly property bool isActive: Math.abs(root.service.currentRefreshRate - hzRow.maxHz) <= 2
 
-                        color: isActive ? Theme.withAlpha(Theme.accent, 0.22) : (pMaxMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
-                        border.color: isActive ? Theme.accent : Qt.rgba(1, 1, 1, 0.12)
+                        color: isActive ? Theme.withAlpha(Theme.accent, 0.25) : (pMaxMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.10) : Qt.rgba(0, 0, 0, 0.22))
+                        border.color: isActive ? Theme.accent : Qt.rgba(255, 255, 255, 0.08)
                         border.width: 1
 
                         Text {
@@ -522,7 +526,7 @@ Item {
                             font.family: Fonts.uiFont
                             font.pixelSize: 11
                             font.bold: hzMaxPill.isActive 
-                            color: hzMaxPill.isActive ? Theme.accent : Theme.foreground
+                            color: hzMaxPill.isActive ? Theme.accent : Theme.bright_foreground
                         }
 
                         MouseArea {
@@ -551,9 +555,10 @@ Item {
                 Text {
                     text: "DISPLAYS"
                     font.family: Fonts.uiFont
-                    font.pixelSize: 11
+                    font.pixelSize: 10
                     font.bold: true
-                    color: Theme.muted
+                    font.letterSpacing: 1.0
+                    color: Theme.glassLabel
                 }
 
                 Repeater {

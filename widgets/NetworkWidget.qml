@@ -321,7 +321,8 @@ Item {
                         font.family: Fonts.uiFont
                         font.pixelSize: 11
                         font.bold: true
-                        color: Theme.muted
+                        font.letterSpacing: 1.0
+                        color: Theme.glassLabel
                     }
 
                     Row {
@@ -517,7 +518,8 @@ Item {
                         font.family: Fonts.uiFont
                         font.pixelSize: 11
                         font.bold: true
-                        color: Theme.muted
+                        font.letterSpacing: 1.0
+                        color: Theme.glassLabel
                     }
 
                     Repeater {
@@ -693,7 +695,8 @@ Item {
                         font.family: Fonts.uiFont
                         font.pixelSize: 11
                         font.bold: true
-                        color: Theme.muted
+                        font.letterSpacing: 1.0
+                        color: Theme.glassLabel
                     }
 
                     // Scrollable list for other networks

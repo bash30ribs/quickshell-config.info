@@ -231,7 +231,7 @@ Item {
                             Text {
                                 anchors.centerIn: parent
                                 text: "W"
-                                color: Theme.muted
+                                color: Theme.glassLabel
                                 font.family: Fonts.uiFont
                                 font.pixelSize: 10
                                 font.bold: true
@@ -254,7 +254,7 @@ Item {
                                 Text {
                                     anchors.centerIn: parent
                                     text: modelData
-                                    color: Theme.muted
+                                    color: Theme.glassLabel
                                     font.family: Fonts.uiFont
                                     font.pixelSize: 10
                                     font.bold: true
@@ -354,7 +354,7 @@ Item {
                     // Month & Year Label (e.g. "OCTOBER 2026")
                     Text {
                         text: Qt.formatDate(root.viewDate, "MMMM yyyy").toUpperCase()
-                        color: Theme.muted
+                        color: Theme.glassLabel
                         font.family: Fonts.uiFont
                         font.pixelSize: 11
                         font.bold: true

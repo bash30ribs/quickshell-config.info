@@ -106,7 +106,7 @@ Item {
                         font.family: Fonts.uiFont
                         font.pixelSize: 9
                         font.bold: true
-                        color: Theme.muted
+                        color: Theme.glassLabel
                     }
                 }
 
@@ -135,7 +135,7 @@ Item {
                     text: "Turn Bluetooth on to scan"
                     font.family: Fonts.uiFont
                     font.pixelSize: 11
-                    color: Theme.muted
+                    color: Theme.glassLabel
                 }
             }
 
@@ -166,7 +166,8 @@ Item {
                                 font.family: Fonts.uiFont
                                 font.pixelSize: 10
                                 font.bold: true
-                                color: Theme.muted
+                                font.letterSpacing: 1.0
+                                color: Theme.glassLabel
                             }
 
                             Repeater {
@@ -268,7 +269,8 @@ Item {
                                 font.family: Fonts.uiFont
                                 font.pixelSize: 10
                                 font.bold: true
-                                color: Theme.muted
+                                font.letterSpacing: 1.0
+                                color: Theme.glassLabel
                             }
 
                             Repeater {

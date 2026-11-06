@@ -39,7 +39,7 @@ QtObject {
     property alias wallpaperCardBorder: root.wallpaperSwitcherCardBorder
 
     // Bar widget display options
-    property bool batteryShowPercentage: false
+    property bool batteryShowPercentage: true
     property bool batteryShowCycles: true
     property bool batteryShowHealth: true
     property int batteryCycleOverride: 0
