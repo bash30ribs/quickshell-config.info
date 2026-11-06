@@ -106,10 +106,10 @@ PanelWindow {
 
         // Cohesive Apple-grade smoked frosted glass refraction gradient
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.15) }
-            GradientStop { position: 0.06; color: Theme.withAlpha(Theme.lighter_background, 0.68) }
-            GradientStop { position: 0.60; color: Theme.withAlpha(Theme.background, 0.75) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.82) }
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.18) }
+            GradientStop { position: 0.06; color: Theme.withAlpha(Theme.lighter_background, 0.48) }
+            GradientStop { position: 0.60; color: Theme.withAlpha(Theme.background, 0.54) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.58) }
         }
 
         // Inner diffuse glass sheen glow (seamless full-width curve)
@@ -141,9 +141,9 @@ PanelWindow {
         antialiasing: true
 
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.15) }
-            GradientStop { position: 0.08; color: Theme.withAlpha(Theme.lighter_background, 0.68) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.78) }
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.18) }
+            GradientStop { position: 0.08; color: Theme.withAlpha(Theme.lighter_background, 0.48) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.56) }
         }
 
         Rectangle {
@@ -175,9 +175,9 @@ PanelWindow {
         antialiasing: true
 
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.15) }
-            GradientStop { position: 0.08; color: Theme.withAlpha(Theme.lighter_background, 0.68) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.78) }
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.18) }
+            GradientStop { position: 0.08; color: Theme.withAlpha(Theme.lighter_background, 0.48) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.56) }
         }
 
         Rectangle {
@@ -209,9 +209,9 @@ PanelWindow {
         antialiasing: true
 
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.15) }
-            GradientStop { position: 0.08; color: Theme.withAlpha(Theme.lighter_background, 0.68) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.78) }
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.18) }
+            GradientStop { position: 0.08; color: Theme.withAlpha(Theme.lighter_background, 0.48) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.56) }
         }
 
         Rectangle {

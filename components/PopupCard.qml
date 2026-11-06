@@ -177,10 +177,10 @@ PanelWindow {
 
         // Apple-grade smoked frosted liquid glass: rich contrast + compositor blur
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.18) }
-            GradientStop { position: 0.04; color: Theme.withAlpha(Theme.lighter_background, 0.72) }
-            GradientStop { position: 0.55; color: Theme.withAlpha(Theme.background, 0.78) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.84) }
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.22) }
+            GradientStop { position: 0.04; color: Theme.withAlpha(Theme.lighter_background, 0.48) }
+            GradientStop { position: 0.55; color: Theme.withAlpha(Theme.background, 0.54) }
+            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.60) }
         }
 
         // Seamless top curvature sheen (curves naturally with card corners, zero cut-off lines)
