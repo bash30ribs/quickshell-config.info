@@ -86,8 +86,14 @@ PanelWindow {
     // LayerShell configuration
     WlrLayershell.namespace: "quickshell-powermenu"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: root.isOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: root.isOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
+
+    Shortcut {
+        sequence: "Escape"
+        enabled: root.isOpen
+        onActivated: root.close()
+    }
 
     // Spring pop-up & retraction physics from bottom
     NumberAnimation {

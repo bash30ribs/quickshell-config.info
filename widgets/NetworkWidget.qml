@@ -59,7 +59,7 @@ Item {
         showDefaultHeader: false
         contentWidth: 360
         contentHeight: root.showQrView ? 420 : (root.showPasswordInput ? 525 : 450)
-        keyboardFocus: root.showPasswordInput ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+        keyboardFocus: root.showPasswordInput ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
         onOpenChanged: {
             if (!open) {

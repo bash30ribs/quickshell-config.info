@@ -20,8 +20,18 @@ PanelWindow {
 
     WlrLayershell.namespace: "quickshell-confirm"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: root.isOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: root.isOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
+
+    Shortcut {
+        sequence: "Escape"
+        enabled: root.isOpen
+        onActivated: {
+            if (root.powerService) {
+                root.powerService.cancelConfirm()
+            }
+        }
+    }
 
     HyprlandFocusGrab {
         active: false
