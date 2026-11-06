@@ -76,7 +76,7 @@ QtObject {
     // ─────────────────────────────────────────────────────────────────────────
     // Glassmorphism & Frosted Glass Tokens (Apple-grade Smoked Liquid Glass)
     // ─────────────────────────────────────────────────────────────────────────
-    readonly property real glassOpacity: 0.55
+    readonly property real glassOpacity: 0.42
     readonly property real glassPillOpacity: 0.16
     readonly property color glassBorder: root.hasWallpaperColors ? Qt.tint(Qt.rgba(255, 255, 255, 0.16), root.withAlpha(root.glassBorderColor, 0.12)) : Qt.rgba(255, 255, 255, 0.16)
     readonly property color glassBorderLight: Qt.rgba(255, 255, 255, 0.24)
@@ -89,7 +89,7 @@ QtObject {
     readonly property color glassHoverBorder: Qt.rgba(255, 255, 255, 0.18)
     readonly property color glassActive: root.withAlpha(root.accent, 0.25)
     readonly property color glassActiveBorder: root.accent
-    readonly property real glassPopupOpacity: 0.58
+    readonly property real glassPopupOpacity: 0.46
 
     // ─────────────────────────────────────────────────────────────────────────
     // Dual Alpha + Compositor Blur Architecture
