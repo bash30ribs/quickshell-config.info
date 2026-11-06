@@ -36,7 +36,7 @@ Item {
         id: netButton
         icon: root.service.icon
         iconSize: root.iconSize
-        accentActive: root.service.wifiEnabled && root.service.currentSsid !== ""
+        accentActive: root.service.isConnected
         active: netPopup.open
         onClicked: {
             root.toggle()
@@ -58,7 +58,7 @@ Item {
         anchorItem: netButton
         showDefaultHeader: false
         contentWidth: 360
-        contentHeight: root.showQrView ? 420 : (root.showPasswordInput ? 525 : 450)
+        contentHeight: root.showQrView ? 420 : (root.showPasswordInput ? 525 : (root.service.isEthernet ? 515 : 450))
         keyboardFocus: root.showPasswordInput ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
         onOpenChanged: {
@@ -97,6 +97,7 @@ Item {
 
                         Text {
                             text: {
+                                if (root.service.isEthernet) return "Ethernet"
                                 if (!root.service.wifiEnabled) return "Wi-Fi Off"
                                 if (root.service.connectingSsid) return root.service.connectingSsid
                                 return root.service.currentSsid || "Not Connected"
@@ -111,6 +112,7 @@ Item {
 
                         Text {
                             text: {
+                                if (root.service.isEthernet) return "CONNECTED • PRIORITY"
                                 if (!root.service.wifiEnabled) return "DISABLED"
                                 if (root.service.connectingSsid) return "CONNECTING..."
                                 if (root.service.currentSsid) return root.service.connectionPhrase
@@ -119,7 +121,7 @@ Item {
                             font.family: Fonts.uiFont
                             font.pixelSize: 10
                             font.bold: true
-                            color: root.service.connectingSsid ? Theme.accent : Theme.muted
+                            color: root.service.isEthernet ? Theme.accent : (root.service.connectingSsid ? Theme.accent : Theme.muted)
                         }
                     }
                 }
@@ -132,7 +134,7 @@ Item {
 
                     // Quick Disconnect Button (visible when connected)
                     Rectangle {
-                        visible: root.service.wifiEnabled && root.service.currentSsid !== ""
+                        visible: root.service.isConnected
                         width: 28
                         height: 28
                         radius: Appearance.radiusSmall
@@ -153,7 +155,14 @@ Item {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: root.service.disconnectNetwork(root.service.currentSsid)
+                            onClicked: {
+                                if (root.service.isEthernet && root.service.interfaceName) {
+                                    Quickshell.execDetached(["nmcli", "device", "disconnect", root.service.interfaceName])
+                                    root.service.refresh()
+                                } else {
+                                    root.service.disconnectNetwork(root.service.currentSsid)
+                                }
+                            }
                         }
                     }
 
@@ -310,6 +319,107 @@ Item {
                 visible: !root.showQrView
                 width: parent.width
                 spacing: 12
+
+                // --- 1.5. ETHERNET PRIORITY CARD (Visible when Ethernet is active) ---
+                Rectangle {
+                    visible: root.service.isEthernet
+                    width: parent.width
+                    height: 52
+                    radius: Appearance.radiusSmall
+                    color: Qt.rgba(0, 0, 0, 0.22)
+                    border.color: Theme.withAlpha(Theme.accent, 0.35)
+                    border.width: 1
+
+                    Row {
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: 10
+
+                        // LAN Icon Pill
+                        Rectangle {
+                            width: 36
+                            height: 36
+                            radius: Appearance.radiusSmall
+                            color: Theme.withAlpha(Theme.accent, 0.20)
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "󰈀"
+                                font.family: Icons.effectiveFont("󰈀")
+                                font.pixelSize: 18
+                                color: Theme.accent
+                            }
+                        }
+
+                        // Info Column
+                        Column {
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 2
+                            width: parent.width - 150
+
+                            Row {
+                                spacing: 6
+                                Text {
+                                    text: "Wired Ethernet"
+                                    font.family: Fonts.uiFont
+                                    font.pixelSize: 12
+                                    font.bold: true
+                                    color: Theme.bright_foreground
+                                }
+                                Rectangle {
+                                    width: 52
+                                    height: 14
+                                    radius: 3
+                                    color: Theme.accent
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "PRIORITY"
+                                        font.family: Fonts.uiFont
+                                        font.pixelSize: 8
+                                        font.bold: true
+                                        color: Theme.darker_background
+                                    }
+                                }
+                            }
+
+                            Text {
+                                text: (root.service.interfaceName ? (root.service.interfaceName + " • ") : "") + (root.service.localIp || "Active") + " (Metric 50)"
+                                font.family: Fonts.monoFont
+                                font.pixelSize: 9
+                                color: Theme.glassLabel
+                                elide: Text.ElideRight
+                                width: parent.width
+                            }
+                        }
+
+                        // Right: Live Rates & Ping
+                        Column {
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.right: parent.right
+                            spacing: 1
+
+                            Text {
+                                text: "↓ " + root.service.formatRate(root.service.downloadRate)
+                                font.family: Fonts.monoFont
+                                font.pixelSize: 9
+                                font.bold: true
+                                color: Theme.accent
+                                horizontalAlignment: Text.AlignRight
+                                anchors.right: parent.right
+                            }
+                            Text {
+                                text: "↑ " + root.service.formatRate(root.service.uploadRate)
+                                font.family: Fonts.monoFont
+                                font.pixelSize: 9
+                                color: Theme.muted
+                                horizontalAlignment: Text.AlignRight
+                                anchors.right: parent.right
+                            }
+                        }
+                    }
+                }
 
                 // --- 2. DNS PROVIDER Section (Segmented Buttons) ---
                 Column {
@@ -571,10 +681,10 @@ Item {
                                     }
 
                                     Text {
-                                        text: knownRow.isConnecting ? "Connecting..." : (knownRow.hasError ? root.service.connectionErrorMessage : (knownRow.isConnected ? "Connected" : "Saved"))
+                                        text: knownRow.isConnecting ? "Connecting..." : (knownRow.hasError ? root.service.connectionErrorMessage : (knownRow.isConnected ? (root.service.isEthernet ? "Connected (Standby)" : "Connected") : "Saved"))
                                         font.family: Fonts.uiFont
                                         font.pixelSize: 10
-                                        color: knownRow.isConnecting ? Theme.accent : (knownRow.hasError ? Theme.red : (knownRow.isConnected ? Theme.accent : Theme.muted))
+                                        color: knownRow.isConnecting ? Theme.accent : (knownRow.hasError ? Theme.red : (knownRow.isConnected ? (root.service.isEthernet ? Theme.muted : Theme.accent) : Theme.muted))
                                     }
                                 }
                             }
