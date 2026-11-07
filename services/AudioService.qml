@@ -46,20 +46,25 @@ QtObject {
                 sinkSwitchTimer.restart()
                 return lastValidVolume
             }
-            lastValidVolume = v
             return v
         }
         return lastValidVolume
     }
 
+    onVolumeChanged: {
+        if (volume > 0) lastValidVolume = volume
+    }
+
     property bool lastValidMuted: false
     readonly property bool muted: {
         if (sink && sink.audio && sink.audio.muted !== undefined) {
-            var m = !!sink.audio.muted
-            lastValidMuted = m
-            return m
+            return !!sink.audio.muted
         }
         return lastValidMuted
+    }
+
+    onMutedChanged: {
+        lastValidMuted = muted
     }
 
     readonly property int inputVolume: source && source.audio ? Math.round(source.audio.volume * 100) : 0
