@@ -90,8 +90,8 @@ PanelWindow {
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Auto
 
-    // Unified background surface with frosted glassmorphism (floating, wide, compact modes)
-    Rectangle {
+    // Unified background surface with Mornye Liquid Glass material (floating, wide, compact modes)
+    GlassPanel {
         id: barBackground
         visible: !root.isIslands
         anchors.fill: parent
@@ -99,35 +99,11 @@ PanelWindow {
         topRightRadius: 0
         bottomLeftRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
         bottomRightRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
-        color: "transparent"
-        border.color: Theme.glassBorder
-        border.width: 1
-        antialiasing: true
-
-        // Cohesive Apple-grade smoked frosted glass refraction gradient
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.15) }
-            GradientStop { position: 0.06; color: Theme.withAlpha(Theme.lighter_background, 0.36) }
-            GradientStop { position: 0.60; color: Theme.withAlpha(Theme.background, 0.42) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.46) }
-        }
-
-        // Inner diffuse glass sheen glow (seamless full-width curve)
-        Rectangle {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 8
-            antialiasing: true
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.08) }
-                GradientStop { position: 1.0; color: "transparent" }
-            }
-        }
+        baseColor: Theme.barBackground
     }
 
     // Left island capsule (islands mode)
-    Rectangle {
+    GlassPanel {
         id: leftIslandBg
         visible: root.isIslands
         x: leftSection.x - 6
@@ -135,33 +111,11 @@ PanelWindow {
         width: leftSection.width + 12
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
-        color: "transparent"
-        border.color: Theme.glassBorder
-        border.width: 1
-        antialiasing: true
-
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.15) }
-            GradientStop { position: 0.08; color: Theme.withAlpha(Theme.lighter_background, 0.36) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.44) }
-        }
-
-        Rectangle {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 7
-            radius: parent.radius
-            antialiasing: true
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.08) }
-                GradientStop { position: 1.0; color: "transparent" }
-            }
-        }
+        baseColor: Theme.barBackground
     }
 
     // Center island capsule (islands mode)
-    Rectangle {
+    GlassPanel {
         id: centerIslandBg
         visible: root.isIslands
         x: clockWidget.x - 8
@@ -169,33 +123,11 @@ PanelWindow {
         width: clockWidget.width + 16
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
-        color: "transparent"
-        border.color: Theme.glassBorder
-        border.width: 1
-        antialiasing: true
-
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.15) }
-            GradientStop { position: 0.08; color: Theme.withAlpha(Theme.lighter_background, 0.36) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.44) }
-        }
-
-        Rectangle {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 7
-            radius: parent.radius
-            antialiasing: true
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.08) }
-                GradientStop { position: 1.0; color: "transparent" }
-            }
-        }
+        baseColor: Theme.barBackground
     }
 
     // Right island capsule (islands mode)
-    Rectangle {
+    GlassPanel {
         id: rightIslandBg
         visible: root.isIslands
         x: rightSection.x - 6
@@ -203,29 +135,7 @@ PanelWindow {
         width: rightSection.width + 12
         height: Appearance.barButtonHeight + 4
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
-        color: "transparent"
-        border.color: Theme.glassBorder
-        border.width: 1
-        antialiasing: true
-
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.15) }
-            GradientStop { position: 0.08; color: Theme.withAlpha(Theme.lighter_background, 0.36) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.background, 0.44) }
-        }
-
-        Rectangle {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 7
-            radius: parent.radius
-            antialiasing: true
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.08) }
-                GradientStop { position: 1.0; color: "transparent" }
-            }
-        }
+        baseColor: Theme.barBackground
     }
 
     // Widget content container

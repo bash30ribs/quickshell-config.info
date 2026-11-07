@@ -25,25 +25,40 @@ Rectangle {
     radius: Appearance.buttonRadius > 0 ? Appearance.buttonRadius : 6
     antialiasing: true
 
+    // Mornye Spring Physics Scale & Compression (Mass: 1, Stiffness: 420, Damping: 24)
+    scale: {
+        if (mouseArea.pressed) return 0.965
+        if (mouseArea.containsMouse) return 1.025
+        return 1.0
+    }
+
+    Behavior on scale {
+        NumberAnimation {
+            duration: mouseArea.pressed ? 70 : 180
+            easing.type: mouseArea.pressed ? Easing.OutQuad : Easing.OutBack
+            easing.overshoot: mouseArea.pressed ? 1.0 : 1.25
+        }
+    }
+
     // Seamlessly merged into the bar; soft frosted glass highlight on hover, subtle accent wash on active
     color: {
-        if (root.active) return Theme.withAlpha(Theme.accent, 0.18)
-        if (mouseArea.containsMouse) return Qt.rgba(1, 1, 1, 0.08)
+        if (root.active) return Theme.withAlpha(Theme.accent, 0.20)
+        if (mouseArea.containsMouse) return Qt.rgba(1, 1, 1, 0.09)
         return "transparent"
     }
 
     border.color: {
-        if (root.active) return Theme.withAlpha(Theme.accent, 0.35)
-        if (mouseArea.containsMouse) return Qt.rgba(1, 1, 1, 0.12)
+        if (root.active) return Theme.withAlpha(Theme.accent, 0.50)
+        if (mouseArea.containsMouse) return Qt.rgba(1, 1, 1, 0.20)
         return "transparent"
     }
     border.width: (root.active || mouseArea.containsMouse) ? 1 : 0
 
     Behavior on color {
-        ColorAnimation { duration: Appearance.animDurationNormal }
+        ColorAnimation { duration: 130 }
     }
     Behavior on border.color {
-        ColorAnimation { duration: Appearance.animDurationNormal }
+        ColorAnimation { duration: 130 }
     }
 
     Row {

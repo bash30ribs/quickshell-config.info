@@ -135,20 +135,16 @@ PanelWindow {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Card Container with Single Clean Liquid Frosted Glass Surface
+    // Card Container with Mornye Liquid Glass Material Surface
     // (Compositor blur handles native background frosting without stacked layers)
     // ─────────────────────────────────────────────────────────────────────────
-    Rectangle {
+    GlassPanel {
         id: cardRect
         x: Math.round(root.cardX)
         y: Math.round(root.cardY) + (root.isCardActive ? 0 : -12)
         width: root.contentWidth
         height: root.contentHeight
-        color: "transparent"
-        border.color: Theme.glassBorder
-        border.width: 1
         radius: Appearance.popupRadius > 0 ? Appearance.popupRadius : 14
-        antialiasing: true
 
         opacity: root.isCardActive ? 1.0 : 0.0
         scale: root.isCardActive ? 1.0 : 0.85
@@ -172,28 +168,6 @@ PanelWindow {
                 duration: root.isCardActive ? 190 : 120
                 easing.type: root.isCardActive ? Easing.OutBack : Easing.InCubic
                 easing.overshoot: root.isCardActive ? 1.32 : 1.0
-            }
-        }
-
-        // Apple-grade smoked frosted liquid glass: rich translucency + compositor blur
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.16) }
-            GradientStop { position: 0.04; color: Theme.withAlpha(Theme.lighter_background, 0.36) }
-            GradientStop { position: 0.55; color: Theme.withAlpha(Theme.background, 0.42) }
-            GradientStop { position: 1.0; color: Theme.withAlpha(Theme.dark_background, 0.48) }
-        }
-
-        // Seamless top curvature sheen (curves naturally with card corners, zero cut-off lines)
-        Rectangle {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 12
-            radius: parent.radius
-            antialiasing: true
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.10) }
-                GradientStop { position: 1.0; color: "transparent" }
             }
         }
 

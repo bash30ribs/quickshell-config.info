@@ -15,6 +15,20 @@ QtObject {
     property bool barVisible: true
 
     // =========================================================================
+    // Mornye Liquid Glass Optical Settings (Mornye Reference Specification)
+    // =========================================================================
+    property string glassMode: "liquid" // "liquid" (Mode C), "frosted" (Mode B), "flat" (Mode A)
+    property real glassClarity: 0.75    // Mornye default clarity
+    property real glassRimIllumination: 0.45
+    property real glassSpecularIntensity: 0.70
+    property real glassRefractionStrength: 0.85
+
+    // Mornye Spring Physics Settings (mornye_glass_press.dart)
+    property real springMass: 1.0
+    property real springStiffness: 420.0
+    property real springDamping: 24.0
+
+    // =========================================================================
     // Border Toggles (off by default)
     // =========================================================================
     // Bar border toggle

@@ -42,6 +42,21 @@ Item {
                 radius: height / 2
                 antialiasing: true
 
+                // Mornye Spring Physics (Mass: 1, Stiffness: 420, Damping: 24)
+                scale: {
+                    if (wsMouse.pressed) return 0.94
+                    if (wsMouse.containsMouse) return 1.08
+                    return 1.0
+                }
+
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: wsMouse.pressed ? 70 : 180
+                        easing.type: wsMouse.pressed ? Easing.OutQuad : Easing.OutBack
+                        easing.overshoot: wsMouse.pressed ? 1.0 : 1.25
+                    }
+                }
+
                 color: {
                     if (isActive) return Theme.accent
                     if (wsMouse.containsMouse) return Theme.withAlpha(Theme.glassCrest, 0.18)
@@ -53,6 +68,21 @@ Item {
                     return "transparent"
                 }
                 border.width: (isActive || wsMouse.containsMouse) ? 1 : 0
+
+                // Specular highlight sheen on active capsule
+                Rectangle {
+                    visible: wsCapsule.isActive
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: Math.max(3, parent.height * 0.4)
+                    radius: parent.radius
+                    antialiasing: true
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.35) }
+                        GradientStop { position: 1.0; color: "transparent" }
+                    }
+                }
 
                 Behavior on width {
                     NumberAnimation {

@@ -330,17 +330,18 @@ Item {
                     border.color: Theme.withAlpha(Theme.accent, 0.35)
                     border.width: 1
 
-                    Row {
+                    Item {
                         anchors.fill: parent
                         anchors.margins: 8
-                        spacing: 10
 
                         // LAN Icon Pill
                         Rectangle {
+                            id: lanIconRect
                             width: 36
                             height: 36
                             radius: Appearance.radiusSmall
                             color: Theme.withAlpha(Theme.accent, 0.20)
+                            anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
 
                             Text {
@@ -352,11 +353,40 @@ Item {
                             }
                         }
 
+                        // Right: Live Rates & Ping
+                        Column {
+                            id: liveRatesCol
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 1
+
+                            Text {
+                                text: "↓ " + root.service.formatRate(root.service.downloadRate)
+                                font.family: Fonts.monoFont
+                                font.pixelSize: 9
+                                font.bold: true
+                                color: Theme.accent
+                                horizontalAlignment: Text.AlignRight
+                                anchors.right: parent.right
+                            }
+                            Text {
+                                text: "↑ " + root.service.formatRate(root.service.uploadRate)
+                                font.family: Fonts.monoFont
+                                font.pixelSize: 9
+                                color: Theme.muted
+                                horizontalAlignment: Text.AlignRight
+                                anchors.right: parent.right
+                            }
+                        }
+
                         // Info Column
                         Column {
+                            anchors.left: lanIconRect.right
+                            anchors.leftMargin: 10
+                            anchors.right: liveRatesCol.left
+                            anchors.rightMargin: 8
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 2
-                            width: parent.width - 150
 
                             Row {
                                 spacing: 6
@@ -391,31 +421,6 @@ Item {
                                 color: Theme.glassLabel
                                 elide: Text.ElideRight
                                 width: parent.width
-                            }
-                        }
-
-                        // Right: Live Rates & Ping
-                        Column {
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.right: parent.right
-                            spacing: 1
-
-                            Text {
-                                text: "↓ " + root.service.formatRate(root.service.downloadRate)
-                                font.family: Fonts.monoFont
-                                font.pixelSize: 9
-                                font.bold: true
-                                color: Theme.accent
-                                horizontalAlignment: Text.AlignRight
-                                anchors.right: parent.right
-                            }
-                            Text {
-                                text: "↑ " + root.service.formatRate(root.service.uploadRate)
-                                font.family: Fonts.monoFont
-                                font.pixelSize: 9
-                                color: Theme.muted
-                                horizontalAlignment: Text.AlignRight
-                                anchors.right: parent.right
                             }
                         }
                     }
