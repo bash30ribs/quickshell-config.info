@@ -220,10 +220,10 @@ QtObject {
         root.prioritizeEthernet()
     }
 
-    // Enforce Ethernet priority in NetworkManager (autoconnect priority 100, route metric 50)
+    // Enforce Ethernet priority in NetworkManager (autoconnect priority 100, route metric 50, DNS priority 50)
     property Process prioritizeEthernetProc: Process {
         id: prioritizeEthernetProc
-        command: ["bash", "-c", "nmcli -t -f NAME,TYPE connection show 2>/dev/null | while IFS=: read -r name type; do if [[ \"$type\" == \"802-3-ethernet\" ]]; then nmcli connection modify \"$name\" connection.autoconnect-priority 100 ipv4.route-metric 50 ipv6.route-metric 50 2>/dev/null || true; elif [[ \"$type\" == \"802-11-wireless\" ]]; then nmcli connection modify \"$name\" connection.autoconnect-priority 0 ipv4.route-metric 600 ipv6.route-metric 600 2>/dev/null || true; fi; done"]
+        command: ["bash", "-c", "nmcli -t -f NAME,TYPE connection show 2>/dev/null | while IFS=: read -r name type; do if [[ \"$type\" == \"802-3-ethernet\" ]]; then nmcli connection modify \"$name\" connection.autoconnect-priority 100 ipv4.route-metric 50 ipv6.route-metric 50 ipv4.dns-priority 50 ipv6.dns-priority 50 2>/dev/null || true; elif [[ \"$type\" == \"802-11-wireless\" ]]; then nmcli connection modify \"$name\" connection.autoconnect-priority 0 ipv4.route-metric 600 ipv6.route-metric 600 ipv4.dns-priority 600 ipv6.dns-priority 600 2>/dev/null || true; fi; done"]
     }
 
     // 1. Live status & telemetry from qdeck-network-status --verbose

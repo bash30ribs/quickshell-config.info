@@ -58,7 +58,7 @@ Item {
         anchorItem: netButton
         showDefaultHeader: false
         contentWidth: 360
-        contentHeight: root.showQrView ? 420 : (root.showPasswordInput ? 525 : (root.service.isEthernet ? 515 : 450))
+        contentHeight: root.showQrView ? 420 : (root.showPasswordInput ? 525 : (root.service.isEthernet ? 520 : 470))
         keyboardFocus: root.showPasswordInput ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
         onOpenChanged: {
@@ -632,161 +632,172 @@ Item {
                         color: Theme.glassLabel
                     }
 
-                    Repeater {
-                        model: root.service.knownNetworks
+                    Rectangle {
+                        width: parent.width
+                        height: Math.min(176, root.service.knownNetworks.length * 44)
+                        color: "transparent"
+                        clip: true
 
-                        Rectangle {
-                            id: knownRow
-                            required property var modelData
-                            required property int index
+                        ListView {
+                            id: knownList
+                            anchors.fill: parent
+                            spacing: 2
+                            model: root.service.knownNetworks
+                            boundsBehavior: Flickable.StopAtBounds
 
-                            readonly property bool isConnected: modelData.active
-                            readonly property bool isSelected: root.selectedSsid === modelData.ssid
-                            readonly property bool isConnecting: root.service.connectingSsid === modelData.ssid
-                            readonly property bool hasError: root.service.connectionErrorSsid === modelData.ssid
+                            delegate: Rectangle {
+                                id: knownRow
+                                required property var modelData
+                                required property int index
 
-                            width: parent.width
-                            height: 42
-                            radius: Appearance.radiusSmall
-                            color: isConnected ? Theme.withAlpha(Theme.accent, 0.18) : (isSelected || isConnecting ? Theme.withAlpha(Theme.accent, 0.12) : (kMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"))
-                            border.color: isConnected ? Theme.accent : (isSelected || isConnecting ? Theme.withAlpha(Theme.accent, 0.35) : "transparent")
-                            border.width: (isConnected || isSelected || isConnecting) ? 1 : 0
+                                readonly property bool isConnected: modelData.active
+                                readonly property bool isSelected: root.selectedSsid === modelData.ssid
+                                readonly property bool isConnecting: root.service.connectingSsid === modelData.ssid
+                                readonly property bool hasError: root.service.connectionErrorSsid === modelData.ssid
 
-                            Row {
-                                anchors.left: parent.left
-                                anchors.leftMargin: 8
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 10
+                                width: knownList.width
+                                height: 42
+                                radius: Appearance.radiusSmall
+                                color: isConnected ? Theme.withAlpha(Theme.accent, 0.18) : (isSelected || isConnecting ? Theme.withAlpha(Theme.accent, 0.12) : (kMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"))
+                                border.color: isConnected ? Theme.accent : (isSelected || isConnecting ? Theme.withAlpha(Theme.accent, 0.35) : "transparent")
+                                border.width: (isConnected || isSelected || isConnecting) ? 1 : 0
 
-                                Text {
-                                    text: root.service.wifiIconFor(knownRow.modelData.signal)
-                                    font.family: Icons.effectiveFont(text)
-                                    font.pixelSize: 16
-                                    color: (knownRow.isConnected || knownRow.isConnecting) ? Theme.accent : Theme.foreground
+                                Row {
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 8
                                     anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                Column {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    spacing: 1
+                                    spacing: 10
 
                                     Text {
-                                        text: knownRow.modelData.ssid
-                                        font.family: Fonts.uiFont
+                                        text: root.service.wifiIconFor(knownRow.modelData.signal)
+                                        font.family: Icons.effectiveFont(text)
+                                        font.pixelSize: 16
+                                        color: (knownRow.isConnected || knownRow.isConnecting) ? Theme.accent : Theme.foreground
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Column {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: 1
+
+                                        Text {
+                                            text: knownRow.modelData.ssid
+                                            font.family: Fonts.uiFont
+                                            font.pixelSize: 12
+                                            font.bold: knownRow.isConnected 
+                                            color: Theme.foreground
+                                            elide: Text.ElideRight
+                                            width: 115
+                                        }
+
+                                        Text {
+                                            text: knownRow.isConnecting ? "Connecting..." : (knownRow.hasError ? root.service.connectionErrorMessage : (knownRow.isConnected ? (root.service.isEthernet ? "Connected (Standby)" : "Connected") : "Saved"))
+                                            font.family: Fonts.uiFont
+                                            font.pixelSize: 10
+                                            color: knownRow.isConnecting ? Theme.accent : (knownRow.hasError ? Theme.red : (knownRow.isConnected ? (root.service.isEthernet ? Theme.muted : Theme.accent) : Theme.muted))
+                                        }
+                                    }
+                                }
+
+                                // Right Actions: Lock Icon + Connect/Disconnect + Forget
+                                Row {
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 8
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 6
+
+                                    // Lock icon
+                                    Text {
+                                        visible: knownRow.modelData.isSecured
+                                        text: "󰌾"
+                                        font.family: Icons.effectiveFont("󰌾")
                                         font.pixelSize: 12
-                                        font.bold: knownRow.isConnected 
-                                        color: Theme.foreground
-                                        elide: Text.ElideRight
-                                        width: 115
+                                        color: Theme.muted
+                                        anchors.verticalCenter: parent.verticalCenter
                                     }
 
-                                    Text {
-                                        text: knownRow.isConnecting ? "Connecting..." : (knownRow.hasError ? root.service.connectionErrorMessage : (knownRow.isConnected ? (root.service.isEthernet ? "Connected (Standby)" : "Connected") : "Saved"))
-                                        font.family: Fonts.uiFont
-                                        font.pixelSize: 10
-                                        color: knownRow.isConnecting ? Theme.accent : (knownRow.hasError ? Theme.red : (knownRow.isConnected ? (root.service.isEthernet ? Theme.muted : Theme.accent) : Theme.muted))
-                                    }
-                                }
-                            }
+                                    // Connect / Disconnect Button
+                                    Rectangle {
+                                        id: connBtn
+                                        width: knownRow.isConnecting ? 76 : (knownRow.isConnected ? 68 : 54)
+                                        height: 24
+                                        radius: Appearance.radiusSmall
+                                        color: knownRow.isConnecting ? Theme.withAlpha(Theme.accent, 0.20) : (knownRow.isConnected ? (connMouse.containsMouse ? Qt.rgba(1, 0.3, 0.3, 0.20) : Qt.rgba(1, 1, 1, 0.06)) : (connMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.22) : Qt.rgba(1, 1, 1, 0.06)))
+                                        border.color: knownRow.isConnecting ? Theme.accent : (knownRow.isConnected ? (connMouse.containsMouse ? Theme.red : Qt.rgba(1, 1, 1, 0.12)) : (connMouse.containsMouse ? Theme.accent : Qt.rgba(1, 1, 1, 0.12)))
+                                        border.width: 1
+                                        anchors.verticalCenter: parent.verticalCenter
 
-                            // Right Actions: Lock Icon + Connect/Disconnect + Forget
-                            Row {
-                                anchors.right: parent.right
-                                anchors.rightMargin: 8
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 6
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: knownRow.isConnecting ? "Connecting…" : (knownRow.isConnected ? "Disconnect" : "Connect")
+                                            font.family: Fonts.uiFont
+                                            font.pixelSize: 10
+                                            font.bold: true
+                                            color: knownRow.isConnecting ? Theme.accent : (knownRow.isConnected ? (connMouse.containsMouse ? Theme.red : Theme.foreground) : (connMouse.containsMouse ? Theme.accent : Theme.foreground))
+                                        }
 
-                                // Lock icon
-                                Text {
-                                    visible: knownRow.modelData.isSecured
-                                    text: "󰌾"
-                                    font.family: Icons.effectiveFont("󰌾")
-                                    font.pixelSize: 12
-                                    color: Theme.muted
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                // Connect / Disconnect Button
-                                Rectangle {
-                                    id: connBtn
-                                    width: knownRow.isConnecting ? 76 : (knownRow.isConnected ? 68 : 54)
-                                    height: 24
-                                    radius: Appearance.radiusSmall
-                                    color: knownRow.isConnecting ? Theme.withAlpha(Theme.accent, 0.20) : (knownRow.isConnected ? (connMouse.containsMouse ? Qt.rgba(1, 0.3, 0.3, 0.20) : Qt.rgba(1, 1, 1, 0.06)) : (connMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.22) : Qt.rgba(1, 1, 1, 0.06)))
-                                    border.color: knownRow.isConnecting ? Theme.accent : (knownRow.isConnected ? (connMouse.containsMouse ? Theme.red : Qt.rgba(1, 1, 1, 0.12)) : (connMouse.containsMouse ? Theme.accent : Qt.rgba(1, 1, 1, 0.12)))
-                                    border.width: 1
-                                    anchors.verticalCenter: parent.verticalCenter
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: knownRow.isConnecting ? "Connecting…" : (knownRow.isConnected ? "Disconnect" : "Connect")
-                                        font.family: Fonts.uiFont
-                                        font.pixelSize: 10
-                                        font.bold: true
-                                        color: knownRow.isConnecting ? Theme.accent : (knownRow.isConnected ? (connMouse.containsMouse ? Theme.red : Theme.foreground) : (connMouse.containsMouse ? Theme.accent : Theme.foreground))
+                                        MouseArea {
+                                            id: connMouse
+                                            anchors.fill: parent
+                                            enabled: !knownRow.isConnecting
+                                            hoverEnabled: true
+                                            cursorShape: knownRow.isConnecting ? Qt.ArrowCursor : Qt.PointingHandCursor
+                                            onClicked: {
+                                                root.selectedSsid = knownRow.modelData.ssid
+                                                if (knownRow.isConnected) {
+                                                    root.service.disconnectNetwork(knownRow.modelData.ssid)
+                                                } else {
+                                                    root.service.connectToNetwork(knownRow.modelData.ssid, "")
+                                                }
+                                            }
+                                        }
                                     }
 
-                                    MouseArea {
-                                        id: connMouse
-                                        anchors.fill: parent
-                                        enabled: !knownRow.isConnecting
-                                        hoverEnabled: true
-                                        cursorShape: knownRow.isConnecting ? Qt.ArrowCursor : Qt.PointingHandCursor
-                                        onClicked: {
-                                            root.selectedSsid = knownRow.modelData.ssid
-                                            if (knownRow.isConnected) {
-                                                root.service.disconnectNetwork(knownRow.modelData.ssid)
-                                            } else {
-                                                root.service.connectToNetwork(knownRow.modelData.ssid, "")
+                                    // Forget Button
+                                    Rectangle {
+                                        id: fgtBtn
+                                        width: 48
+                                        height: 24
+                                        radius: Appearance.radiusSmall
+                                        color: fgtMouse.containsMouse ? Qt.rgba(1, 0.3, 0.3, 0.20) : Qt.rgba(1, 1, 1, 0.06)
+                                        border.color: fgtMouse.containsMouse ? Theme.red : Qt.rgba(1, 1, 1, 0.12)
+                                        border.width: 1
+                                        anchors.verticalCenter: parent.verticalCenter
+
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "Forget"
+                                            font.family: Fonts.uiFont
+                                            font.pixelSize: 10
+                                            font.bold: true
+                                            color: fgtMouse.containsMouse ? Theme.red : Theme.muted
+                                        }
+
+                                        MouseArea {
+                                            id: fgtMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                root.selectedSsid = knownRow.modelData.ssid
+                                                root.service.forgetNetwork(knownRow.modelData.ssid)
                                             }
                                         }
                                     }
                                 }
 
-                                // Forget Button
-                                Rectangle {
-                                    id: fgtBtn
-                                    width: 48
-                                    height: 24
-                                    radius: Appearance.radiusSmall
-                                    color: fgtMouse.containsMouse ? Qt.rgba(1, 0.3, 0.3, 0.20) : Qt.rgba(1, 1, 1, 0.06)
-                                    border.color: fgtMouse.containsMouse ? Theme.red : Qt.rgba(1, 1, 1, 0.12)
-                                    border.width: 1
-                                    anchors.verticalCenter: parent.verticalCenter
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: "Forget"
-                                        font.family: Fonts.uiFont
-                                        font.pixelSize: 10
-                                        font.bold: true
-                                        color: fgtMouse.containsMouse ? Theme.red : Theme.muted
-                                    }
-
-                                    MouseArea {
-                                        id: fgtMouse
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            root.selectedSsid = knownRow.modelData.ssid
-                                            root.service.forgetNetwork(knownRow.modelData.ssid)
+                                MouseArea {
+                                    id: kMouse
+                                    anchors.fill: parent
+                                    anchors.rightMargin: knownRow.isConnecting ? 155 : 135
+                                    enabled: !knownRow.isConnecting
+                                    hoverEnabled: true
+                                    cursorShape: knownRow.isConnecting ? Qt.ArrowCursor : Qt.PointingHandCursor
+                                    onClicked: {
+                                        root.selectedSsid = knownRow.modelData.ssid
+                                        if (!knownRow.isConnected) {
+                                            root.service.connectToNetwork(knownRow.modelData.ssid, "")
                                         }
-                                    }
-                                }
-                            }
-
-                            MouseArea {
-                                id: kMouse
-                                anchors.fill: parent
-                                anchors.rightMargin: knownRow.isConnecting ? 155 : 135
-                                enabled: !knownRow.isConnecting
-                                hoverEnabled: true
-                                cursorShape: knownRow.isConnecting ? Qt.ArrowCursor : Qt.PointingHandCursor
-                                onClicked: {
-                                    root.selectedSsid = knownRow.modelData.ssid
-                                    if (!knownRow.isConnected) {
-                                        root.service.connectToNetwork(knownRow.modelData.ssid, "")
                                     }
                                 }
                             }
