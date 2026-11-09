@@ -1,74 +1,58 @@
-import QtQuick
-import QtQuick.Layouts
-import "../theme"
 import "../components"
 import "../services"
 import "../services/ClockModel.js" as Model
+import "../theme"
+import QtQuick
+import QtQuick.Layouts
 
 Item {
     id: root
 
     property PowerService powerService: null
-
     property date today: new Date()
     property date now: new Date()
     readonly property string todayKey: Model.keyForDate(today)
-
     property int viewYear: today.getFullYear()
     property int viewMonth: today.getMonth() // 0-indexed
-
     readonly property date viewDate: new Date(viewYear, viewMonth, 1)
     readonly property bool viewingCurrentMonth: viewYear === today.getFullYear() && viewMonth === today.getMonth()
-
     readonly property real yearDone: Model.yearProgress(today.getFullYear(), today.getMonth(), today.getDate())
     readonly property int yearDonePercent: Model.yearProgressPercent(today.getFullYear(), today.getMonth(), today.getDate())
-
     // 0 = Sunday start (matching screenshot SUN, MON, TUE...)
     readonly property int weekStart: 0
     readonly property var weekdays: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
     readonly property var weeks: Model.monthGrid(viewYear, viewMonth, weekStart, todayKey)
 
-    Timer {
-        interval: 1000
-        running: true
-        repeat: true
-        onTriggered: {
-            var current = new Date()
-            root.now = current
-            if (current.getDate() !== root.today.getDate() || current.getMonth() !== root.today.getMonth() || current.getFullYear() !== root.today.getFullYear()) {
-                root.today = current
-            }
-        }
-    }
-
     function goToToday() {
-        var current = new Date()
-        root.now = current
-        root.today = current
-        root.viewYear = current.getFullYear()
-        root.viewMonth = current.getMonth()
+        var current = new Date();
+        root.now = current;
+        root.today = current;
+        root.viewYear = current.getFullYear();
+        root.viewMonth = current.getMonth();
     }
 
     function toggle() {
-        clockPopup.toggle()
-        if (clockPopup.open) root.goToToday()
+        clockPopup.toggle();
+        if (clockPopup.open)
+            root.goToToday();
+
     }
 
     function moveMonth(delta) {
-        var next = Model.stepMonth(viewYear, viewMonth, delta)
-        root.viewYear = next.year
-        root.viewMonth = next.month
+        var next = Model.stepMonth(viewYear, viewMonth, delta);
+        root.viewYear = next.year;
+        root.viewMonth = next.month;
     }
 
     function formatTime(d) {
-        var h = String(d.getHours()).padStart(2, "0")
-        var m = String(d.getMinutes()).padStart(2, "0")
-        return h + ":" + m
+        var h = String(d.getHours()).padStart(2, "0");
+        var m = String(d.getMinutes()).padStart(2, "0");
+        return h + ":" + m;
     }
 
     function formatDayTime(d) {
-        var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-        return days[d.getDay()] + " " + formatTime(d)
+        var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        return days[d.getDay()] + " " + formatTime(d);
     }
 
     implicitWidth: clockButton.implicitWidth
@@ -76,20 +60,37 @@ Item {
     width: implicitWidth
     height: implicitHeight
 
+    Timer {
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: {
+            var current = new Date();
+            root.now = current;
+            if (current.getDate() !== root.today.getDate() || current.getMonth() !== root.today.getMonth() || current.getFullYear() !== root.today.getFullYear())
+                root.today = current;
+
+        }
+    }
+
     BarButton {
         id: clockButton
+
         icon: ""
         text: root.formatDayTime(root.now)
         active: clockPopup.open
         customPadding: 10
         onClicked: {
-            clockPopup.toggle()
-            if (clockPopup.open) root.goToToday()
+            clockPopup.toggle();
+            if (clockPopup.open)
+                root.goToToday();
+
         }
     }
 
     PopupCard {
         id: clockPopup
+
         anchorItem: clockButton
         showDefaultHeader: false
         contentWidth: 380
@@ -97,13 +98,16 @@ Item {
 
         WheelHandler {
             onWheel: function(event) {
-                if (event.angleDelta.y === 0) return
-                root.moveMonth(event.angleDelta.y > 0 ? -1 : 1)
+                if (event.angleDelta.y === 0)
+                    return ;
+
+                root.moveMonth(event.angleDelta.y > 0 ? -1 : 1);
             }
         }
 
         Column {
             id: calendarCol
+
             anchors.fill: parent
             anchors.margins: 6
             spacing: 12
@@ -121,7 +125,7 @@ Item {
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "󰃭"
-                        color: heroMouse.containsMouse ? Theme.accent : Theme.foreground
+                        color: heroMouse.containsMouse ? Theme.accent : Theme.bright_foreground
                         font.family: Icons.effectiveFont("󰃭")
                         font.pixelSize: 38
                     }
@@ -129,22 +133,26 @@ Item {
                     // Date Label (e.g. "October 10")
                     Text {
                         id: heroDateText
+
                         anchors.verticalCenter: parent.verticalCenter
                         text: Qt.formatDate(root.today, "MMMM d")
-                        color: heroMouse.containsMouse ? Theme.accent : Theme.foreground
+                        color: heroMouse.containsMouse ? Theme.accent : Theme.bright_foreground
                         font.family: Fonts.uiFont
                         font.pixelSize: 34
                         font.bold: true
                     }
+
                 }
 
                 MouseArea {
                     id: heroMouse
+
                     anchors.fill: parent
                     hoverEnabled: !root.viewingCurrentMonth
                     cursorShape: root.viewingCurrentMonth ? Qt.ArrowCursor : Qt.PointingHandCursor
                     onClicked: root.goToToday()
                 }
+
             }
 
             // ================= 2. YEAR PROGRESS RAIL =================
@@ -171,6 +179,7 @@ Item {
                     // Progress Track
                     Rectangle {
                         id: yearTrack
+
                         height: 5
                         radius: 2.5
                         color: Qt.rgba(1, 1, 1, 0.12)
@@ -184,9 +193,15 @@ Item {
                             color: Theme.accent
 
                             Behavior on width {
-                                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+                                NumberAnimation {
+                                    duration: 160
+                                    easing.type: Easing.OutCubic
+                                }
+
                             }
+
                         }
+
                     }
 
                     // Year percentage (e.g. "77%")
@@ -198,7 +213,9 @@ Item {
                         font.bold: true
                         anchors.verticalCenter: parent.verticalCenter
                     }
+
                 }
+
             }
 
             // ================= 3. CALENDAR MONTH GRID =================
@@ -237,10 +254,14 @@ Item {
                                 font.bold: true
                                 font.letterSpacing: 1
                             }
+
                         }
 
                         // Gutter space before day headers
-                        Item { width: 8; height: 18 }
+                        Item {
+                            width: 8
+                            height: 18
+                        }
 
                         // Days headers: SUN, MON, TUE, WED, THU, FRI, SAT
                         Repeater {
@@ -248,6 +269,7 @@ Item {
 
                             Item {
                                 required property string modelData
+
                                 width: 42
                                 height: 18
 
@@ -260,8 +282,11 @@ Item {
                                     font.bold: true
                                     font.letterSpacing: 0.5
                                 }
+
                             }
+
                         }
+
                     }
 
                     // 6 Weeks Rows
@@ -270,7 +295,9 @@ Item {
 
                         Row {
                             id: weekRow
+
                             required property var modelData
+
                             spacing: 2
 
                             // Week number column (e.g. "40", "41", ...)
@@ -285,10 +312,14 @@ Item {
                                     font.family: Fonts.monoFont
                                     font.pixelSize: 11
                                 }
+
                             }
 
                             // Gutter space
-                            Item { width: 8; height: 30 }
+                            Item {
+                                width: 8
+                                height: 30
+                            }
 
                             // 7 Days in Week
                             Repeater {
@@ -296,12 +327,13 @@ Item {
 
                                 Rectangle {
                                     id: dayCell
+
                                     required property var modelData
 
                                     width: 42
                                     height: 30
                                     radius: Appearance.radiusXs
-                                    color: modelData.today ? Theme.withAlpha(Theme.accent, 0.25) : "transparent"
+                                    color: modelData.today ? Theme.withAlpha(Theme.accent, 0.28) : "transparent"
                                     border.width: modelData.today ? 1 : 0
                                     border.color: modelData.today ? Theme.accent : "transparent"
 
@@ -309,19 +341,29 @@ Item {
                                         anchors.centerIn: parent
                                         text: dayCell.modelData.day
                                         color: {
-                                            if (dayCell.modelData.today) return Theme.foreground
-                                            if (dayCell.modelData.inMonth) return Theme.foreground
-                                            return Theme.dark_foreground
+                                            if (dayCell.modelData.today)
+                                                return Theme.bright_foreground;
+
+                                            if (dayCell.modelData.inMonth)
+                                                return Theme.bright_foreground;
+
+                                            return Theme.dark_foreground;
                                         }
                                         font.family: Fonts.uiFont
                                         font.pixelSize: 12
-                                        font.bold: dayCell.modelData.today 
+                                        font.bold: dayCell.modelData.today
                                     }
+
                                 }
+
                             }
+
                         }
+
                     }
+
                 }
+
             }
 
             // ================= 4. FOOTER / MONTH NAVIGATION =================
@@ -343,12 +385,14 @@ Item {
 
                         MouseArea {
                             id: prevM
+
                             anchors.fill: parent
                             anchors.margins: -8
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.moveMonth(-1)
                         }
+
                     }
 
                     // Month & Year Label (e.g. "OCTOBER 2026")
@@ -372,15 +416,22 @@ Item {
 
                         MouseArea {
                             id: nextM
+
                             anchors.fill: parent
                             anchors.margins: -8
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.moveMonth(1)
                         }
+
                     }
+
                 }
+
             }
+
         }
+
     }
+
 }

@@ -1,64 +1,68 @@
-import QtQuick
-import QtQuick.Layouts
-import QtQuick.Controls
-import Quickshell
-import "../theme"
 import "../components"
 import "../services"
+import "../theme"
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import Quickshell
 
 Item {
     id: root
 
     required property BluetoothService service
-
     property int iconSize: Appearance.bluetoothIconSize
+
+    function toggle() {
+        btPopup.toggle();
+        if (btPopup.open) {
+            root.service.refresh();
+            if (root.service.bluetoothEnabled)
+                root.service.scan();
+
+        }
+    }
 
     implicitWidth: btButton.implicitWidth
     implicitHeight: btButton.implicitHeight
     width: implicitWidth
     height: implicitHeight
 
-    function toggle() {
-        btPopup.toggle()
-        if (btPopup.open) {
-            root.service.refresh()
-            if (root.service.bluetoothEnabled) root.service.scan()
-        }
-    }
-
     BarButton {
         id: btButton
+
         icon: root.service.icon
         iconSize: root.iconSize
         accentActive: root.service.connectedDevices.length > 0
-        customColor: root.service.bluetoothEnabled ? (root.service.connectedDevices.length > 0 ? Theme.accent : Theme.foreground) : Theme.muted
+        customColor: root.service.bluetoothEnabled ? (root.service.connectedDevices.length > 0 ? Theme.accent : Theme.bright_foreground) : Theme.muted
         active: btPopup.open
         onClicked: {
-            btPopup.toggle()
+            btPopup.toggle();
             if (btPopup.open) {
-                root.service.refresh()
-                if (root.service.bluetoothEnabled) {
-                    root.service.scan()
-                }
+                root.service.refresh();
+                if (root.service.bluetoothEnabled)
+                    root.service.scan();
+
             }
         }
     }
 
     Connections {
-        target: root.service
         function onRequestToggleMenu() {
-            btPopup.toggle()
+            btPopup.toggle();
             if (btPopup.open) {
-                root.service.refresh()
-                if (root.service.bluetoothEnabled) {
-                    root.service.scan()
-                }
+                root.service.refresh();
+                if (root.service.bluetoothEnabled)
+                    root.service.scan();
+
             }
         }
+
+        target: root.service
     }
 
     PopupCard {
         id: btPopup
+
         anchorItem: btButton
         showDefaultHeader: false
         contentWidth: 330
@@ -84,7 +88,7 @@ Item {
                     font.family: Icons.effectiveFont(text)
                     font.pixelSize: 22
                     color: root.service.bluetoothEnabled ? Theme.accent : Theme.muted
-                    opacity: root.service.bluetoothEnabled ? 1.0 : 0.6
+                    opacity: root.service.bluetoothEnabled ? 1 : 0.6
                     Layout.alignment: Qt.AlignVCenter
                 }
 
@@ -108,6 +112,7 @@ Item {
                         font.bold: true
                         color: Theme.glassLabel
                     }
+
                 }
 
                 ToggleSwitch {
@@ -115,6 +120,7 @@ Item {
                     checked: root.service.bluetoothEnabled
                     onToggled: root.service.togglePower()
                 }
+
             }
 
             // ── Header Divider ────────────────────────────────────────
@@ -137,6 +143,7 @@ Item {
                     font.pixelSize: 11
                     color: Theme.glassLabel
                 }
+
             }
 
             // ── Enabled Content Container ─────────────────────────────
@@ -166,7 +173,7 @@ Item {
                                 font.family: Fonts.uiFont
                                 font.pixelSize: 10
                                 font.bold: true
-                                font.letterSpacing: 1.0
+                                font.letterSpacing: 1
                                 color: Theme.glassLabel
                             }
 
@@ -175,6 +182,7 @@ Item {
 
                                 delegate: Rectangle {
                                     required property var modelData
+
                                     width: parent.width
                                     height: 44
                                     radius: Appearance.radiusSmall
@@ -217,6 +225,7 @@ Item {
                                                 font.pixelSize: 9
                                                 color: Theme.muted
                                             }
+
                                         }
 
                                         // Disconnect Button
@@ -225,7 +234,7 @@ Item {
                                             Layout.preferredHeight: 24
                                             Layout.alignment: Qt.AlignVCenter
                                             radius: Appearance.radiusSmall
-                                            color: disMouse.containsMouse ? Qt.rgba(1, 0.3, 0.3, 0.20) : Qt.rgba(1, 1, 1, 0.06)
+                                            color: disMouse.containsMouse ? Qt.rgba(1, 0.3, 0.3, 0.2) : Qt.rgba(1, 1, 1, 0.06)
                                             border.color: disMouse.containsMouse ? Theme.red : Qt.rgba(1, 1, 1, 0.12)
                                             border.width: 1
 
@@ -239,15 +248,21 @@ Item {
 
                                             MouseArea {
                                                 id: disMouse
+
                                                 anchors.fill: parent
                                                 hoverEnabled: true
                                                 cursorShape: Qt.PointingHandCursor
                                                 onClicked: root.service.disconnectDevice(modelData.mac)
                                             }
+
                                         }
+
                                     }
+
                                 }
+
                             }
+
                         }
 
                         // Divider after Connected
@@ -269,7 +284,7 @@ Item {
                                 font.family: Fonts.uiFont
                                 font.pixelSize: 10
                                 font.bold: true
-                                font.letterSpacing: 1.0
+                                font.letterSpacing: 1
                                 color: Theme.glassLabel
                             }
 
@@ -278,6 +293,7 @@ Item {
 
                                 delegate: Rectangle {
                                     id: pairedRow
+
                                     required property var modelData
                                     readonly property bool isConnecting: root.service.connectingMac === modelData.mac
                                     readonly property bool hasError: root.service.actionErrorMac === modelData.mac
@@ -285,7 +301,7 @@ Item {
                                     width: parent.width
                                     height: 44
                                     radius: Appearance.radiusSmall
-                                    color: isConnecting ? Theme.withAlpha(Theme.accent, 0.18) : (pMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : "transparent")
+                                    color: isConnecting ? Theme.withAlpha(Theme.accent, 0.18) : (pMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent")
                                     border.color: isConnecting ? Theme.accent : "transparent"
                                     border.width: isConnecting ? 1 : 0
 
@@ -324,16 +340,18 @@ Item {
                                                 font.pixelSize: 9
                                                 color: pairedRow.isConnecting ? Theme.accent : (pairedRow.hasError ? Theme.red : Theme.dark_foreground)
                                             }
+
                                         }
 
                                         // Connect Button
                                         Rectangle {
                                             id: connBtn
+
                                             Layout.preferredWidth: pairedRow.isConnecting ? 80 : 58
                                             Layout.preferredHeight: 24
                                             Layout.alignment: Qt.AlignVCenter
                                             radius: Appearance.radiusSmall
-                                            color: pairedRow.isConnecting ? Theme.withAlpha(Theme.accent, 0.20) : (cMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
+                                            color: pairedRow.isConnecting ? Theme.withAlpha(Theme.accent, 0.2) : (cMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
                                             border.color: pairedRow.isConnecting ? Theme.accent : (cMouse.containsMouse ? Theme.accent : Qt.rgba(1, 1, 1, 0.12))
                                             border.width: 1
 
@@ -348,17 +366,20 @@ Item {
 
                                             MouseArea {
                                                 id: cMouse
+
                                                 anchors.fill: parent
                                                 enabled: !pairedRow.isConnecting
                                                 hoverEnabled: true
                                                 cursorShape: pairedRow.isConnecting ? Qt.ArrowCursor : Qt.PointingHandCursor
                                                 onClicked: root.service.connectDevice(modelData.mac, true)
                                             }
+
                                         }
 
                                         // Forget Button
                                         Rectangle {
                                             id: forgetBtn
+
                                             Layout.preferredWidth: 24
                                             Layout.preferredHeight: 24
                                             Layout.alignment: Qt.AlignVCenter
@@ -377,16 +398,20 @@ Item {
 
                                             MouseArea {
                                                 id: forgetMouse
+
                                                 anchors.fill: parent
                                                 hoverEnabled: true
                                                 cursorShape: Qt.PointingHandCursor
                                                 onClicked: root.service.forgetDevice(modelData.mac)
                                             }
+
                                         }
+
                                     }
 
                                     MouseArea {
                                         id: pMouse
+
                                         anchors.fill: parent
                                         anchors.rightMargin: pairedRow.isConnecting ? 112 : 90
                                         enabled: !pairedRow.isConnecting
@@ -394,8 +419,11 @@ Item {
                                         cursorShape: pairedRow.isConnecting ? Qt.ArrowCursor : Qt.PointingHandCursor
                                         onClicked: root.service.connectDevice(modelData.mac, true)
                                     }
+
                                 }
+
                             }
+
                         }
 
                         // Divider after Saved
@@ -425,6 +453,7 @@ Item {
 
                                 delegate: Rectangle {
                                     id: availRow
+
                                     required property var modelData
                                     readonly property bool isPairing: root.service.pairingMac === modelData.mac
                                     readonly property bool isConnecting: root.service.connectingMac === modelData.mac
@@ -433,7 +462,7 @@ Item {
                                     width: parent.width
                                     height: (isPairing || isConnecting || hasError) ? 44 : 36
                                     radius: Appearance.radiusSmall
-                                    color: (isPairing || isConnecting) ? Theme.withAlpha(Theme.accent, 0.18) : (aMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : "transparent")
+                                    color: (isPairing || isConnecting) ? Theme.withAlpha(Theme.accent, 0.18) : (aMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.1) : "transparent")
                                     border.color: (isPairing || isConnecting) ? Theme.accent : "transparent"
                                     border.width: (isPairing || isConnecting) ? 1 : 0
 
@@ -472,6 +501,7 @@ Item {
                                                 font.pixelSize: 9
                                                 color: (availRow.isPairing || availRow.isConnecting) ? Theme.accent : Theme.red
                                             }
+
                                         }
 
                                         // Pair/Connect Button
@@ -480,7 +510,7 @@ Item {
                                             Layout.preferredHeight: 24
                                             Layout.alignment: Qt.AlignVCenter
                                             radius: Appearance.radiusSmall
-                                            color: (availRow.isPairing || availRow.isConnecting) ? Theme.withAlpha(Theme.accent, 0.20) : (pairMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
+                                            color: (availRow.isPairing || availRow.isConnecting) ? Theme.withAlpha(Theme.accent, 0.2) : (pairMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
                                             border.color: (availRow.isPairing || availRow.isConnecting) ? Theme.accent : (pairMouse.containsMouse ? Theme.accent : Qt.rgba(1, 1, 1, 0.12))
                                             border.width: 1
 
@@ -495,17 +525,21 @@ Item {
 
                                             MouseArea {
                                                 id: pairMouse
+
                                                 anchors.fill: parent
                                                 enabled: !availRow.isPairing && !availRow.isConnecting
                                                 hoverEnabled: true
                                                 cursorShape: (availRow.isPairing || availRow.isConnecting) ? Qt.ArrowCursor : Qt.PointingHandCursor
                                                 onClicked: root.service.pairDevice(modelData.mac)
                                             }
+
                                         }
+
                                     }
 
                                     MouseArea {
                                         id: aMouse
+
                                         anchors.fill: parent
                                         anchors.rightMargin: (availRow.isPairing || availRow.isConnecting) ? 80 : 58
                                         enabled: !availRow.isPairing && !availRow.isConnecting
@@ -513,8 +547,11 @@ Item {
                                         cursorShape: (availRow.isPairing || availRow.isConnecting) ? Qt.ArrowCursor : Qt.PointingHandCursor
                                         onClicked: root.service.pairDevice(modelData.mac)
                                     }
+
                                 }
+
                             }
+
                         }
 
                         // Empty Scanning State
@@ -530,10 +567,17 @@ Item {
                                 font.pixelSize: 11
                                 color: Theme.dark_foreground
                             }
+
                         }
+
                     }
+
                 }
+
             }
+
         }
+
     }
+
 }

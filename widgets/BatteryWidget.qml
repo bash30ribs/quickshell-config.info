@@ -1,20 +1,26 @@
-import QtQuick
-import QtQuick.Layouts
-import "../theme"
 import "../components"
 import "../services"
+import "../theme"
+import QtQuick
+import QtQuick.Layouts
 
 Item {
     id: root
 
     required property BatteryService batteryService
     required property PowerService powerService
-
     property bool showPercentage: Appearance.batteryShowPercentage
     property bool showCycles: Appearance.batteryShowCycles
     property bool showHealth: Appearance.batteryShowHealth
     property int cycleOverride: Appearance.batteryCycleOverride
     property int iconSize: Appearance.batteryIconSize
+
+    function toggle() {
+        batPopup.toggle();
+        if (batPopup.open)
+            root.batteryService.refresh();
+
+    }
 
     implicitWidth: batButton.implicitWidth
     implicitHeight: batButton.implicitHeight
@@ -23,29 +29,32 @@ Item {
 
     BarButton {
         id: batButton
+
         icon: root.batteryService.icon
         iconSize: root.iconSize
         text: root.showPercentage ? (root.batteryService.capacity + "%") : ""
         accentActive: root.batteryService.isCharging || root.batteryService.isPluggedIn
         customColor: {
-            if (root.batteryService.isCharging || root.batteryService.isPluggedIn) return Theme.accent
-            if (root.batteryService.capacity <= 20) return Theme.red
-            if (root.batteryService.capacity <= 40) return Theme.yellow
-            return Theme.foreground
+            if (root.batteryService.isCharging || root.batteryService.isPluggedIn)
+                return Theme.accent;
+
+            if (root.batteryService.capacity <= 20)
+                return Theme.red;
+
+            if (root.batteryService.capacity <= 40)
+                return Theme.yellow;
+
+            return Theme.bright_foreground;
         }
         active: batPopup.open
         onClicked: {
-            root.toggle()
+            root.toggle();
         }
-    }
-
-    function toggle() {
-        batPopup.toggle()
-        if (batPopup.open) root.batteryService.refresh()
     }
 
     PopupCard {
         id: batPopup
+
         anchorItem: batButton
         showDefaultHeader: false
         contentWidth: 360
@@ -70,10 +79,16 @@ Item {
                         font.family: Icons.effectiveFont(text)
                         font.pixelSize: 30
                         color: {
-                            if (root.batteryService.isCharging || root.batteryService.isPluggedIn) return Theme.accent
-                            if (root.batteryService.capacity <= 20) return Theme.red
-                            if (root.batteryService.capacity <= 40) return Theme.yellow
-                            return Theme.bright_foreground
+                            if (root.batteryService.isCharging || root.batteryService.isPluggedIn)
+                                return Theme.accent;
+
+                            if (root.batteryService.capacity <= 20)
+                                return Theme.red;
+
+                            if (root.batteryService.capacity <= 40)
+                                return Theme.yellow;
+
+                            return Theme.bright_foreground;
                         }
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -97,7 +112,9 @@ Item {
                             font.bold: true
                             color: (root.batteryService.isCharging || root.batteryService.isPluggedIn) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.75)
                         }
+
                     }
+
                 }
 
                 Text {
@@ -109,6 +126,7 @@ Item {
                     font.bold: true
                     color: Theme.bright_foreground
                 }
+
             }
 
             // Wide Battery Progress Bar (Capsule)
@@ -117,7 +135,7 @@ Item {
                 height: 8
                 radius: Appearance.radiusSmall
                 color: Qt.rgba(0, 0, 0, 0.35)
-                border.color: Qt.rgba(255, 255, 255, 0.10)
+                border.color: Qt.rgba(255, 255, 255, 0.1)
                 border.width: 1
 
                 Rectangle {
@@ -125,15 +143,22 @@ Item {
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
                     anchors.margins: 1
-                    width: Math.max(8, Math.min(parent.width - 2, (parent.width - 2) * (root.batteryService.capacity / 100.0)))
+                    width: Math.max(8, Math.min(parent.width - 2, (parent.width - 2) * (root.batteryService.capacity / 100)))
                     radius: 3
                     color: {
-                        if (root.batteryService.capacity <= 20) return Theme.red
-                        if (root.batteryService.capacity <= 40) return Theme.yellow
-                        if (root.batteryService.isCharging || root.batteryService.isPluggedIn) return Theme.accent
-                        return Theme.bright_foreground
+                        if (root.batteryService.capacity <= 20)
+                            return Theme.red;
+
+                        if (root.batteryService.capacity <= 40)
+                            return Theme.yellow;
+
+                        if (root.batteryService.isCharging || root.batteryService.isPluggedIn)
+                            return Theme.accent;
+
+                        return Theme.bright_foreground;
                     }
                 }
+
             }
 
             // Stats Inset Well Container
@@ -147,11 +172,12 @@ Item {
 
                 Row {
                     id: statsGrid
+
+                    readonly property real colWidth: (width - spacing) / 2
+
                     anchors.centerIn: parent
                     width: parent.width - 20
                     spacing: 16
-
-                    readonly property real colWidth: (width - spacing) / 2
 
                     // Left Column
                     Column {
@@ -181,6 +207,7 @@ Item {
                                 font.bold: true
                                 color: Theme.bright_foreground
                             }
+
                         }
 
                         // Battery health (if enabled)
@@ -207,6 +234,7 @@ Item {
                                 font.bold: true
                                 color: Theme.bright_foreground
                             }
+
                         }
 
                         // Charge cycles (if enabled)
@@ -233,7 +261,9 @@ Item {
                                 font.bold: true
                                 color: Theme.bright_foreground
                             }
+
                         }
+
                     }
 
                     // Right Column
@@ -264,6 +294,7 @@ Item {
                                 font.bold: true
                                 color: Theme.bright_foreground
                             }
+
                         }
 
                         // Power source
@@ -290,6 +321,7 @@ Item {
                                 font.bold: true
                                 color: Theme.bright_foreground
                             }
+
                         }
 
                         // Charging rate
@@ -315,9 +347,13 @@ Item {
                                 font.bold: true
                                 color: Theme.bright_foreground
                             }
+
                         }
+
                     }
+
                 }
+
             }
 
             // Power Profile Section Header
@@ -326,39 +362,50 @@ Item {
                 font.family: Fonts.uiFont
                 font.pixelSize: 10
                 font.bold: true
-                font.letterSpacing: 1.0
+                font.letterSpacing: 1
                 color: Theme.withAlpha(Theme.foreground, 0.65)
             }
 
             // Power Profiles Row (Power-saver, Balanced, Performance)
             Row {
+                readonly property var profiles: [{
+                    "id": "power-saver",
+                    "label": "Power-saver",
+                    "icon": "󰌪"
+                }, {
+                    "id": "balanced",
+                    "label": "Balanced",
+                    "icon": "󰾆"
+                }, {
+                    "id": "performance",
+                    "label": "Performance",
+                    "icon": "󰓅"
+                }]
+
                 width: parent.width
                 spacing: 8
-
-                readonly property var profiles: [
-                    { id: "power-saver", label: "Power-saver", icon: "󰌪" },
-                    { id: "balanced", label: "Balanced", icon: "󰾆" },
-                    { id: "performance", label: "Performance", icon: "󰓅" }
-                ]
 
                 Repeater {
                     model: parent.profiles
 
                     Rectangle {
                         id: profBtn
+
                         required property var modelData
+                        readonly property bool isActive: root.powerService.activeProfile === modelData.id
+
                         width: (parent.width - 16) / 3
                         height: 38
                         radius: Appearance.radiusSmall
-
-                        readonly property bool isActive: root.powerService.activeProfile === modelData.id
-
                         color: {
-                            if (isActive) return Theme.withAlpha(Theme.accent, 0.25)
-                            if (profMouse.containsMouse) return Qt.rgba(255, 255, 255, 0.10)
-                            return Qt.rgba(0, 0, 0, 0.22)
-                        }
+                            if (isActive)
+                                return Theme.withAlpha(Theme.accent, 0.25);
 
+                            if (profMouse.containsMouse)
+                                return Qt.rgba(255, 255, 255, 0.1);
+
+                            return Qt.rgba(0, 0, 0, 0.22);
+                        }
                         border.color: isActive ? Theme.accent : Qt.rgba(255, 255, 255, 0.08)
                         border.width: 1
 
@@ -370,7 +417,7 @@ Item {
                                 text: profBtn.modelData.icon
                                 font.family: Icons.effectiveFont(profBtn.modelData.icon)
                                 font.pixelSize: Fonts.sizeRegular
-                                color: profBtn.isActive ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.70)
+                                color: profBtn.isActive ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.7)
                                 anchors.verticalCenter: parent.verticalCenter
                             }
 
@@ -378,22 +425,30 @@ Item {
                                 text: profBtn.modelData.label
                                 font.family: Fonts.uiFont
                                 font.pixelSize: 11
-                                font.bold: profBtn.isActive 
+                                font.bold: profBtn.isActive
                                 color: profBtn.isActive ? Theme.accent : Theme.bright_foreground
                                 anchors.verticalCenter: parent.verticalCenter
                             }
+
                         }
 
                         MouseArea {
                             id: profMouse
+
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.powerService.setProfile(profBtn.modelData.id)
                         }
+
                     }
+
                 }
+
             }
+
         }
+
     }
+
 }
