@@ -1,6 +1,20 @@
+# ── Runtime State & Overrides ────────────────────────────────────────────────
+bar-style
+bar-visibility
+dns-provider
+text-size
+wallpaper-palette.json
+*.log
+*.tmp*
+
+# ── Cache & Python Bytecode ──────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+
+# ── Editor & OS Artifacts ────────────────────────────────────────────────────
 *.bak
 *.tar.gz
 *.swp
 *~
 .DS_Store
-__pycache__/
