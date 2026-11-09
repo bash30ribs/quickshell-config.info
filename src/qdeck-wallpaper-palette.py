@@ -124,7 +124,19 @@ def get_wallpaper_palette(wallpaper_path=None, theme_colors_path=None):
     if os.path.exists(cache_path):
         try:
             with open(cache_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                cached_data = json.load(f)
+                # Keep persistent state file synchronized
+                try:
+                    persistent_dir = os.path.join(home, ".local/state/qdeck")
+                    os.makedirs(persistent_dir, exist_ok=True)
+                    persistent_file = os.path.join(persistent_dir, "wallpaper-palette.json")
+                    tmp_persistent = f"{persistent_file}.tmp.{os.getpid()}"
+                    with open(tmp_persistent, "w", encoding="utf-8") as pf:
+                        json.dump(cached_data, pf, indent=2)
+                    os.replace(tmp_persistent, persistent_file)
+                except Exception:
+                    pass
+                return cached_data
         except Exception:
             pass
 
@@ -225,6 +237,18 @@ def get_wallpaper_palette(wallpaper_path=None, theme_colors_path=None):
     try:
         with open(cache_path, "w", encoding="utf-8") as f:
             json.dump(data, f)
+    except Exception:
+        pass
+
+    # Write to canonical persistent state file for Quickshell FileView reactive watchers
+    try:
+        persistent_dir = os.path.join(home, ".local/state/qdeck")
+        os.makedirs(persistent_dir, exist_ok=True)
+        persistent_file = os.path.join(persistent_dir, "wallpaper-palette.json")
+        tmp_persistent = f"{persistent_file}.tmp.{os.getpid()}"
+        with open(tmp_persistent, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        os.replace(tmp_persistent, persistent_file)
     except Exception:
         pass
 

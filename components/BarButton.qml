@@ -25,10 +25,10 @@ Rectangle {
     antialiasing: true
     // Subtle press compression
     scale: mouseArea.pressed ? 0.96 : 1
-    // Borderless bar button: clean transparent resting state, soft frosted glass highlight on hover, subtle selection wash when active
+    // Borderless bar button: clean transparent resting state, soft frosted glass highlight on hover, subtle translucent accent wash when active
     color: {
         if (root.active)
-            return Theme.selection;
+            return Theme.withAlpha(Theme.accent, 0.16);
 
         if (mouseArea.containsMouse)
             return Qt.rgba(1, 1, 1, 0.08);

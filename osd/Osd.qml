@@ -206,9 +206,11 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
             anchors.bottomMargin: Appearance.osdBottomMargin
-            radius: Appearance.osdRadius > 0 ? Appearance.osdRadius : 16
+            radius: Appearance.osdRadius > 0 ? Appearance.osdRadius : 24
             width: Math.max(120, contentRow.implicitWidth + 38)
             height: Appearance.osdHeight
+            baseColor: Theme.glassSurface || Theme.barBackground
+            clarity: 0.85
             transformOrigin: Item.Center
             opacity: root.animProgress
             scale: 0.92 + 0.08 * root.animProgress

@@ -56,9 +56,9 @@ Item {
                         return Theme.accent;
 
                     if (wsMouse.containsMouse)
-                        return Qt.rgba(1, 1, 1, 0.22);
+                        return Qt.rgba(1, 1, 1, 0.14);
 
-                    return Qt.rgba(0, 0, 0, 0.28);
+                    return "transparent";
                 }
                 border.width: 0
                 border.color: "transparent"
@@ -72,8 +72,8 @@ Item {
                     height: Appearance.workspacesDotSize
                     radius: width / 2
                     visible: !wsCapsule.isActive && !wsCapsule.hasCustomInactiveIcon
-                    color: "#ffffff"
-                    opacity: wsCapsule.isOccupied ? 1 : 0.35
+                    color: Theme.bright_foreground
+                    opacity: wsCapsule.isOccupied ? 0.95 : 0.4
                     antialiasing: true
 
                     Behavior on opacity {
@@ -96,8 +96,8 @@ Item {
                     text: wsCapsule.resolvedInactiveIcon
                     font.family: Icons.effectiveFont(text)
                     font.pixelSize: Appearance.workspacesInactiveIconSize
-                    color: "#ffffff"
-                    opacity: wsCapsule.isOccupied ? 1 : 0.35
+                    color: Theme.bright_foreground
+                    opacity: wsCapsule.isOccupied ? 0.95 : 0.4
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
 

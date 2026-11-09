@@ -99,44 +99,6 @@ QtObject {
     readonly property real scrimOpacity: Appearance.scrimOpacity
     // IPC Interface for theme / blur control
     property IpcHandler ipcHandler
-
-    ipcHandler: IpcHandler {
-        function reload() : string {
-            root.reloadTheme();
-            return "reloaded";
-        }
-
-        function reloadWallpaper() : string {
-            root.reloadWallpaperPalette();
-            return "reloaded-wallpaper";
-        }
-
-        function getPalette() : string {
-            return JSON.stringify(root._wp || {
-            });
-        }
-
-        function toggleBlur() : string {
-            root.setBlurState(!root.blurEnabled);
-            return root.blurEnabled ? "on" : "off";
-        }
-
-        function setBlur(mode: string) : string {
-            var m = String(mode || "").trim().toLowerCase();
-            if (m === "on" || m === "true" || m === "1")
-                root.setBlurState(true);
-            else if (m === "off" || m === "false" || m === "0")
-                root.setBlurState(false);
-            return root.blurEnabled ? "on" : "off";
-        }
-
-        function getBlur() : string {
-            return root.blurEnabled ? "on" : "off";
-        }
-
-        target: "theme"
-    }
-
     // ─────────────────────────────────────────────────────────────────────────
     // Typography & Metrics Bridges (Centralized in Fonts & Appearance)
     // ─────────────────────────────────────────────────────────────────────────
@@ -153,150 +115,17 @@ QtObject {
     readonly property int radiusLarge: Appearance.radiusLarge
     readonly property int animDuration: Appearance.animDurationNormal
     property FileView blurStateFile
-
-    blurStateFile: FileView {
-        path: root.blurStatePath
-        watchChanges: true
-        printErrors: false
-        onLoaded: {
-            var raw = String(text() || "").trim().toLowerCase();
-            if (raw === "off" || raw === "false" || raw === "0") {
-                if (root.blurEnabled)
-                    root.blurEnabled = false;
-
-            } else if (raw === "on" || raw === "true" || raw === "1") {
-                if (!root.blurEnabled)
-                    root.blurEnabled = true;
-
-            }
-        }
-    }
-
     property FileView colorsFile
-
-    colorsFile: FileView {
-        path: root.colorsConfigPath
-        watchChanges: true
-        printErrors: false
-        onLoaded: {
-            if (text())
-                root.parseThemeFile(text());
-
-        }
-    }
-
     property FileView fallbackColorsFile
-
-    fallbackColorsFile: FileView {
-        path: root.localColorsPath
-        watchChanges: true
-        printErrors: false
-        onLoaded: {
-            if (!colorsFile.text() && text())
-                root.parseThemeFile(text());
-
-        }
-    }
-
     property Process themeReaderProc
-
-    themeReaderProc: Process {
-        id: themeReaderProc
-
-        command: ["cat", root.colorsConfigPath]
-
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: {
-                if (text && text.trim().length > 0) {
-                    root.parseThemeFile(text);
-                    if (root.blurEnabled)
-                        root.setBlurState(true);
-
-                }
-            }
-        }
-
-    }
-
+    readonly property string wallpaperPaletteStatePath: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/qdeck/wallpaper-palette.json"
+    property FileView wallpaperPaletteFile
     readonly property string wallpaperPaletteScript: (Quickshell.env("QS_CONFIG_PATH") || (Quickshell.env("HOME") + "/.config/quickshell")) + "/src/qdeck-wallpaper-palette.py"
     property Process wallpaperPaletteProc
-
-    wallpaperPaletteProc: Process {
-        id: wallpaperPaletteProc
-
-        command: root._lastWallpaperTarget ? ["python3", root.wallpaperPaletteScript, root._lastWallpaperTarget] : ["python3", root.wallpaperPaletteScript]
-
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: {
-                var raw = String(text || "").trim();
-                if (raw.length > 0) {
-                    // ignore parse errors
-
-                    try {
-                        var parsed = JSON.parse(raw);
-                        if (parsed && parsed.accent) {
-                            root.wallpaperAccent = parsed.accent;
-                            root.wallpaperSelection = parsed.selection || "";
-                            root.wallpaperDominant = parsed.dominant || "";
-                            root.wallpaperGlassTint = parsed.glass_tint || "";
-                            root.wallpaperGlassCrest = parsed.glass_crest || "";
-                            root.wallpaperGlassBorder = parsed.glass_border || "";
-                            root._wp = parsed;
-                        }
-                    } catch (e) {
-                    }
-                }
-            }
-        }
-
-    }
-
     property string _lastCurrentTarget: ""
     property string _lastWallpaperTarget: ""
     property Process linkCheckProc
-
-    linkCheckProc: Process {
-        id: linkCheckProc
-
-        command: ["sh", "-c", "readlink -f \"$HOME/.config/themes/current\" 2>/dev/null; (command -v awww >/dev/null 2>&1 && awww query 2>/dev/null | grep -oP 'currently displaying: image: \\K.*') || readlink -f \"$HOME/.config/themes/current/default.png\" 2>/dev/null"]
-
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: {
-                var lines = String(text || "").trim().split("\n");
-                var curTarget = (lines.length > 0) ? lines[0].trim() : "";
-                var wpTarget = (lines.length > 1) ? lines[1].trim() : "";
-                var changed = false;
-                if (curTarget && curTarget !== root._lastCurrentTarget) {
-                    root._lastCurrentTarget = curTarget;
-                    changed = true;
-                }
-                if (wpTarget && wpTarget !== root._lastWallpaperTarget) {
-                    root._lastWallpaperTarget = wpTarget;
-                    changed = true;
-                }
-                if (changed)
-                    root.reloadTheme();
-
-            }
-        }
-
-    }
-
     property Timer symlinkWatcherTimer
-
-    symlinkWatcherTimer: Timer {
-        interval: 1600
-        running: true
-        repeat: true
-        onTriggered: {
-            if (!linkCheckProc.running)
-                linkCheckProc.running = true;
-
-        }
-    }
 
     function withAlpha(colorVal, alphaVal) {
         return Qt.rgba(colorVal.r, colorVal.g, colorVal.b, alphaVal);
@@ -355,7 +184,37 @@ QtObject {
         root._c = map;
     }
 
+    function applyPalette(parsed) {
+        if (!parsed || !parsed.accent)
+            return ;
+
+        root.wallpaperAccent = parsed.accent;
+        root.wallpaperSelection = parsed.selection || "";
+        root.wallpaperDominant = parsed.dominant || "";
+        root.wallpaperGlassTint = parsed.glass_tint || "";
+        root.wallpaperGlassCrest = parsed.glass_crest || "";
+        root.wallpaperGlassBorder = parsed.glass_border || "";
+        root._wp = parsed;
+    }
+
+    function updateWallpaper(targetPath) {
+        var p = String(targetPath || "").trim();
+        if (p.length > 0) {
+            root._lastWallpaperTarget = p;
+            wallpaperPaletteProc.command = ["python3", root.wallpaperPaletteScript, p];
+        } else {
+            wallpaperPaletteProc.command = ["python3", root.wallpaperPaletteScript];
+        }
+        if (!wallpaperPaletteProc.running)
+            wallpaperPaletteProc.running = true;
+
+    }
+
     function reloadWallpaperPalette() {
+        if (root._lastWallpaperTarget && root._lastWallpaperTarget.length > 0)
+            wallpaperPaletteProc.command = ["python3", root.wallpaperPaletteScript, root._lastWallpaperTarget];
+        else
+            wallpaperPaletteProc.command = ["python3", root.wallpaperPaletteScript];
         if (!wallpaperPaletteProc.running)
             wallpaperPaletteProc.running = true;
 
@@ -375,6 +234,15 @@ QtObject {
     }
     Component.onCompleted: {
         root.reloadTheme();
+        if (wallpaperPaletteFile.text()) {
+            try {
+                var pInit = JSON.parse(wallpaperPaletteFile.text());
+                if (pInit && pInit.accent)
+                    root.applyPalette(pInit);
+
+            } catch (e) {
+            }
+        }
         root.reloadWallpaperPalette();
         if (colorsFile.text())
             root.parseThemeFile(colorsFile.text());
@@ -389,4 +257,186 @@ QtObject {
             root.setBlurState(true);
         }
     }
+
+    ipcHandler: IpcHandler {
+        function reload() : string {
+            root.reloadTheme();
+            return "reloaded";
+        }
+
+        function reloadWallpaper() : string {
+            root.reloadWallpaperPalette();
+            return "reloaded-wallpaper";
+        }
+
+        function setWallpaper(path: string) : string {
+            root.updateWallpaper(path);
+            return "ok";
+        }
+
+        function getPalette() : string {
+            return JSON.stringify(root._wp || {
+            });
+        }
+
+        function toggleBlur() : string {
+            root.setBlurState(!root.blurEnabled);
+            return root.blurEnabled ? "on" : "off";
+        }
+
+        function setBlur(mode: string) : string {
+            var m = String(mode || "").trim().toLowerCase();
+            if (m === "on" || m === "true" || m === "1")
+                root.setBlurState(true);
+            else if (m === "off" || m === "false" || m === "0")
+                root.setBlurState(false);
+            return root.blurEnabled ? "on" : "off";
+        }
+
+        function getBlur() : string {
+            return root.blurEnabled ? "on" : "off";
+        }
+
+        target: "theme"
+    }
+
+    blurStateFile: FileView {
+        path: root.blurStatePath
+        watchChanges: true
+        printErrors: false
+        onLoaded: {
+            var raw = String(text() || "").trim().toLowerCase();
+            if (raw === "off" || raw === "false" || raw === "0") {
+                if (root.blurEnabled)
+                    root.blurEnabled = false;
+
+            } else if (raw === "on" || raw === "true" || raw === "1") {
+                if (!root.blurEnabled)
+                    root.blurEnabled = true;
+
+            }
+        }
+    }
+
+    colorsFile: FileView {
+        path: root.colorsConfigPath
+        watchChanges: true
+        printErrors: false
+        onLoaded: {
+            if (text())
+                root.parseThemeFile(text());
+
+        }
+    }
+
+    fallbackColorsFile: FileView {
+        path: root.localColorsPath
+        watchChanges: true
+        printErrors: false
+        onLoaded: {
+            if (!colorsFile.text() && text())
+                root.parseThemeFile(text());
+
+        }
+    }
+
+    themeReaderProc: Process {
+        id: themeReaderProc
+
+        command: ["cat", root.colorsConfigPath]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                if (text && text.trim().length > 0) {
+                    root.parseThemeFile(text);
+                    if (root.blurEnabled)
+                        root.setBlurState(true);
+
+                }
+            }
+        }
+
+    }
+
+    wallpaperPaletteFile: FileView {
+        path: root.wallpaperPaletteStatePath
+        watchChanges: true
+        printErrors: false
+        onLoaded: {
+            var raw = String(text() || "").trim();
+            if (raw.length > 0) {
+                try {
+                    var parsed = JSON.parse(raw);
+                    if (parsed && parsed.accent)
+                        root.applyPalette(parsed);
+
+                } catch (e) {
+                }
+            }
+        }
+    }
+
+    wallpaperPaletteProc: Process {
+        id: wallpaperPaletteProc
+
+        command: (root._lastWallpaperTarget && root._lastWallpaperTarget.length > 0) ? ["python3", root.wallpaperPaletteScript, root._lastWallpaperTarget] : ["python3", root.wallpaperPaletteScript]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                var raw = String(text || "").trim();
+                if (raw.length > 0) {
+                    try {
+                        var parsed = JSON.parse(raw);
+                        if (parsed && parsed.accent)
+                            root.applyPalette(parsed);
+
+                    } catch (e) {
+                    }
+                }
+            }
+        }
+
+    }
+
+    linkCheckProc: Process {
+        id: linkCheckProc
+
+        command: ["sh", "-c", "readlink -f \"$HOME/.config/themes/current\" 2>/dev/null; (command -v awww >/dev/null 2>&1 && awww query 2>/dev/null | grep -oP 'currently displaying: image: \\K.*') || readlink -f \"$HOME/.config/themes/current/default.png\" 2>/dev/null"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                var lines = String(text || "").trim().split("\n");
+                var curTarget = (lines.length > 0) ? lines[0].trim() : "";
+                var wpTarget = (lines.length > 1) ? lines[1].trim() : "";
+                var changed = false;
+                if (curTarget && curTarget !== root._lastCurrentTarget) {
+                    root._lastCurrentTarget = curTarget;
+                    changed = true;
+                }
+                if (wpTarget && wpTarget !== root._lastWallpaperTarget) {
+                    root._lastWallpaperTarget = wpTarget;
+                    changed = true;
+                }
+                if (changed)
+                    root.reloadTheme();
+
+            }
+        }
+
+    }
+
+    symlinkWatcherTimer: Timer {
+        interval: 1600
+        running: true
+        repeat: true
+        onTriggered: {
+            if (!linkCheckProc.running)
+                linkCheckProc.running = true;
+
+        }
+    }
+
 }

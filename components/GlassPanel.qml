@@ -125,7 +125,7 @@ Item {
                 GradientStop {
                     position: 0.07
                     color: {
-                        var baseA = Theme.isLightWallpaper ? 0.6 : ((root.mode === "liquid" || root.mode === "clear") ? 0.42 : 0.46);
+                        var baseA = Theme.isLightWallpaper ? 0.38 : ((root.mode === "liquid" || root.mode === "clear") ? 0.24 : 0.28);
                         var c = Theme.withAlpha(Theme.dark_background, baseA * (1 - (root.clarity - 0.75) * 0.3));
                         if (root.active)
                             c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.15));
@@ -138,7 +138,7 @@ Item {
                 GradientStop {
                     position: 0.5
                     color: {
-                        var baseA = Theme.isLightWallpaper ? 0.72 : ((root.mode === "liquid" || root.mode === "clear") ? 0.52 : 0.56);
+                        var baseA = Theme.isLightWallpaper ? 0.46 : ((root.mode === "liquid" || root.mode === "clear") ? 0.3 : 0.34);
                         var c = Theme.withAlpha(root.baseColor, baseA * (1 - (root.clarity - 0.75) * 0.3));
                         if (root.active)
                             c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.18));
@@ -151,7 +151,7 @@ Item {
                 GradientStop {
                     position: 1
                     color: {
-                        var baseA = Theme.isLightWallpaper ? 0.8 : ((root.mode === "liquid" || root.mode === "clear") ? 0.6 : 0.64);
+                        var baseA = Theme.isLightWallpaper ? 0.54 : ((root.mode === "liquid" || root.mode === "clear") ? 0.36 : 0.4);
                         var c = Theme.withAlpha(Theme.dark_background, baseA * (1 - (root.clarity - 0.75) * 0.3));
                         if (root.active)
                             c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.2));

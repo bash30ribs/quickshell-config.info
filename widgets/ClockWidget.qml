@@ -332,17 +332,16 @@ Item {
 
                                     width: 42
                                     height: 30
-                                    radius: Appearance.radiusXs
-                                    color: modelData.today ? Theme.withAlpha(Theme.accent, 0.28) : "transparent"
-                                    border.width: modelData.today ? 1 : 0
-                                    border.color: modelData.today ? Theme.accent : "transparent"
+                                    radius: Appearance.radiusSmall
+                                    color: modelData.today ? Theme.accent : "transparent"
+                                    border.width: 0
 
                                     Text {
                                         anchors.centerIn: parent
                                         text: dayCell.modelData.day
                                         color: {
                                             if (dayCell.modelData.today)
-                                                return Theme.bright_foreground;
+                                                return Theme.dark_background;
 
                                             if (dayCell.modelData.inMonth)
                                                 return Theme.bright_foreground;
