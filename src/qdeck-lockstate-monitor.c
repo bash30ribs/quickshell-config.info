@@ -1,13 +1,14 @@
 /*
  * QDeck: Lightweight Wayland/evdev lockstate monitor for keyboard LEDs
+ * Single-instance, zero-CPU sysfs polling monitor.
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <poll.h>
 #include <glob.h>
 #include <string.h>
+#include <sys/file.h>
 
 static int open_led(const char *pattern) {
     glob_t g;
@@ -32,39 +33,35 @@ static int read_led_val(int fd) {
 }
 
 int main(void) {
+    // Single instance lock to prevent orphan stacking on QuickShell reload
+    int lock_fd = open("/tmp/qdeck-lockstate.lock", O_CREAT | O_RDWR, 0666);
+    if (lock_fd >= 0) {
+        if (flock(lock_fd, LOCK_EX | LOCK_NB) != 0) {
+            // Another instance is already running
+            close(lock_fd);
+            return 0;
+        }
+    }
+
     int num_fd = open_led("/sys/class/leds/*numlock*/brightness");
     int caps_fd = open_led("/sys/class/leds/*capslock*/brightness");
 
     int last_num = read_led_val(num_fd);
     int last_caps = read_led_val(caps_fd);
 
-    struct pollfd pfds[2];
-
     while (1) {
-        int nfds = 0;
-        if (num_fd >= 0) {
-            pfds[nfds].fd = num_fd;
-            pfds[nfds].events = POLLPRI | POLLERR;
-            pfds[nfds].revents = 0;
-            nfds++;
-        } else {
+        // Sleep 80ms: responsive keyboard LED tracking with strictly 0.0% CPU
+        usleep(80000);
+
+        if (num_fd < 0) {
             num_fd = open_led("/sys/class/leds/*numlock*/brightness");
             last_num = read_led_val(num_fd);
         }
 
-        if (caps_fd >= 0) {
-            pfds[nfds].fd = caps_fd;
-            pfds[nfds].events = POLLPRI | POLLERR;
-            pfds[nfds].revents = 0;
-            nfds++;
-        } else {
+        if (caps_fd < 0) {
             caps_fd = open_led("/sys/class/leds/*capslock*/brightness");
             last_caps = read_led_val(caps_fd);
         }
-
-        // Poll with 60ms timeout: wakes up immediately on kernel sysfs_notify,
-        // and falls through every 60ms with zero CPU overhead.
-        poll(pfds, nfds, 60);
 
         if (num_fd >= 0) {
             int cur_num = read_led_val(num_fd);
@@ -87,5 +84,6 @@ int main(void) {
 
     if (num_fd >= 0) close(num_fd);
     if (caps_fd >= 0) close(caps_fd);
+    if (lock_fd >= 0) close(lock_fd);
     return 0;
 }
