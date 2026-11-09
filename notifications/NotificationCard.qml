@@ -1,10 +1,11 @@
+import "../components"
+import "../theme"
+import "NotificationLogic.js" as NotificationLogic
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import "../theme"
-import "NotificationLogic.js" as NotificationLogic
 
-Rectangle {
+GlassPanel {
     id: root
 
     property string app: ""
@@ -16,51 +17,53 @@ Rectangle {
     property int urgency: 1 // 0=Low, 1=Normal, 2=Critical
     property double timestamp: 0
     property string actionsJson: "[]"
-    property real progress: 1.0 // 1.0 -> 0.0 remaining lifetime
+    property real progress: 1 // 1.0 -> 0.0 remaining lifetime
     property bool hasTimeout: true
-
     readonly property bool hovered: hoverTracker.hovered
+    readonly property string smallIconSource: image.length > 0 ? (image.charAt(0) === "/" ? "file://" + image : image) : iconSource(appIcon)
+    readonly property bool hasIconSource: smallIconSource.length > 0
+    readonly property string sanitizedBody: NotificationLogic.sanitizeBody(body, app, appIcon)
+    readonly property string styledBody: NotificationLogic.styledBody(body, app, appIcon)
+    readonly property color accentColor: urgency === 2 ? Theme.red : (urgency === 0 ? Theme.muted : Theme.accent)
+    property var actionList: []
 
     signal closeRequested()
     signal cardClicked()
     signal actionRequested(string actionId)
 
     function iconSource(icon) {
-        var value = String(icon || "").trim()
-        if (value.length === 0) return ""
-        if (value.indexOf("file://") === 0 || value.indexOf("image://") === 0) return value
-        if (value.charAt(0) === "/") return "file://" + value
-        return Quickshell.iconPath(value, true)
+        var value = String(icon || "").trim();
+        if (value.length === 0)
+            return "";
+
+        if (value.indexOf("file://") === 0 || value.indexOf("image://") === 0)
+            return value;
+
+        if (value.charAt(0) === "/")
+            return "file://" + value;
+
+        return Quickshell.iconPath(value, true);
     }
-
-    readonly property string smallIconSource: image.length > 0 ? (image.charAt(0) === "/" ? "file://" + image : image) : iconSource(appIcon)
-    readonly property bool hasIconSource: smallIconSource.length > 0
-    readonly property string sanitizedBody: NotificationLogic.sanitizeBody(body, app, appIcon)
-    readonly property string styledBody: NotificationLogic.styledBody(body, app, appIcon)
-
-    readonly property color accentColor: urgency === 2 ? Theme.red : (urgency === 0 ? Theme.muted : Theme.accent)
-
-    property var actionList: []
-    Component.onCompleted: updateActionList()
-    onActionsJsonChanged: updateActionList()
 
     function updateActionList() {
         try {
-            actionList = JSON.parse(actionsJson || "[]")
+            actionList = JSON.parse(actionsJson || "[]");
         } catch (e) {
-            actionList = []
+            actionList = [];
         }
     }
 
+    Component.onCompleted: updateActionList()
+    onActionsJsonChanged: updateActionList()
     implicitWidth: Appearance.notificationWidth
     implicitHeight: mainColumn.implicitHeight + 20
-    radius: Appearance.notificationRadius
-    color: Theme.withAlpha(Theme.dark_background, Theme.baseOpacity)
-    border.color: Theme.selection
-    border.width: Appearance.borderWidthThin
+    radius: Appearance.notificationRadius > 0 ? Appearance.notificationRadius : 14
+    baseColor: Theme.barBackground
     clip: true
 
-    HoverHandler { id: hoverTracker }
+    HoverHandler {
+        id: hoverTracker
+    }
 
     // Main clickable surface
     MouseArea {
@@ -68,16 +71,16 @@ Rectangle {
         cursorShape: Qt.PointingHandCursor
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         onClicked: function(mouse) {
-            if (mouse.button === Qt.RightButton) {
-                root.closeRequested()
-            } else {
-                root.cardClicked()
-            }
+            if (mouse.button === Qt.RightButton)
+                root.closeRequested();
+            else
+                root.cardClicked();
         }
     }
 
     ColumnLayout {
         id: mainColumn
+
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
@@ -99,6 +102,7 @@ Rectangle {
 
                 Image {
                     id: iconImg
+
                     anchors.fill: parent
                     source: root.smallIconSource
                     sourceSize.width: 44
@@ -117,6 +121,7 @@ Rectangle {
                     font.pixelSize: Fonts.sizeMedium + 1
                     color: root.accentColor
                 }
+
             }
 
             // App Name
@@ -147,12 +152,15 @@ Rectangle {
 
                 MouseArea {
                     id: closeBtnArea
+
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.closeRequested()
                 }
+
             }
+
         }
 
         // Summary Title
@@ -195,6 +203,7 @@ Rectangle {
 
                 delegate: Rectangle {
                     required property var modelData
+
                     Layout.preferredHeight: 26
                     Layout.preferredWidth: actionLabel.implicitWidth + 20
                     radius: Appearance.radiusSmall + 2
@@ -204,6 +213,7 @@ Rectangle {
 
                     Text {
                         id: actionLabel
+
                         anchors.centerIn: parent
                         text: modelData.text || modelData.id
                         font.family: Fonts.uiFont
@@ -214,15 +224,19 @@ Rectangle {
 
                     MouseArea {
                         id: actionMouseArea
+
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: root.actionRequested(modelData.id)
                     }
-                }
-            }
-        }
-    }
 
+                }
+
+            }
+
+        }
+
+    }
 
 }

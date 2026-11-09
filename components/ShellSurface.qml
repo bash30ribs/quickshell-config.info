@@ -1,35 +1,35 @@
+import "../theme"
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
-import "../theme"
 
 Item {
     id: root
 
     // Visual properties matching centralized appearance theme
-    property color surfaceColor: Theme.withAlpha(Theme.background, Theme.baseOpacity)
-    property color borderColor: "transparent"
-    property int borderWidth: Appearance.borderWidthNone
-    property int surfaceRadius: Appearance.surfaceRadius
-
+    property color surfaceColor: Theme.barBackground
+    property color borderColor: Theme.glassBorder
+    property int borderWidth: 1
+    property int surfaceRadius: Appearance.surfaceRadius > 0 ? Appearance.surfaceRadius : 16
     // Exposed reference to the visual container
     readonly property Item surfaceContainer: backgroundRect
     readonly property int cornerRadius: surfaceRadius
-
     // Default property allows child items placed inside ShellSurface to be reparented into contentContainer
     default property alias content: contentContainer.data
 
-    Rectangle {
+    GlassPanel {
         id: backgroundRect
+
         anchors.fill: parent
         radius: root.surfaceRadius
-        color: root.surfaceColor
-        border.color: root.borderColor
-        border.width: root.borderWidth
+        baseColor: root.surfaceColor
 
         Item {
             id: contentContainer
+
             anchors.fill: parent
         }
+
     }
+
 }
