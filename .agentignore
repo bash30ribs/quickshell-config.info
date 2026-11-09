@@ -1,0 +1,45 @@
+# Antigravity Context Filter (.agentignore)
+# Prevents large bundles, caches, logs, and lockfiles from polluting the model context
+
+# Version Control
+.git/
+.gitignore
+
+# Package Manager & Dependency Locks
+*.lock
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+poetry.lock
+
+# Node / Web Build Artifacts
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+
+# Python Virtual Environments & Bytecode
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Runtime Logs, Sockets & Cache
+*.log
+*.qslog
+.cache/
+/run/user/
+/tmp/
+
+# Temporary Image Dumps & Scratch Captures
+/tmp/*.png
+/tmp/*.jpg
+*.tmp
+
+# IDE & OS Metadata
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,17 @@
+{
+  "post-edit-verifier": {
+    "enabled": true,
+    "PostToolUse": [
+      {
+        "matcher": "edit_file|write_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/verify.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
