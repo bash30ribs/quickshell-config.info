@@ -209,8 +209,8 @@ Item {
             radius: Appearance.osdRadius > 0 ? Appearance.osdRadius : 24
             width: Math.max(120, contentRow.implicitWidth + 38)
             height: Appearance.osdHeight
-            baseColor: Theme.glassSurface || Theme.barBackground
-            clarity: 0.85
+            baseColor: Theme.dark_background
+            clarity: 0.88
             transformOrigin: Item.Center
             opacity: root.animProgress
             scale: 0.92 + 0.08 * root.animProgress
@@ -227,6 +227,8 @@ Item {
                     text: root.icon
                     font.family: Icons.effectiveFont(root.icon)
                     font.pixelSize: Fonts.sizeTitle
+                    style: Text.Raised
+                    styleColor: Qt.rgba(0, 0, 0, 0.7)
                     color: {
                         if (root.isMuted)
                             return Theme.red;
@@ -245,7 +247,7 @@ Item {
                     width: Appearance.osdTrackWidth
                     height: Appearance.osdTrackHeight
                     radius: Appearance.osdTrackRadius
-                    color: Qt.rgba(1, 1, 1, 0.12)
+                    color: Qt.rgba(1, 1, 1, 0.16)
 
                     Rectangle {
                         height: parent.height
@@ -283,6 +285,8 @@ Item {
                     font.family: Fonts.uiFont
                     font.pixelSize: Fonts.sizeRegular
                     font.weight: Fonts.weightDemiBold
+                    style: Text.Raised
+                    styleColor: Qt.rgba(0, 0, 0, 0.7)
                     color: {
                         if (root.isMuted)
                             return Theme.red;

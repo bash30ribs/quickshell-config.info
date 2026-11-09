@@ -83,11 +83,14 @@ The status bar supports 4 instant layout modes toggled via IPC or config:
 ---
 
 ### ⚡ Transparent Shortcut OSD Engine
-Volume, brightness, caps lock, and refresh rate adjustments display through a dedicated translucent liquid glass OSD:
-- **Volume & Mute OSD**: Real-time percentage track and volume level glyphs.
-- **Brightness OSD**: Smooth hardware backlight adjustment bar.
-- **Lock-State Toasts**: Zero-latency status toasts for Caps Lock and Num Lock powered by `qdeck-lockstate-monitor` (0.0% CPU overhead).
-- **Display Refresh Rate**: On-screen confirmation when switching display frequencies.
+Volume, brightness, caps lock, and refresh rate adjustments display through a dedicated translucent liquid glass OSD engineered for zero visual distortion:
+- **Pill Squircle Geometry & Specular Sheen Clipping**: Implements adaptive corner geometry (`isPill: effectiveTopLeftRadius >= height * 0.42`) with `clip: true` on the master glass surface. Automatically suppresses flat horizontal specular sheens on pill structures to eliminate corner protrusions, rendering a 100% mathematically continuous perimeter rim.
+- **Authentic Liquid Glass Translucency**: Calibrated multi-stop lens gradient (`0.18` / `0.22` / `0.28` alpha density) allowing Hyprland dual-kawase compositor blur to shine through vibrantly without muddy brown opaque backings.
+- **High-Contrast Raised Typography**: Icons and numerical readouts use `Text.Raised` drop-shadow styling (`Qt.rgba(0, 0, 0, 0.70)`), ensuring razor-sharp legibility over both dark wallpapers and luminous skies.
+- **Volume & Mute OSD**: Real-time percentage track and volume level glyphs with mute state alerts.
+- **Brightness OSD**: Smooth hardware backlight adjustment bar with fine-step tuning.
+- **Lock-State Toasts**: Zero-latency status toasts for Caps Lock, Num Lock, and Touchpad states powered by the native `qdeck-lockstate-monitor` daemon (0.0% CPU overhead).
+- **Display Refresh Rate**: Instant on-screen confirmation when toggling display frequencies.
 
 ---
 

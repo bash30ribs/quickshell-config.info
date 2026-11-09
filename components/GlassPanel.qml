@@ -26,6 +26,7 @@ Item {
     readonly property int effectiveTopRightRadius: topRightRadius >= 0 ? topRightRadius : radius
     readonly property int effectiveBottomLeftRadius: bottomLeftRadius >= 0 ? bottomLeftRadius : radius
     readonly property int effectiveBottomRightRadius: bottomRightRadius >= 0 ? bottomRightRadius : radius
+    readonly property bool isPill: root.effectiveTopLeftRadius >= (root.height * 0.42)
     // Optical Parameters (exposed for live tuning)
     property real clarity: Appearance.glassClarity !== undefined ? Appearance.glassClarity : 0.75
     property real rimIllumination: Appearance.glassRimIllumination !== undefined ? Appearance.glassRimIllumination : 0.5
@@ -75,6 +76,8 @@ Item {
             id: glassSurface
 
             anchors.fill: parent
+            clip: true
+            radius: (root.topLeftRadius < 0 && root.topRightRadius < 0 && root.bottomLeftRadius < 0 && root.bottomRightRadius < 0) ? root.radius : 0
             topLeftRadius: root.effectiveTopLeftRadius
             topRightRadius: root.effectiveTopRightRadius
             bottomLeftRadius: root.effectiveBottomLeftRadius
@@ -125,7 +128,7 @@ Item {
                 GradientStop {
                     position: 0.07
                     color: {
-                        var baseA = Theme.isLightWallpaper ? 0.38 : ((root.mode === "liquid" || root.mode === "clear") ? 0.24 : 0.28);
+                        var baseA = Theme.isLightWallpaper ? 0.28 : ((root.mode === "liquid" || root.mode === "clear") ? 0.18 : 0.22);
                         var c = Theme.withAlpha(Theme.dark_background, baseA * (1 - (root.clarity - 0.75) * 0.3));
                         if (root.active)
                             c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.15));
@@ -138,7 +141,7 @@ Item {
                 GradientStop {
                     position: 0.5
                     color: {
-                        var baseA = Theme.isLightWallpaper ? 0.46 : ((root.mode === "liquid" || root.mode === "clear") ? 0.3 : 0.34);
+                        var baseA = Theme.isLightWallpaper ? 0.34 : ((root.mode === "liquid" || root.mode === "clear") ? 0.22 : 0.26);
                         var c = Theme.withAlpha(root.baseColor, baseA * (1 - (root.clarity - 0.75) * 0.3));
                         if (root.active)
                             c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.18));
@@ -151,7 +154,7 @@ Item {
                 GradientStop {
                     position: 1
                     color: {
-                        var baseA = Theme.isLightWallpaper ? 0.54 : ((root.mode === "liquid" || root.mode === "clear") ? 0.36 : 0.4);
+                        var baseA = Theme.isLightWallpaper ? 0.4 : ((root.mode === "liquid" || root.mode === "clear") ? 0.28 : 0.32);
                         var c = Theme.withAlpha(Theme.dark_background, baseA * (1 - (root.clarity - 0.75) * 0.3));
                         if (root.active)
                             c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.2));
@@ -168,15 +171,13 @@ Item {
             Rectangle {
                 id: specularSheen
 
-                visible: (root.mode === "liquid" || root.mode === "clear")
+                visible: !root.isPill && (root.mode === "liquid" || root.mode === "clear")
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
+                anchors.leftMargin: root.effectiveTopLeftRadius
+                anchors.rightMargin: root.effectiveTopRightRadius
                 height: Math.max(5, Math.min(14, parent.height * 0.26))
-                topLeftRadius: parent.topLeftRadius
-                topRightRadius: parent.topRightRadius
-                bottomLeftRadius: 0
-                bottomRightRadius: 0
                 antialiasing: true
 
                 gradient: Gradient {
@@ -200,12 +201,12 @@ Item {
             Rectangle {
                 id: illuminatedTopEdge
 
-                visible: (root.mode === "liquid" || root.mode === "clear")
+                visible: !root.isPill && (root.mode === "liquid" || root.mode === "clear")
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.leftMargin: Math.min(parent.topLeftRadius, 8)
-                anchors.rightMargin: Math.min(parent.topRightRadius, 8)
+                anchors.leftMargin: root.effectiveTopLeftRadius
+                anchors.rightMargin: root.effectiveTopRightRadius
                 height: 1
                 color: Qt.rgba(1, 1, 1, 0.22 * root.rimIllumination)
                 antialiasing: true
