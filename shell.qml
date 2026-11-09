@@ -17,15 +17,54 @@ ShellRoot {
 
     // Core Shared Services
     property WorkspacesService workspacesService
+
+    workspacesService: WorkspacesService {
+    }
+
     property AudioService audioService
+
+    audioService: AudioService {
+    }
+
     property BrightnessService brightnessService
+
+    brightnessService: BrightnessService {
+    }
+
     property BatteryService batteryService
+
+    batteryService: BatteryService {
+    }
+
     property NetworkService networkService
+
+    networkService: NetworkService {
+    }
+
     property BluetoothService bluetoothService
+
+    bluetoothService: BluetoothService {
+    }
+
     property PowerService powerService
+
+    powerService: PowerService {
+    }
+
     property ThemeSwitcherService themeSwitcherService
+
+    themeSwitcherService: ThemeSwitcherService {
+    }
+
     property WallpaperSwitcherService wallpaperSwitcherService
+
+    wallpaperSwitcherService: WallpaperSwitcherService {
+    }
+
     property AuditService auditService
+
+    auditService: AuditService {
+    }
 
     IpcHandler {
         function toggle() : string {
@@ -127,36 +166,6 @@ ShellRoot {
             powerService: root.powerService
         }
 
-    }
-
-    workspacesService: WorkspacesService {
-    }
-
-    audioService: AudioService {
-    }
-
-    brightnessService: BrightnessService {
-    }
-
-    batteryService: BatteryService {
-    }
-
-    networkService: NetworkService {
-    }
-
-    bluetoothService: BluetoothService {
-    }
-
-    powerService: PowerService {
-    }
-
-    themeSwitcherService: ThemeSwitcherService {
-    }
-
-    wallpaperSwitcherService: WallpaperSwitcherService {
-    }
-
-    auditService: AuditService {
     }
 
 }
