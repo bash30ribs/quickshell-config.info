@@ -25,55 +25,28 @@ Rectangle {
     radius: Appearance.buttonRadius > 0 ? Appearance.buttonRadius : 6
     antialiasing: true
 
-    // Mornye Spring Physics Scale & Compression (Mass: 1, Stiffness: 420, Damping: 24)
-    scale: {
-        if (mouseArea.pressed) return 0.965
-        if (mouseArea.containsMouse) return 1.025
-        return 1.0
-    }
+    // Subtle press compression
+    scale: mouseArea.pressed ? 0.96 : 1.0
 
     Behavior on scale {
         NumberAnimation {
-            duration: mouseArea.pressed ? 70 : 180
-            easing.type: mouseArea.pressed ? Easing.OutQuad : Easing.OutBack
-            easing.overshoot: mouseArea.pressed ? 1.0 : 1.25
+            duration: 80
+            easing.type: Easing.OutQuad
         }
     }
 
-    // Seamlessly merged into the bar; soft frosted glass highlight on hover, subtle accent wash on active
+    // Borderless bar button: clean transparent resting state, soft frosted glass highlight on hover, subtle selection wash when active
     color: {
-        if (root.active) return Theme.withAlpha(Theme.accent, 0.20)
-        if (mouseArea.containsMouse) return Qt.rgba(1, 1, 1, 0.09)
+        if (root.active) return Theme.selection
+        if (mouseArea.containsMouse) return Qt.rgba(1, 1, 1, 0.08)
         return "transparent"
     }
 
-    border.color: {
-        if (root.active) return Theme.withAlpha(Theme.accent, 0.50)
-        if (mouseArea.containsMouse) return Qt.rgba(1, 1, 1, 0.20)
-        return "transparent"
-    }
-    border.width: (root.active || mouseArea.containsMouse) ? 1 : 0
+    border.width: 0
+    border.color: "transparent"
 
     Behavior on color {
         ColorAnimation { duration: 130 }
-    }
-    Behavior on border.color {
-        ColorAnimation { duration: 130 }
-    }
-
-    // Apple Control Center top specular sheen on hover / active
-    Rectangle {
-        visible: mouseArea.containsMouse || root.active
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: Math.max(3, Math.min(8, parent.height * 0.35))
-        radius: parent.radius
-        antialiasing: true
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, root.active ? 0.18 : 0.10) }
-            GradientStop { position: 1.0; color: "transparent" }
-        }
     }
 
     Row {
@@ -110,22 +83,6 @@ Rectangle {
             Behavior on color {
                 ColorAnimation { duration: Appearance.animDurationNormal }
             }
-        }
-    }
-
-    // Active bottom indicator line
-    Rectangle {
-        visible: root.active
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 2
-        anchors.horizontalCenter: parent.horizontalCenter
-        width: Math.min(parent.width - 6, 14)
-        height: 2
-        radius: 1
-        color: Theme.accent
-
-        Behavior on color {
-            ColorAnimation { duration: Appearance.animDurationNormal }
         }
     }
 

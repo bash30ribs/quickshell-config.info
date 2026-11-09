@@ -2,7 +2,7 @@ import QtQuick
 import "../theme"
 import "../services"
 
-// Merged workspace container on the glass bar
+// Workspace switcher container on the glass bar
 Item {
     id: root
 
@@ -42,47 +42,14 @@ Item {
                 radius: height / 2
                 antialiasing: true
 
-                // Mornye Spring Physics (Mass: 1, Stiffness: 420, Damping: 24)
-                scale: {
-                    if (wsMouse.pressed) return 0.94
-                    if (wsMouse.containsMouse) return 1.08
-                    return 1.0
-                }
-
-                Behavior on scale {
-                    NumberAnimation {
-                        duration: wsMouse.pressed ? 70 : 180
-                        easing.type: wsMouse.pressed ? Easing.OutQuad : Easing.OutBack
-                        easing.overshoot: wsMouse.pressed ? 1.0 : 1.25
-                    }
-                }
-
                 color: {
                     if (isActive) return Theme.accent
-                    if (wsMouse.containsMouse) return Theme.withAlpha(Theme.glassCrest, 0.18)
-                    return "transparent"
+                    if (wsMouse.containsMouse) return Qt.rgba(1, 1, 1, 0.16)
+                    return Qt.rgba(1, 1, 1, 0.08)
                 }
-                border.color: {
-                    if (isActive) return Theme.withAlpha(Theme.glassCrest, 0.45)
-                    if (wsMouse.containsMouse) return Theme.withAlpha(Theme.glassCrest, 0.28)
-                    return "transparent"
-                }
-                border.width: (isActive || wsMouse.containsMouse) ? 1 : 0
 
-                // Specular highlight sheen on active capsule
-                Rectangle {
-                    visible: wsCapsule.isActive
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    height: Math.max(3, parent.height * 0.4)
-                    radius: parent.radius
-                    antialiasing: true
-                    gradient: Gradient {
-                        GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.35) }
-                        GradientStop { position: 1.0; color: "transparent" }
-                    }
-                }
+                border.width: 0
+                border.color: "transparent"
 
                 Behavior on width {
                     NumberAnimation {
@@ -104,7 +71,7 @@ Item {
                 }
                 readonly property bool hasCustomInactiveIcon: resolvedInactiveIcon.length > 0
 
-                // Inactive workspace indicator: circular dot (shown when no custom icon is configured)
+                // Inactive workspace indicator: circular dot
                 Rectangle {
                     id: dot
                     anchors.centerIn: parent
@@ -113,7 +80,7 @@ Item {
                     radius: width / 2
                     visible: !wsCapsule.isActive && !wsCapsule.hasCustomInactiveIcon
                     color: "#ffffff"
-                    opacity: wsCapsule.isOccupied ? 1.0 : 0.28
+                    opacity: wsCapsule.isOccupied ? 1.0 : 0.35
                     antialiasing: true
 
                     Behavior on opacity {
@@ -121,7 +88,7 @@ Item {
                     }
                 }
 
-                // Inactive workspace indicator: custom glyph defined in Icons.qml
+                // Inactive workspace indicator: custom glyph
                 Text {
                     id: inactiveIcon
                     anchors.centerIn: parent
@@ -132,7 +99,7 @@ Item {
                     font.family: Icons.effectiveFont(text)
                     font.pixelSize: Appearance.workspacesInactiveIconSize
                     color: "#ffffff"
-                    opacity: wsCapsule.isOccupied ? 1.0 : 0.28
+                    opacity: wsCapsule.isOccupied ? 1.0 : 0.35
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
 
@@ -141,7 +108,7 @@ Item {
                     }
                 }
 
-                // Active workspace indicator: user manual icon defined in Icons.qml
+                // Active workspace indicator: icon
                 Text {
                     id: activeIcon
                     anchors.centerIn: parent
