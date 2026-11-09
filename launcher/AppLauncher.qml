@@ -1,106 +1,120 @@
+import "../components"
+import "../theme"
+import "LauncherModel.js" as LauncherModel
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Wayland
 import Quickshell.Hyprland
 import Quickshell.Io
-import "../theme"
-import "../components"
-import "LauncherModel.js" as LauncherModel
+import Quickshell.Wayland
 
 PanelWindow {
     id: root
 
     readonly property string fontFamily: Fonts.uiFont
-
     property bool isOpen: false
     property var allApps: []
     property var filteredApps: []
 
     function open(initialQuery) {
-        root.isOpen = true
-        root.loadApps()
-        searchInput.text = (typeof initialQuery === "string") ? initialQuery : ""
-        root.filterApps()
-        listView.currentIndex = 0
+        root.isOpen = true;
+        root.loadApps();
+        searchInput.text = (typeof initialQuery === "string") ? initialQuery : "";
+        root.filterApps();
+        listView.currentIndex = 0;
         Qt.callLater(function() {
-            searchInput.forceActiveFocus()
-        })
+            searchInput.forceActiveFocus();
+        });
     }
 
     function close() {
-        root.isOpen = false
-        searchInput.text = ""
-        listView.currentIndex = 0
+        root.isOpen = false;
+        searchInput.text = "";
+        listView.currentIndex = 0;
     }
 
     function toggle(initialQuery) {
-        if (root.isOpen) {
-            root.close()
-        } else {
-            root.open(initialQuery)
-        }
+        if (root.isOpen)
+            root.close();
+        else
+            root.open(initialQuery);
     }
 
     function loadApps() {
-        root.allApps = DesktopEntries.applications.values || []
+        root.allApps = DesktopEntries.applications.values || [];
     }
 
     function filterApps() {
-        var q = searchInput.text.trim()
-        root.filteredApps = LauncherModel.filterApps(root.allApps, q)
-        if (listView.currentIndex >= root.filteredApps.length) {
-            listView.currentIndex = 0
-        }
+        var q = searchInput.text.trim();
+        root.filteredApps = LauncherModel.filterApps(root.allApps, q);
+        if (listView.currentIndex >= root.filteredApps.length)
+            listView.currentIndex = 0;
+
     }
 
     function executeCurrentItem() {
-        if (!root.filteredApps || root.filteredApps.length === 0) return
+        if (!root.filteredApps || root.filteredApps.length === 0)
+            return ;
 
-        var item = root.filteredApps[listView.currentIndex]
-        if (!item) return
+        var item = root.filteredApps[listView.currentIndex];
+        if (!item)
+            return ;
 
         try {
-            if (item.entry && item.entry.runInTerminal) {
-                Quickshell.execDetached(["gtk-launch", item.id])
-            } else if (item.entry && item.entry.execute) {
-                item.entry.execute()
-            } else {
-                Quickshell.execDetached(["gtk-launch", item.id])
-            }
+            if (item.entry && item.entry.runInTerminal)
+                Quickshell.execDetached(["gtk-launch", item.id]);
+            else if (item.entry && item.entry.execute)
+                item.entry.execute();
+            else
+                Quickshell.execDetached(["gtk-launch", item.id]);
         } catch (e) {
-            Quickshell.execDetached(["gtk-launch", item.id])
+            Quickshell.execDetached(["gtk-launch", item.id]);
         }
-
-        root.close()
+        root.close();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Window Setup & Native Hyprland Blur Integration
     // ─────────────────────────────────────────────────────────────────────────
     visible: root.isOpen
-    anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
-
     // Dynamic screen binding to Hyprland focused monitor
     screen: {
-        if (!Quickshell.screens || Quickshell.screens.length === 0) return null
-        var foc = Hyprland.focusedMonitor
+        if (!Quickshell.screens || Quickshell.screens.length === 0)
+            return null;
+
+        var foc = Hyprland.focusedMonitor;
         if (foc && foc.name) {
             for (var i = 0; i < Quickshell.screens.length; i++) {
-                if (Quickshell.screens[i].name === foc.name) {
-                    return Quickshell.screens[i]
-                }
+                if (Quickshell.screens[i].name === foc.name)
+                    return Quickshell.screens[i];
+
             }
         }
-        return Quickshell.screens[0]
+        return Quickshell.screens[0];
     }
-
     // LayerShell configuration
     WlrLayershell.namespace: "quickshell-launcher"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: root.isOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
+    onIsOpenChanged: {
+        if (root.isOpen)
+            Qt.callLater(function() {
+            searchInput.forceActiveFocus();
+        });
+
+    }
+    Component.onCompleted: {
+        root.loadApps();
+    }
+
+    anchors {
+        top: true
+        bottom: true
+        left: true
+        right: true
+    }
 
     Shortcut {
         sequence: "Escape"
@@ -108,37 +122,55 @@ PanelWindow {
         onActivated: root.close()
     }
 
-    onIsOpenChanged: {
-        if (root.isOpen) {
-            Qt.callLater(function() {
-                searchInput.forceActiveFocus()
-            })
-        }
-    }
-
     // IPC interface for qdeck-launcher CLI compatibility
     IpcHandler {
+        function open() : string {
+            root.open("");
+            return "opened";
+        }
+
+        function search(query: string) : string {
+            root.open(query);
+            return "searching";
+        }
+
+        function close() : string {
+            root.close();
+            return "closed";
+        }
+
+        function toggle() : string {
+            root.toggle("");
+            return "toggled";
+        }
+
+        function setMode(mode: string) : string {
+            root.open("");
+            return "mode-set";
+        }
+
         target: "launcher"
-        function open(): void { root.open("") }
-        function search(query: string): void { root.open(query) }
-        function close(): void { root.close() }
-        function toggle(): void { root.toggle("") }
-        function setMode(mode: string): void { root.open("") }
     }
 
     // Full-screen Backdrop Scrim (Tier 2 alpha <= 0.35 -> will NOT blur)
     Rectangle {
         anchors.fill: parent
         color: Theme.withAlpha(Theme.darker_background, Theme.scrimOpacity)
-        opacity: root.isOpen ? 1.0 : 0.0
-        Behavior on opacity {
-            NumberAnimation { duration: Theme.animDuration; easing.type: Easing.OutCubic }
-        }
+        opacity: root.isOpen ? 1 : 0
 
         MouseArea {
             anchors.fill: parent
             onClicked: root.close()
         }
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Theme.animDuration
+                easing.type: Easing.OutCubic
+            }
+
+        }
+
     }
 
     HyprlandFocusGrab {
@@ -148,11 +180,12 @@ PanelWindow {
     }
 
     Connections {
-        target: DesktopEntries
         function onApplicationsChanged() {
-            root.loadApps()
-            root.filterApps()
+            root.loadApps();
+            root.filterApps();
         }
+
+        target: DesktopEntries
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -160,14 +193,14 @@ PanelWindow {
     // ─────────────────────────────────────────────────────────────────────────
     ShellSurface {
         id: surface
+
         width: Appearance.launcherWidth
         height: Appearance.launcherHeight
         anchors.centerIn: parent
-
         surfaceRadius: Appearance.launcherRadius
-        surfaceColor: Theme.withAlpha(Theme.background, Theme.baseOpacity)
-        borderColor: "transparent"
-        borderWidth: Appearance.borderWidthNone
+        surfaceColor: Theme.barBackground
+        borderColor: Theme.glassBorder
+        borderWidth: 1
 
         // Consume clicks inside card so backdrop doesn't trigger dismissal
         MouseArea {
@@ -183,6 +216,7 @@ PanelWindow {
             // ── Inputbar ─────────────────────────────────────────────────────
             RowLayout {
                 id: inputbar
+
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -192,6 +226,7 @@ PanelWindow {
                 // Prompt glyph
                 Text {
                     id: promptGlyph
+
                     text: Icons.search
                     font.family: Icons.effectiveFont(text)
                     font.pixelSize: Fonts.sizeMedium
@@ -217,6 +252,7 @@ PanelWindow {
 
                     TextInput {
                         id: searchInput
+
                         anchors.fill: parent
                         verticalAlignment: TextInput.AlignVCenter
                         font.family: root.fontFamily
@@ -226,61 +262,56 @@ PanelWindow {
                         selectedTextColor: Theme.bright_foreground
                         clip: true
                         focus: true
-
                         onTextChanged: {
-                            root.filterApps()
-                            listView.currentIndex = 0
+                            root.filterApps();
+                            listView.currentIndex = 0;
                         }
-
                         Keys.onDownPressed: {
                             if (listView.count > 0) {
-                                listView.currentIndex = (listView.currentIndex + 1) % listView.count
-                                listView.positionViewAtIndex(listView.currentIndex, ListView.Contain)
+                                listView.currentIndex = (listView.currentIndex + 1) % listView.count;
+                                listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
                             }
                         }
-
                         Keys.onUpPressed: {
                             if (listView.count > 0) {
-                                listView.currentIndex = (listView.currentIndex - 1 + listView.count) % listView.count
-                                listView.positionViewAtIndex(listView.currentIndex, ListView.Contain)
+                                listView.currentIndex = (listView.currentIndex - 1 + listView.count) % listView.count;
+                                listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
                             }
                         }
-
                         Keys.onTabPressed: {
                             if (listView.count > 0) {
-                                listView.currentIndex = (listView.currentIndex + 1) % listView.count
-                                listView.positionViewAtIndex(listView.currentIndex, ListView.Contain)
+                                listView.currentIndex = (listView.currentIndex + 1) % listView.count;
+                                listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
                             }
                         }
-
                         Keys.onBacktabPressed: {
                             if (listView.count > 0) {
-                                listView.currentIndex = (listView.currentIndex - 1 + listView.count) % listView.count
-                                listView.positionViewAtIndex(listView.currentIndex, ListView.Contain)
+                                listView.currentIndex = (listView.currentIndex - 1 + listView.count) % listView.count;
+                                listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
                             }
                         }
-
                         Keys.onReturnPressed: root.executeCurrentItem()
                         Keys.onEnterPressed: root.executeCurrentItem()
                         Keys.onEscapePressed: root.close()
-
                         Keys.onPressed: function(event) {
                             if (event.key === Qt.Key_PageDown) {
                                 if (listView.count > 0) {
-                                    listView.currentIndex = Math.min(listView.count - 1, listView.currentIndex + 5)
-                                    listView.positionViewAtIndex(listView.currentIndex, ListView.Contain)
+                                    listView.currentIndex = Math.min(listView.count - 1, listView.currentIndex + 5);
+                                    listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
                                 }
-                                event.accepted = true
+                                event.accepted = true;
                             } else if (event.key === Qt.Key_PageUp) {
                                 if (listView.count > 0) {
-                                    listView.currentIndex = Math.max(0, listView.currentIndex - 5)
-                                    listView.positionViewAtIndex(listView.currentIndex, ListView.Contain)
+                                    listView.currentIndex = Math.max(0, listView.currentIndex - 5);
+                                    listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
                                 }
-                                event.accepted = true
+                                event.accepted = true;
                             }
                         }
                     }
+
                 }
+
             }
 
             // ── Listview ─────────────────────────────────────────────────────
@@ -293,6 +324,7 @@ PanelWindow {
 
                 ListView {
                     id: listView
+
                     anchors.fill: parent
                     anchors.rightMargin: scrollbar.visible ? 10 : 0
                     clip: true
@@ -301,20 +333,17 @@ PanelWindow {
 
                     delegate: Rectangle {
                         id: element
+
                         required property var modelData
                         required property int index
+                        readonly property bool isSelected: listView.currentIndex === index
+                        readonly property bool isHovered: itemMouse.containsMouse
 
                         width: listView.width
                         height: Appearance.launcherItemHeight
                         radius: Appearance.launcherItemRadius
-
-                        readonly property bool isSelected: listView.currentIndex === index
-                        readonly property bool isHovered: itemMouse.containsMouse
-
                         // Element normal / selected background
-                        color: isSelected
-                            ? Theme.accent
-                            : (isHovered ? Theme.withAlpha(Theme.lighter_background, Theme.layerOpacity) : "transparent")
+                        color: isSelected ? Theme.accent : (isHovered ? Theme.withAlpha(Theme.lighter_background, Theme.layerOpacity) : "transparent")
 
                         RowLayout {
                             anchors.fill: parent
@@ -330,6 +359,7 @@ PanelWindow {
 
                                 Image {
                                     id: appIconImg
+
                                     anchors.fill: parent
                                     fillMode: Image.PreserveAspectFit
                                     source: modelData.icon || ""
@@ -339,27 +369,30 @@ PanelWindow {
 
                                 Rectangle {
                                     id: fallbackBadge
+
                                     anchors.fill: parent
                                     radius: Appearance.radiusSmall + 2
                                     visible: !appIconImg.visible
-                                    color: element.isSelected ? Theme.selection : Theme.withAlpha(Theme.accent, 0.20)
+                                    color: element.isSelected ? Theme.selection : Theme.withAlpha(Theme.accent, 0.2)
                                     border.color: element.isSelected ? Theme.accent : Theme.selection
                                     border.width: Appearance.borderWidthThin
 
                                     Text {
                                         anchors.centerIn: parent
                                         text: {
-                                            if (modelData.name && modelData.name.length > 0) {
-                                                return modelData.name.charAt(0).toUpperCase()
-                                            }
-                                            return Icons.apps
+                                            if (modelData.name && modelData.name.length > 0)
+                                                return modelData.name.charAt(0).toUpperCase();
+
+                                            return Icons.apps;
                                         }
                                         font.family: root.fontFamily
                                         font.pixelSize: Fonts.sizeSmall
                                         font.weight: Fonts.weightBold
                                         color: element.isSelected ? Theme.darker_background : Theme.accent
                                     }
+
                                 }
+
                             }
 
                             // App Name
@@ -390,29 +423,34 @@ PanelWindow {
                             Item {
                                 Layout.fillWidth: true
                             }
+
                         }
 
                         MouseArea {
                             id: itemMouse
+
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onPositionChanged: {
-                                if (listView.currentIndex !== index) {
-                                    listView.currentIndex = index
-                                }
+                                if (listView.currentIndex !== index)
+                                    listView.currentIndex = index;
+
                             }
                             onClicked: {
-                                listView.currentIndex = index
-                                root.executeCurrentItem()
+                                listView.currentIndex = index;
+                                root.executeCurrentItem();
                             }
                         }
+
                     }
+
                 }
 
                 // ── Scrollbar ────────────────────────────────────────────────
                 Rectangle {
                     id: scrollbar
+
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
@@ -423,19 +461,20 @@ PanelWindow {
 
                     Rectangle {
                         id: scrollbarHandle
+
                         width: parent.width
                         radius: 10
                         color: Theme.accent
-
                         height: Math.max(20, listView.visibleArea.heightRatio * scrollbar.height)
                         y: listView.visibleArea.yPosition * scrollbar.height
                     }
+
                 }
+
             }
+
         }
+
     }
 
-    Component.onCompleted: {
-        root.loadApps()
-    }
 }

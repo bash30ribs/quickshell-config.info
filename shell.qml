@@ -2,63 +2,105 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import "services"
 import "bar"
-import "launcher"
-import "osd"
-import "notifications"
 import "components"
+import "launcher"
+import "notifications"
+import "osd"
 import "polkit"
 import "powermenu"
+import "services"
 import "theme"
 
 ShellRoot {
     id: root
 
     // Core Shared Services
-    property WorkspacesService workspacesService: WorkspacesService { }
-    property AudioService audioService: AudioService { }
-    property BrightnessService brightnessService: BrightnessService { }
-    property BatteryService batteryService: BatteryService { }
-    property NetworkService networkService: NetworkService { }
-    property BluetoothService bluetoothService: BluetoothService { }
-    property PowerService powerService: PowerService { }
-    property ThemeSwitcherService themeSwitcherService: ThemeSwitcherService { }
-    property WallpaperSwitcherService wallpaperSwitcherService: WallpaperSwitcherService { }
+    property WorkspacesService workspacesService
 
-    IpcHandler {
-        target: "bar"
+    workspacesService: WorkspacesService {
+    }
 
-        function toggle(): string {
-            Appearance.barVisible = !Appearance.barVisible
-            return Appearance.barVisible ? "visible" : "hidden"
-        }
+    property AudioService audioService
 
-        function hide(): string {
-            Appearance.barVisible = false
-            return "hidden"
-        }
+    audioService: AudioService {
+    }
 
-        function show(): string {
-            Appearance.barVisible = true
-            return "visible"
-        }
+    property BrightnessService brightnessService
 
-        function isVisible(): string {
-            return Appearance.barVisible ? "true" : "false"
-        }
+    brightnessService: BrightnessService {
+    }
+
+    property BatteryService batteryService
+
+    batteryService: BatteryService {
+    }
+
+    property NetworkService networkService
+
+    networkService: NetworkService {
+    }
+
+    property BluetoothService bluetoothService
+
+    bluetoothService: BluetoothService {
+    }
+
+    property PowerService powerService
+
+    powerService: PowerService {
+    }
+
+    property ThemeSwitcherService themeSwitcherService
+
+    themeSwitcherService: ThemeSwitcherService {
+    }
+
+    property WallpaperSwitcherService wallpaperSwitcherService
+
+    wallpaperSwitcherService: WallpaperSwitcherService {
+    }
+
+    property AuditService auditService
+
+    auditService: AuditService {
     }
 
     IpcHandler {
+        function toggle() : string {
+            Appearance.barVisible = !Appearance.barVisible;
+            return Appearance.barVisible ? "visible" : "hidden";
+        }
+
+        function hide() : string {
+            Appearance.barVisible = false;
+            return "hidden";
+        }
+
+        function show() : string {
+            Appearance.barVisible = true;
+            return "visible";
+        }
+
+        function isVisible() : string {
+            return Appearance.barVisible ? "true" : "false";
+        }
+
+        target: "bar"
+    }
+
+    IpcHandler {
+        function test() : string {
+            root.powerService.requestShutdown(null);
+            return "ok";
+        }
+
+        function cancel() : string {
+            root.powerService.cancelConfirm();
+            return "ok";
+        }
+
         target: "powerconfirm"
-        function test(): string {
-            root.powerService.requestShutdown(null)
-            return "ok"
-        }
-        function cancel(): string {
-            root.powerService.cancelConfirm()
-            return "ok"
-        }
     }
 
     // App Launcher (Rofi-style Quickshell application launcher)
@@ -69,12 +111,14 @@ ShellRoot {
     // Power Confirmation Dialog (centered overlay)
     PowerConfirmDialog {
         id: powerConfirm
+
         powerService: root.powerService
     }
 
     // Bottom Pop-up Unified Menu (Power Session + Theme Switcher + Wallpaper Switcher)
     PowerMenu {
         id: bottomMenu
+
         powerService: root.powerService
         themeService: root.themeSwitcherService
         wallpaperService: root.wallpaperSwitcherService
@@ -88,6 +132,7 @@ ShellRoot {
     // On-Screen Display (OSD UI Window)
     Osd {
         id: osd
+
         bluetoothService: root.bluetoothService
         brightnessService: root.brightnessService
     }
@@ -95,6 +140,7 @@ ShellRoot {
     // OSD IPC & Trigger Service (modeled on swayosd-client)
     OsdService {
         id: osdService
+
         osd: osd
     }
 
@@ -109,8 +155,8 @@ ShellRoot {
 
         Bar {
             required property var modelData
-            screen: modelData
 
+            screen: modelData
             workspacesService: root.workspacesService
             audioService: root.audioService
             brightnessService: root.brightnessService
@@ -119,5 +165,7 @@ ShellRoot {
             bluetoothService: root.bluetoothService
             powerService: root.powerService
         }
+
     }
+
 }

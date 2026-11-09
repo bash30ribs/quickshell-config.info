@@ -1,35 +1,44 @@
+import "../services"
+import "../theme"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Wayland
 import Quickshell.Hyprland
-import "../theme"
-import "../services"
+import Quickshell.Wayland
 
 PanelWindow {
     id: root
 
     required property PowerService powerService
-
     readonly property bool isOpen: root.powerService && root.powerService.confirmOpen
 
     visible: root.isOpen
     screen: (root.powerService && root.powerService.targetScreen) ? root.powerService.targetScreen : null
-    anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
-
     WlrLayershell.namespace: "quickshell-confirm"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: root.isOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
+    onVisibleChanged: {
+        if (visible)
+            keyHandler.forceActiveFocus();
+
+    }
+
+    anchors {
+        top: true
+        bottom: true
+        left: true
+        right: true
+    }
 
     Shortcut {
         sequence: "Escape"
         enabled: root.isOpen
         onActivated: {
-            if (root.powerService) {
-                root.powerService.cancelConfirm()
-            }
+            if (root.powerService)
+                root.powerService.cancelConfirm();
+
         }
     }
 
@@ -37,32 +46,32 @@ PanelWindow {
         active: false
         windows: [root]
         onCleared: {
-            if (root.powerService) {
-                root.powerService.cancelConfirm()
-            }
+            if (root.powerService)
+                root.powerService.cancelConfirm();
+
         }
     }
 
     // Keyboard navigation (Esc to cancel, Enter/Return to execute)
     Item {
         id: keyHandler
+
         anchors.fill: parent
         focus: root.isOpen
-
         Keys.onEscapePressed: {
-            if (root.powerService) root.powerService.cancelConfirm()
+            if (root.powerService)
+                root.powerService.cancelConfirm();
+
         }
         Keys.onReturnPressed: {
-            if (root.powerService) root.powerService.executeConfirmed()
+            if (root.powerService)
+                root.powerService.executeConfirmed();
+
         }
         Keys.onEnterPressed: {
-            if (root.powerService) root.powerService.executeConfirmed()
-        }
-    }
+            if (root.powerService)
+                root.powerService.executeConfirmed();
 
-    onVisibleChanged: {
-        if (visible) {
-            keyHandler.forceActiveFocus()
         }
     }
 
@@ -70,46 +79,46 @@ PanelWindow {
     Rectangle {
         anchors.fill: parent
         color: Theme.withAlpha(Theme.darker_background, Theme.scrimOpacity)
-        opacity: root.isOpen ? 1.0 : 0.0
-
-        Behavior on opacity {
-            NumberAnimation { duration: Appearance.animDurationNormal; easing.type: Easing.OutCubic }
-        }
+        opacity: root.isOpen ? 1 : 0
 
         MouseArea {
             anchors.fill: parent
             onClicked: {
-                if (root.powerService) root.powerService.cancelConfirm()
+                if (root.powerService)
+                    root.powerService.cancelConfirm();
+
             }
         }
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Appearance.animDurationNormal
+                easing.type: Easing.OutCubic
+            }
+
+        }
+
     }
 
     // Centered Confirmation Dialog Box
-    Rectangle {
+    GlassPanel {
         id: dialogCard
+
         width: 380
         height: 190
         anchors.centerIn: parent
         radius: Appearance.dialogRadius
-        color: Theme.withAlpha(Theme.background, Theme.baseOpacity)
-        border.color: Theme.selection
-        border.width: Appearance.borderWidthThin
-
-        opacity: root.isOpen ? 1.0 : 0.0
-        scale: root.isOpen ? 1.0 : 0.95
-
-        Behavior on opacity {
-            NumberAnimation { duration: Appearance.animDurationNormal; easing.type: Easing.OutCubic }
-        }
-        Behavior on scale {
-            NumberAnimation { duration: Appearance.animDurationNormal; easing.type: Easing.OutCubic }
-        }
+        baseColor: Theme.barBackground
+        opacity: root.isOpen ? 1 : 0
+        scale: root.isOpen ? 1 : 0.95
 
         // Prevent clicks on the card from falling through to the backdrop
         MouseArea {
             anchors.fill: parent
             propagateComposedEvents: true
-            onClicked: function(mouse) { mouse.accepted = false }
+            onClicked: function(mouse) {
+                mouse.accepted = false;
+            }
         }
 
         ColumnLayout {
@@ -123,10 +132,11 @@ PanelWindow {
 
                 // Action Icon Badge
                 Rectangle {
+                    readonly property bool isUrgent: root.powerService && root.powerService.confirmAction === "poweroff"
+
                     width: Appearance.osdHeight
                     height: Appearance.osdHeight
                     radius: Appearance.radiusPill
-                    readonly property bool isUrgent: root.powerService && root.powerService.confirmAction === "poweroff"
                     color: Theme.darker_background
                     border.color: isUrgent ? Theme.red : Theme.yellow
                     border.width: Appearance.borderWidthThin
@@ -138,6 +148,7 @@ PanelWindow {
                         font.pixelSize: Fonts.sizeTitle
                         color: parent.isUrgent ? Theme.red : Theme.yellow
                     }
+
                 }
 
                 // Title and prompt text
@@ -162,10 +173,14 @@ PanelWindow {
                         color: Theme.muted
                         wrapMode: Text.WordWrap
                     }
+
                 }
+
             }
 
-            Item { Layout.fillHeight: true }
+            Item {
+                Layout.fillHeight: true
+            }
 
             // Action Buttons
             RowLayout {
@@ -175,6 +190,7 @@ PanelWindow {
                 // Cancel Button
                 Rectangle {
                     id: cancelBtn
+
                     Layout.fillWidth: true
                     height: Appearance.popupHeaderHeight
                     radius: Appearance.buttonRadius
@@ -202,31 +218,39 @@ PanelWindow {
                             color: cancelMouse.containsMouse ? Theme.foreground : Theme.muted
                             anchors.verticalCenter: parent.verticalCenter
                         }
+
                     }
 
                     MouseArea {
                         id: cancelMouse
+
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            if (root.powerService) root.powerService.cancelConfirm()
+                            if (root.powerService)
+                                root.powerService.cancelConfirm();
+
                         }
                     }
+
                 }
 
                 // Confirm Action Button
                 Rectangle {
                     id: confirmBtn
-                    Layout.fillWidth: true
-                    height: Appearance.popupHeaderHeight
-                    radius: Appearance.buttonRadius
+
                     readonly property bool isUrgent: root.powerService && root.powerService.confirmAction === "poweroff"
                     readonly property color themeColor: isUrgent ? Theme.red : Theme.yellow
 
+                    Layout.fillWidth: true
+                    height: Appearance.popupHeaderHeight
+                    radius: Appearance.buttonRadius
                     color: {
-                        if (confirmMouse.containsMouse) return themeColor
-                        return Theme.selection
+                        if (confirmMouse.containsMouse)
+                            return themeColor;
+
+                        return Theme.selection;
                     }
                     border.color: themeColor
                     border.width: Appearance.borderWidthThin
@@ -251,19 +275,44 @@ PanelWindow {
                             color: confirmMouse.containsMouse ? Theme.darker_background : Theme.foreground
                             anchors.verticalCenter: parent.verticalCenter
                         }
+
                     }
 
                     MouseArea {
                         id: confirmMouse
+
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            if (root.powerService) root.powerService.executeConfirmed()
+                            if (root.powerService)
+                                root.powerService.executeConfirmed();
+
                         }
                     }
+
                 }
+
             }
+
         }
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Appearance.animDurationNormal
+                easing.type: Easing.OutCubic
+            }
+
+        }
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: Appearance.animDurationNormal
+                easing.type: Easing.OutCubic
+            }
+
+        }
+
     }
+
 }

@@ -1,11 +1,12 @@
+import "../components"
+import "../theme"
+import "LauncherModel.js" as LauncherModel
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Wayland
 import Quickshell.Hyprland
 import Quickshell.Io
-import "../theme"
-import "LauncherModel.js" as LauncherModel
+import Quickshell.Wayland
 
 PanelWindow {
     id: root
@@ -18,160 +19,172 @@ PanelWindow {
     property var cachedFiles: ""
     property var cachedWindows: "[]"
     property var currentItems: []
+    // Process for scanning executables in PATH for Run mode
+    property Process binScanProc
+    // Process for scanning files in Files mode
+    property Process fileScanProc
+    // Process for querying open windows for Windows mode
+    property Process windowsProc
 
     function open(initialText) {
-        root.isOpen = true
-        root.currentMode = 0 // Default to Apps mode
-        root.refreshCurrentMode()
-        if (typeof initialText === "string" && initialText.length > 0) {
-            searchInput.text = initialText
-        } else {
-            searchInput.text = ""
-        }
-        listView.currentIndex = 0
+        root.isOpen = true;
+        root.currentMode = 0; // Default to Apps mode
+        root.refreshCurrentMode();
+        if (typeof initialText === "string" && initialText.length > 0)
+            searchInput.text = initialText;
+        else
+            searchInput.text = "";
+        listView.currentIndex = 0;
         Qt.callLater(function() {
-            searchInput.forceActiveFocus()
-        })
+            searchInput.forceActiveFocus();
+        });
     }
 
     function close() {
-        root.isOpen = false
-        searchInput.text = ""
-        root.currentMode = 0
-        listView.currentIndex = 0
+        root.isOpen = false;
+        searchInput.text = "";
+        root.currentMode = 0;
+        listView.currentIndex = 0;
     }
 
     function toggle(initialText) {
-        if (root.isOpen) {
-            root.close()
-        } else {
-            root.open(initialText)
-        }
+        if (root.isOpen)
+            root.close();
+        else
+            root.open(initialText);
     }
 
     function setMode(index) {
         if (index >= 0 && index <= 3) {
-            root.currentMode = index
-            root.refreshCurrentMode()
-            listView.currentIndex = 0
+            root.currentMode = index;
+            root.refreshCurrentMode();
+            listView.currentIndex = 0;
             Qt.callLater(function() {
-                searchInput.forceActiveFocus()
-            })
+                searchInput.forceActiveFocus();
+            });
         }
     }
 
     function cycleMode(forward) {
-        if (forward) {
-            root.setMode((root.currentMode + 1) % 4)
-        } else {
-            root.setMode((root.currentMode + 3) % 4)
-        }
+        if (forward)
+            root.setMode((root.currentMode + 1) % 4);
+        else
+            root.setMode((root.currentMode + 3) % 4);
     }
 
     function refreshCurrentMode() {
         if (root.currentMode === 0) {
             // Apps
-            root.allApps = DesktopEntries.applications.values || []
-            root.updateFilteredItems()
+            root.allApps = DesktopEntries.applications.values || [];
+            root.updateFilteredItems();
         } else if (root.currentMode === 1) {
             // Run commands
-            if (root.cachedBinaries.length === 0 && !binScanProc.running) {
-                binScanProc.running = true
-            } else {
-                root.updateFilteredItems()
-            }
+            if (root.cachedBinaries.length === 0 && !binScanProc.running)
+                binScanProc.running = true;
+            else
+                root.updateFilteredItems();
         } else if (root.currentMode === 2) {
             // Files
-            if (!fileScanProc.running) {
-                fileScanProc.running = true
-            } else {
-                root.updateFilteredItems()
-            }
+            if (!fileScanProc.running)
+                fileScanProc.running = true;
+            else
+                root.updateFilteredItems();
         } else if (root.currentMode === 3) {
             // Windows
-            if (!windowsProc.running) {
-                windowsProc.running = true
-            } else {
-                root.updateFilteredItems()
-            }
+            if (!windowsProc.running)
+                windowsProc.running = true;
+            else
+                root.updateFilteredItems();
         }
     }
 
     function updateFilteredItems() {
-        var q = searchInput.text.trim()
-        if (root.currentMode === 0) {
-            root.currentItems = LauncherModel.filterApps(root.allApps, q)
-        } else if (root.currentMode === 1) {
-            root.currentItems = LauncherModel.filterCommands(root.cachedBinaries, q)
-        } else if (root.currentMode === 2) {
-            root.currentItems = LauncherModel.parseFiles(root.cachedFiles, q)
-        } else if (root.currentMode === 3) {
-            root.currentItems = LauncherModel.parseWindows(root.cachedWindows, q)
-        }
-        if (listView.currentIndex >= root.currentItems.length) {
-            listView.currentIndex = 0
-        }
+        var q = searchInput.text.trim();
+        if (root.currentMode === 0)
+            root.currentItems = LauncherModel.filterApps(root.allApps, q);
+        else if (root.currentMode === 1)
+            root.currentItems = LauncherModel.filterCommands(root.cachedBinaries, q);
+        else if (root.currentMode === 2)
+            root.currentItems = LauncherModel.parseFiles(root.cachedFiles, q);
+        else if (root.currentMode === 3)
+            root.currentItems = LauncherModel.parseWindows(root.cachedWindows, q);
+        if (listView.currentIndex >= root.currentItems.length)
+            listView.currentIndex = 0;
+
     }
 
     function executeCurrentItem() {
         if (!root.currentItems || root.currentItems.length === 0) {
             // If in Run mode with typed text, execute it
             if (root.currentMode === 1 && searchInput.text.trim().length > 0) {
-                Quickshell.execDetached(["bash", "-c", searchInput.text.trim()])
-                root.close()
+                Quickshell.execDetached(["bash", "-c", searchInput.text.trim()]);
+                root.close();
             }
-            return
+            return ;
         }
-
-        var item = root.currentItems[listView.currentIndex]
-        if (!item) return
+        var item = root.currentItems[listView.currentIndex];
+        if (!item)
+            return ;
 
         if (item.type === "app") {
             try {
-                if (item.entry && item.entry.runInTerminal) {
-                    Quickshell.execDetached(["gtk-launch", item.id])
-                } else if (item.entry && item.entry.execute) {
-                    item.entry.execute()
-                } else {
-                    Quickshell.execDetached(["gtk-launch", item.id])
-                }
+                if (item.entry && item.entry.runInTerminal)
+                    Quickshell.execDetached(["gtk-launch", item.id]);
+                else if (item.entry && item.entry.execute)
+                    item.entry.execute();
+                else
+                    Quickshell.execDetached(["gtk-launch", item.id]);
             } catch (e) {
-                Quickshell.execDetached(["gtk-launch", item.id])
+                Quickshell.execDetached(["gtk-launch", item.id]);
             }
-        } else if (item.type === "command") {
-            Quickshell.execDetached(["bash", "-c", item.cmd])
-        } else if (item.type === "file") {
-            Quickshell.execDetached(["xdg-open", item.path])
-        } else if (item.type === "window") {
-            Quickshell.execDetached(["hyprctl", "dispatch", "focuswindow", "address:" + item.address])
-        }
-
-        root.close()
+        } else if (item.type === "command")
+            Quickshell.execDetached(["bash", "-c", item.cmd]);
+        else if (item.type === "file")
+            Quickshell.execDetached(["xdg-open", item.path]);
+        else if (item.type === "window")
+            Quickshell.execDetached(["hyprctl", "dispatch", "focuswindow", "address:" + item.address]);
+        root.close();
     }
 
     // Window Setup
     visible: root.isOpen
-    anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
-
     // Bind screen dynamically to focused Hyprland monitor
     screen: {
-        if (!Quickshell.screens || Quickshell.screens.length === 0) return null
-        var foc = Hyprland.focusedMonitor
+        if (!Quickshell.screens || Quickshell.screens.length === 0)
+            return null;
+
+        var foc = Hyprland.focusedMonitor;
         if (foc && foc.name) {
             for (var i = 0; i < Quickshell.screens.length; i++) {
-                if (Quickshell.screens[i].name === foc.name) {
-                    return Quickshell.screens[i]
-                }
+                if (Quickshell.screens[i].name === foc.name)
+                    return Quickshell.screens[i];
+
             }
         }
-        return Quickshell.screens[0]
+        return Quickshell.screens[0];
     }
-
     WlrLayershell.namespace: "quickshell-launcher"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: root.isOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
+    onIsOpenChanged: {
+        if (root.isOpen)
+            Qt.callLater(function() {
+            searchInput.forceActiveFocus();
+        });
+
+    }
+    Component.onCompleted: {
+        root.allApps = DesktopEntries.applications.values || [];
+    }
+
+    anchors {
+        top: true
+        bottom: true
+        left: true
+        right: true
+    }
 
     Shortcut {
         sequence: "Escape"
@@ -179,27 +192,41 @@ PanelWindow {
         onActivated: root.close()
     }
 
-    onIsOpenChanged: {
-        if (root.isOpen) {
-            Qt.callLater(function() {
-                searchInput.forceActiveFocus()
-            })
-        }
-    }
-
     // IPC interface for toggling or controlling launcher
     IpcHandler {
-        target: "launcher"
-        function open(): void { root.open("") }
-        function search(query: string): void { root.open(query) }
-        function close(): void { root.close() }
-        function toggle(): void { root.toggle("") }
-        function setMode(mode: string): void {
-            if (mode === "apps") root.setMode(0)
-            else if (mode === "run") root.setMode(1)
-            else if (mode === "files") root.setMode(2)
-            else if (mode === "windows") root.setMode(3)
+        function open() : string {
+            root.open("");
+            return "opened";
         }
+
+        function search(query: string) : string {
+            root.open(query);
+            return "searching";
+        }
+
+        function close() : string {
+            root.close();
+            return "closed";
+        }
+
+        function toggle() : string {
+            root.toggle("");
+            return "toggled";
+        }
+
+        function setMode(mode: string) : string {
+            if (mode === "apps")
+                root.setMode(0);
+            else if (mode === "run")
+                root.setMode(1);
+            else if (mode === "files")
+                root.setMode(2);
+            else if (mode === "windows")
+                root.setMode(3);
+            return "mode-set";
+        }
+
+        target: "launcher"
     }
 
     // Backdrop Scrim (Tier 2 alpha <= 0.35 -> will NOT blur)
@@ -207,9 +234,14 @@ PanelWindow {
         anchors.fill: parent
         color: Theme.withAlpha(Theme.darker_background, Theme.scrimOpacity)
         opacity: root.isOpen ? 1 : 0
+
         Behavior on opacity {
-            NumberAnimation { duration: 150 }
+            NumberAnimation {
+                duration: 150
+            }
+
         }
+
     }
 
     // Click outside card to dismiss
@@ -224,81 +256,33 @@ PanelWindow {
         onCleared: root.close()
     }
 
-    // Process for scanning executables in PATH for Run mode
-    property Process binScanProc: Process {
-        id: binScanProc
-        command: ["bash", "-c", "echo \"$PATH\" | tr ':' '\n' | while read -r d; do [ -d \"$d\" ] && find \"$d\" -maxdepth 1 -executable -type f -printf '%f\n' 2>/dev/null; done | sort -u | head -n 400"]
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: {
-                var raw = text.trim()
-                if (raw) {
-                    root.cachedBinaries = raw.split("\n")
-                }
-                if (root.currentMode === 1) {
-                    root.updateFilteredItems()
-                }
-            }
-        }
-    }
-
-    // Process for scanning files in Files mode
-    property Process fileScanProc: Process {
-        id: fileScanProc
-        command: ["bash", "-c", "find \"$HOME\" -maxdepth 2 -not -path '*/.*' -printf '%f\t%p\t%y\n' 2>/dev/null | head -n 300"]
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: {
-                root.cachedFiles = text.trim()
-                if (root.currentMode === 2) {
-                    root.updateFilteredItems()
-                }
-            }
-        }
-    }
-
-    // Process for querying open windows for Windows mode
-    property Process windowsProc: Process {
-        id: windowsProc
-        command: ["hyprctl", "clients", "-j"]
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: {
-                root.cachedWindows = text.trim()
-                if (root.currentMode === 3) {
-                    root.updateFilteredItems()
-                }
-            }
-        }
-    }
-
     // DesktopEntries change watcher
     Connections {
-        target: DesktopEntries
         function onApplicationsChanged() {
-            root.allApps = DesktopEntries.applications.values || []
-            if (root.currentMode === 0) {
-                root.updateFilteredItems()
-            }
+            root.allApps = DesktopEntries.applications.values || [];
+            if (root.currentMode === 0)
+                root.updateFilteredItems();
+
         }
+
+        target: DesktopEntries
     }
 
     // Main Modal Dialog Card
-    Rectangle {
+    GlassPanel {
         id: card
+
         width: Appearance.launcherModalWidth
         height: Appearance.launcherModalHeight
         anchors.centerIn: parent
         radius: Appearance.dialogRadius
-        color: Theme.withAlpha(Theme.background, Theme.baseOpacity)
-        border.color: Theme.selection
-        border.width: Appearance.borderWidthThin
+        baseColor: Theme.barBackground
 
         // Consume click inside card so backdrop doesn't trigger dismissal
         MouseArea {
             anchors.fill: parent
             onClicked: {
-                searchInput.forceActiveFocus()
+                searchInput.forceActiveFocus();
             }
         }
 
@@ -309,6 +293,7 @@ PanelWindow {
             // Top Header: Search prompt, text input, mode buttons
             RowLayout {
                 id: topBar
+
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -330,6 +315,7 @@ PanelWindow {
                         font.pixelSize: Fonts.sizeMedium
                         color: Theme.muted
                     }
+
                 }
 
                 // Search TextInput
@@ -350,6 +336,7 @@ PanelWindow {
 
                     TextInput {
                         id: searchInput
+
                         anchors.fill: parent
                         anchors.leftMargin: Appearance.spacingSmall
                         verticalAlignment: TextInput.AlignVCenter
@@ -360,50 +347,44 @@ PanelWindow {
                         selectedTextColor: Theme.bright_foreground
                         clip: true
                         focus: true
-
                         onTextChanged: {
-                            root.updateFilteredItems()
-                            listView.currentIndex = 0
+                            root.updateFilteredItems();
+                            listView.currentIndex = 0;
                         }
-
                         Keys.onDownPressed: {
                             if (listView.count > 0) {
-                                listView.currentIndex = (listView.currentIndex + 1) % listView.count
-                                listView.positionViewAtIndex(listView.currentIndex, ListView.Contain)
+                                listView.currentIndex = (listView.currentIndex + 1) % listView.count;
+                                listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
                             }
                         }
-
                         Keys.onUpPressed: {
                             if (listView.count > 0) {
-                                listView.currentIndex = (listView.currentIndex - 1 + listView.count) % listView.count
-                                listView.positionViewAtIndex(listView.currentIndex, ListView.Contain)
+                                listView.currentIndex = (listView.currentIndex - 1 + listView.count) % listView.count;
+                                listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
                             }
                         }
-
                         Keys.onReturnPressed: root.executeCurrentItem()
                         Keys.onEnterPressed: root.executeCurrentItem()
-
                         Keys.onEscapePressed: root.close()
-
                         Keys.onTabPressed: root.cycleMode(true)
                         Keys.onBacktabPressed: root.cycleMode(false)
-
                         Keys.onPressed: function(event) {
                             if (event.key === Qt.Key_PageDown) {
                                 if (listView.count > 0) {
-                                    listView.currentIndex = Math.min(listView.count - 1, listView.currentIndex + 5)
-                                    listView.positionViewAtIndex(listView.currentIndex, ListView.Contain)
+                                    listView.currentIndex = Math.min(listView.count - 1, listView.currentIndex + 5);
+                                    listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
                                 }
-                                event.accepted = true
+                                event.accepted = true;
                             } else if (event.key === Qt.Key_PageUp) {
                                 if (listView.count > 0) {
-                                    listView.currentIndex = Math.max(0, listView.currentIndex - 5)
-                                    listView.positionViewAtIndex(listView.currentIndex, ListView.Contain)
+                                    listView.currentIndex = Math.max(0, listView.currentIndex - 5);
+                                    listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
                                 }
-                                event.accepted = true
+                                event.accepted = true;
                             }
                         }
                     }
+
                 }
 
                 // Mode Switcher Pills: Apps | Run | Files | Windows
@@ -423,17 +404,19 @@ PanelWindow {
                             text: "Apps"
                             font.family: Fonts.uiFont
                             font.pixelSize: 12
-                            font.bold: root.currentMode === 0 
+                            font.bold: root.currentMode === 0
                             color: root.currentMode === 0 ? Theme.darker_background : Theme.foreground
                         }
 
                         MouseArea {
                             id: appsMouse
+
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.setMode(0)
                         }
+
                     }
 
                     // Run Mode Pill
@@ -448,17 +431,19 @@ PanelWindow {
                             text: "Run"
                             font.family: Fonts.uiFont
                             font.pixelSize: 12
-                            font.bold: root.currentMode === 1 
+                            font.bold: root.currentMode === 1
                             color: root.currentMode === 1 ? Theme.darker_background : Theme.foreground
                         }
 
                         MouseArea {
                             id: runMouse
+
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.setMode(1)
                         }
+
                     }
 
                     // Files Mode Pill
@@ -473,17 +458,19 @@ PanelWindow {
                             text: "Files"
                             font.family: Fonts.uiFont
                             font.pixelSize: 12
-                            font.bold: root.currentMode === 2 
+                            font.bold: root.currentMode === 2
                             color: root.currentMode === 2 ? Theme.darker_background : Theme.foreground
                         }
 
                         MouseArea {
                             id: filesMouse
+
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.setMode(2)
                         }
+
                     }
 
                     // Windows Mode Pill
@@ -498,19 +485,23 @@ PanelWindow {
                             text: "Windows"
                             font.family: Fonts.uiFont
                             font.pixelSize: 12
-                            font.bold: root.currentMode === 3 
+                            font.bold: root.currentMode === 3
                             color: root.currentMode === 3 ? Theme.darker_background : Theme.foreground
                         }
 
                         MouseArea {
                             id: winMouse
+
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.setMode(3)
                         }
+
                     }
+
                 }
+
             }
 
             // Results List Container
@@ -523,6 +514,7 @@ PanelWindow {
 
                 ListView {
                     id: listView
+
                     anchors.fill: parent
                     anchors.rightMargin: Appearance.spacingLarge
                     clip: true
@@ -531,19 +523,16 @@ PanelWindow {
 
                     delegate: Rectangle {
                         id: rowDelegate
+
                         required property var modelData
                         required property int index
+                        readonly property bool isSelected: listView.currentIndex === index
+                        readonly property bool isHovered: itemMouse.containsMouse
 
                         width: listView.width
                         height: 42
                         radius: Appearance.launcherItemRadius
-
-                        readonly property bool isSelected: listView.currentIndex === index
-                        readonly property bool isHovered: itemMouse.containsMouse
-
-                        color: isSelected
-                            ? Theme.accent
-                            : (isHovered ? Theme.lighter_background : Theme.dark_background)
+                        color: isSelected ? Theme.accent : (isHovered ? Theme.lighter_background : Theme.dark_background)
 
                         RowLayout {
                             anchors.fill: parent
@@ -589,29 +578,34 @@ PanelWindow {
                             Item {
                                 Layout.fillWidth: true
                             }
+
                         }
 
                         MouseArea {
                             id: itemMouse
+
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onPositionChanged: {
-                                if (listView.currentIndex !== index) {
-                                    listView.currentIndex = index
-                                }
+                                if (listView.currentIndex !== index)
+                                    listView.currentIndex = index;
+
                             }
                             onClicked: {
-                                listView.currentIndex = index
-                                root.executeCurrentItem()
+                                listView.currentIndex = index;
+                                root.executeCurrentItem();
                             }
                         }
+
                     }
+
                 }
 
                 // Scrollbar
                 Rectangle {
                     id: scrollbarTrack
+
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
@@ -622,19 +616,74 @@ PanelWindow {
 
                     Rectangle {
                         id: scrollbarHandle
+
                         width: parent.width
                         radius: 10
                         color: Theme.accent
-
                         height: Math.max(20, listView.visibleArea.heightRatio * scrollbarTrack.height)
                         y: listView.visibleArea.yPosition * scrollbarTrack.height
                     }
+
                 }
+
             }
+
         }
+
     }
 
-    Component.onCompleted: {
-        root.allApps = DesktopEntries.applications.values || []
+    binScanProc: Process {
+        id: binScanProc
+
+        command: ["bash", "-c", "echo \"$PATH\" | tr ':' '\n' | while read -r d; do [ -d \"$d\" ] && find \"$d\" -maxdepth 1 -executable -type f -printf '%f\n' 2>/dev/null; done | sort -u | head -n 400"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                var raw = text.trim();
+                if (raw)
+                    root.cachedBinaries = raw.split("\n");
+
+                if (root.currentMode === 1)
+                    root.updateFilteredItems();
+
+            }
+        }
+
     }
+
+    fileScanProc: Process {
+        id: fileScanProc
+
+        command: ["bash", "-c", "find \"$HOME\" -maxdepth 2 -not -path '*/.*' -printf '%f\t%p\t%y\n' 2>/dev/null | head -n 300"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                root.cachedFiles = text.trim();
+                if (root.currentMode === 2)
+                    root.updateFilteredItems();
+
+            }
+        }
+
+    }
+
+    windowsProc: Process {
+        id: windowsProc
+
+        command: ["hyprctl", "clients", "-j"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                root.cachedWindows = text.trim();
+                if (root.currentMode === 3)
+                    root.updateFilteredItems();
+
+            }
+        }
+
+    }
+
 }
