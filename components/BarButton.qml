@@ -61,6 +61,21 @@ Rectangle {
         ColorAnimation { duration: 130 }
     }
 
+    // Apple Control Center top specular sheen on hover / active
+    Rectangle {
+        visible: mouseArea.containsMouse || root.active
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: Math.max(3, Math.min(8, parent.height * 0.35))
+        radius: parent.radius
+        antialiasing: true
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, root.active ? 0.18 : 0.10) }
+            GradientStop { position: 1.0; color: "transparent" }
+        }
+    }
+
     Row {
         id: contentRow
         anchors.centerIn: parent

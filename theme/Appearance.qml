@@ -15,13 +15,16 @@ QtObject {
     property bool barVisible: true
 
     // =========================================================================
-    // Mornye Liquid Glass Optical Settings (Mornye Reference Specification)
+    // Apple macOS Liquid Glass Optical Settings (qt-liquid-glass Specification)
     // =========================================================================
-    property string glassMode: "liquid" // "liquid" (Mode C), "frosted" (Mode B), "flat" (Mode A)
-    property real glassClarity: 0.75    // Mornye default clarity
-    property real glassRimIllumination: 0.45
-    property real glassSpecularIntensity: 0.70
-    property real glassRefractionStrength: 0.85
+    property string glassMode: "liquid" // "liquid", "frosted", "clear", "flat"
+    property string glassMaterial: "controlCenter" // "controlCenter", "widgets", "clearGlass", "sidebar", "chromatic"
+    property real glassClarity: 0.75    // Apple liquid clarity
+    property real glassRimIllumination: 0.50 // Specular crest illumination
+    property real glassSpecularIntensity: 0.75 // Top specular sheen
+    property real glassRefractionStrength: 0.85 // Chromatic dispersion & lensing
+    property real glassInnerBevel: 0.55 // Inset chamfer light catch
+    property real glassChromaticDispersion: 0.60 // Lateral prism refraction
 
     // Mornye Spring Physics Settings (mornye_glass_press.dart)
     property real springMass: 1.0
