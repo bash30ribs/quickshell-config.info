@@ -130,10 +130,9 @@ def get_wallpaper_palette(wallpaper_path=None, theme_colors_path=None):
                     persistent_dir = os.path.join(home, ".local/state/qdeck")
                     os.makedirs(persistent_dir, exist_ok=True)
                     persistent_file = os.path.join(persistent_dir, "wallpaper-palette.json")
-                    tmp_persistent = f"{persistent_file}.tmp.{os.getpid()}"
-                    with open(tmp_persistent, "w", encoding="utf-8") as pf:
+                    with open(persistent_file, "w", encoding="utf-8") as pf:
                         json.dump(cached_data, pf, indent=2)
-                    os.replace(tmp_persistent, persistent_file)
+                        pf.flush()
                 except Exception:
                     pass
                 return cached_data
@@ -245,10 +244,9 @@ def get_wallpaper_palette(wallpaper_path=None, theme_colors_path=None):
         persistent_dir = os.path.join(home, ".local/state/qdeck")
         os.makedirs(persistent_dir, exist_ok=True)
         persistent_file = os.path.join(persistent_dir, "wallpaper-palette.json")
-        tmp_persistent = f"{persistent_file}.tmp.{os.getpid()}"
-        with open(tmp_persistent, "w", encoding="utf-8") as f:
+        with open(persistent_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
-        os.replace(tmp_persistent, persistent_file)
+            f.flush()
     except Exception:
         pass
 

@@ -28,10 +28,10 @@ Rectangle {
     // Borderless bar button: clean transparent resting state, soft frosted glass highlight on hover, subtle translucent accent wash when active
     color: {
         if (root.active)
-            return Theme.withAlpha(Theme.accent, 0.16);
+            return Theme.withAlpha(Theme.accent, 0.18);
 
         if (mouseArea.containsMouse)
-            return Qt.rgba(1, 1, 1, 0.08);
+            return Theme.withAlpha(Theme.accent, 0.1);
 
         return "transparent";
     }

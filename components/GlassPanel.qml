@@ -130,9 +130,7 @@ Item {
                     color: {
                         var baseA = Theme.isLightWallpaper ? 0.28 : ((root.mode === "liquid" || root.mode === "clear") ? 0.18 : 0.22);
                         var c = Theme.withAlpha(Theme.dark_background, baseA * (1 - (root.clarity - 0.75) * 0.3));
-                        if (root.active)
-                            c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.15));
-
+                        c = Qt.tint(c, Theme.withAlpha(root.accentTint, root.active ? 0.18 : 0.06));
                         return c;
                     }
                 }
@@ -143,9 +141,7 @@ Item {
                     color: {
                         var baseA = Theme.isLightWallpaper ? 0.34 : ((root.mode === "liquid" || root.mode === "clear") ? 0.22 : 0.26);
                         var c = Theme.withAlpha(root.baseColor, baseA * (1 - (root.clarity - 0.75) * 0.3));
-                        if (root.active)
-                            c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.18));
-
+                        c = Qt.tint(c, Theme.withAlpha(root.accentTint, root.active ? 0.24 : 0.08));
                         return c;
                     }
                 }
@@ -156,9 +152,7 @@ Item {
                     color: {
                         var baseA = Theme.isLightWallpaper ? 0.4 : ((root.mode === "liquid" || root.mode === "clear") ? 0.28 : 0.32);
                         var c = Theme.withAlpha(Theme.dark_background, baseA * (1 - (root.clarity - 0.75) * 0.3));
-                        if (root.active)
-                            c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.2));
-
+                        c = Qt.tint(c, Theme.withAlpha(root.accentTint, root.active ? 0.2 : 0.05));
                         return c;
                     }
                 }

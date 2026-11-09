@@ -56,7 +56,7 @@ Item {
                         return Theme.accent;
 
                     if (wsMouse.containsMouse)
-                        return Qt.rgba(1, 1, 1, 0.14);
+                        return Theme.withAlpha(Theme.accent, 0.2);
 
                     return "transparent";
                 }
