@@ -20,10 +20,10 @@ QtObject {
     readonly property color darker_background: _c.darker_background || Qt.darker(root.background, 1.45)
     readonly property color lighter_background: _c.lighter_background || Qt.lighter(root.background, 1.25)
 
-    // Primary Accents
-    readonly property color accent: _c.accent || _c.color4 || "#7aa2f7"
-    readonly property color selection: _c.selection || _c.color0 || "#292e42"
-    readonly property color muted: _c.muted || _c.color8 || "#585b70"
+    // Primary Accents (dynamically harmonized with active wallpaper)
+    readonly property color accent: (root.hasWallpaperColors && root.wallpaperAccent) ? root.wallpaperAccent : (_c.accent || _c.color4 || "#7aa2f7")
+    readonly property color selection: (root.hasWallpaperColors && root.wallpaperSelection) ? root.wallpaperSelection : (_c.selection || _c.color0 || "#292e42")
+    readonly property color muted: _c.muted || _c.color8 || "#7a8478"
 
     // Typography & Foregrounds
     readonly property color foreground: _c.foreground || "#a9b1d6"
@@ -60,17 +60,23 @@ QtObject {
     // Harmonizes wallpaper tones with theme colors for the bar & widgets
     // ─────────────────────────────────────────────────────────────────────────
     property var _wp: ({})
-    readonly property bool hasWallpaperColors: !!(_wp && _wp.accent)
+    property string wallpaperAccent: (_wp && _wp.accent) ? _wp.accent : ""
+    property string wallpaperSelection: (_wp && _wp.selection) ? _wp.selection : ""
+    property string wallpaperDominant: (_wp && _wp.dominant) ? _wp.dominant : ""
+    property string wallpaperGlassTint: (_wp && _wp.glass_tint) ? _wp.glass_tint : ""
+    property string wallpaperGlassCrest: (_wp && _wp.glass_crest) ? _wp.glass_crest : ""
+    property string wallpaperGlassBorder: (_wp && _wp.glass_border) ? _wp.glass_border : ""
+    readonly property bool hasWallpaperColors: root.wallpaperAccent.length > 0
 
     readonly property color barBackground: root.background
     readonly property color barDarkBackground: root.dark_background
     readonly property color barLighterBackground: root.lighter_background
     readonly property color barAccent: root.accent
-    readonly property color barDominant: (root.hasWallpaperColors && _wp.dominant) ? _wp.dominant : root.foreground
-    readonly property color glassTint: (root.hasWallpaperColors && _wp.glass_tint) ? _wp.glass_tint : root.accent
+    readonly property color barDominant: (root.hasWallpaperColors && root.wallpaperDominant) ? root.wallpaperDominant : root.foreground
+    readonly property color glassTint: (root.hasWallpaperColors && root.wallpaperGlassTint) ? root.wallpaperGlassTint : root.accent
     readonly property color glassSurface: (root.hasWallpaperColors && _wp.glass_surface) ? _wp.glass_surface : root.lighter_background
-    readonly property color glassCrest: (root.hasWallpaperColors && _wp.glass_crest) ? _wp.glass_crest : root.light_foreground
-    readonly property color glassBorderColor: (root.hasWallpaperColors && _wp.glass_border) ? _wp.glass_border : root.accent
+    readonly property color glassCrest: (root.hasWallpaperColors && root.wallpaperGlassCrest) ? root.wallpaperGlassCrest : root.light_foreground
+    readonly property color glassBorderColor: (root.hasWallpaperColors && root.wallpaperGlassBorder) ? root.wallpaperGlassBorder : root.accent
     readonly property color barBorderColor: root.withAlpha(root.glassBorderColor, 0.35)
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -277,6 +283,12 @@ QtObject {
                     try {
                         var parsed = JSON.parse(raw)
                         if (parsed && parsed.accent) {
+                            root.wallpaperAccent = parsed.accent
+                            root.wallpaperSelection = parsed.selection || ""
+                            root.wallpaperDominant = parsed.dominant || ""
+                            root.wallpaperGlassTint = parsed.glass_tint || ""
+                            root.wallpaperGlassCrest = parsed.glass_crest || ""
+                            root.wallpaperGlassBorder = parsed.glass_border || ""
                             root._wp = parsed
                         }
                     } catch (e) {
@@ -304,7 +316,7 @@ QtObject {
     property string _lastWallpaperTarget: ""
     property Process linkCheckProc: Process {
         id: linkCheckProc
-        command: ["sh", "-c", "readlink -f \"$HOME/.config/themes/current\" 2>/dev/null; readlink -f \"$HOME/.config/themes/current/default.png\" 2>/dev/null"]
+        command: ["sh", "-c", "readlink -f \"$HOME/.config/themes/current\" 2>/dev/null; (command -v awww >/dev/null 2>&1 && awww query 2>/dev/null | grep -oP 'currently displaying: image: \\K.*') || readlink -f \"$HOME/.config/themes/current/default.png\" 2>/dev/null"]
         stdout: StdioCollector {
             waitForEnd: true
             onStreamFinished: {

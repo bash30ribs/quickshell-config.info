@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-QDeck Theme & Wallpaper Color Extractor
-Parses the active theme's colors.toml accurately (Nord, Gruvbox, Catppuccin, etc.)
-and harmonizes with wallpaper presence for authentic glassmorphism.
+QDeck Dynamic Wallpaper & Harmony Color Extractor
+Extracts dominant, vibrant, and optical tokens from the active wallpaper
+and harmonizes with the theme colors for authentic glassmorphism.
 """
 
 import sys
@@ -10,19 +10,73 @@ import os
 import re
 import json
 import hashlib
+import colorsys
+import subprocess
 from PIL import Image
+from collections import Counter
+
+def hex_to_rgb(h):
+    h = h.lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+
+def rgb_to_hex(r, g, b):
+    return f"#{int(r):02x}{int(g):02x}{int(b):02x}"
+
+def blend_hex(h1, h2, w1=0.5):
+    try:
+        rgb1 = hex_to_rgb(h1)
+        rgb2 = hex_to_rgb(h2)
+        w2 = 1.0 - w1
+        r = int(rgb1[0] * w1 + rgb2[0] * w2)
+        g = int(rgb1[1] * w1 + rgb2[1] * w2)
+        b = int(rgb1[2] * w1 + rgb2[2] * w2)
+        return rgb_to_hex(r, g, b)
+    except Exception:
+        return h1
+
+def detect_active_wallpaper():
+    home = os.environ.get("HOME", "/home/ribs")
+    # 1. Check awww query if daemon is running
+    try:
+        out = subprocess.check_output(["awww", "query"], stderr=subprocess.DEVNULL, text=True)
+        for line in out.splitlines():
+            if "image:" in line:
+                p = line.split("image:")[-1].strip()
+                if os.path.exists(p):
+                    return os.path.realpath(p)
+    except Exception:
+        pass
+
+    # 2. Check swww query if daemon is running
+    try:
+        out = subprocess.check_output(["swww", "query"], stderr=subprocess.DEVNULL, text=True)
+        for line in out.splitlines():
+            if "image:" in line:
+                p = line.split("image:")[-1].strip()
+                if os.path.exists(p):
+                    return os.path.realpath(p)
+    except Exception:
+        pass
+
+    # 3. Check current theme default.png symlink
+    default_link = os.path.join(home, ".config/themes/current/default.png")
+    if os.path.exists(default_link):
+        return os.path.realpath(default_link)
+
+    return ""
 
 def get_wallpaper_palette(wallpaper_path=None, theme_colors_path=None):
     home = os.environ.get("HOME", "/home/ribs")
     if not wallpaper_path:
-        wallpaper_path = os.path.join(home, ".config/themes/current/default.png")
+        wallpaper_path = detect_active_wallpaper()
     
     if not theme_colors_path:
         theme_colors_path = os.path.join(home, ".config/themes/current/colors.toml")
 
-    # Resolve real path to follow symlinks accurately
     real_theme_path = os.path.realpath(theme_colors_path) if os.path.exists(theme_colors_path) else ""
-    real_wp_path = os.path.realpath(wallpaper_path) if os.path.exists(wallpaper_path) else ""
+    real_wp_path = os.path.realpath(wallpaper_path) if (wallpaper_path and os.path.exists(wallpaper_path)) else ""
 
     theme_tokens = {}
     if real_theme_path and os.path.exists(real_theme_path):
@@ -41,26 +95,26 @@ def get_wallpaper_palette(wallpaper_path=None, theme_colors_path=None):
         except Exception:
             pass
 
-    # Fallbacks if a key is missing
-    accent = theme_tokens.get("accent", "#88c0d0")
-    background = theme_tokens.get("background", "#2e3440")
-    dark_background = theme_tokens.get("dark_background", "#242933")
-    lighter_background = theme_tokens.get("lighter_background", "#3b4252")
-    selection = theme_tokens.get("selection", "#3b4252")
-    foreground = theme_tokens.get("foreground", "#d8dee9")
-    muted = theme_tokens.get("muted", "#616e88")
+    # Base theme fallbacks
+    theme_accent = theme_tokens.get("accent", "#7fbbb3")
+    background = theme_tokens.get("background", "#2d353b")
+    dark_background = theme_tokens.get("dark_background", "#232a2e")
+    lighter_background = theme_tokens.get("lighter_background", "#343f44")
+    selection = theme_tokens.get("selection", "#343f44")
+    foreground = theme_tokens.get("foreground", "#d3c6aa")
+    muted = theme_tokens.get("muted", "#7a8478")
 
-    # Fast cache check using resolved file path and mtime
+    # Fast cache check using resolved file paths and mtimes
     try:
         wp_mtime = os.path.getmtime(real_wp_path) if real_wp_path else 0
         th_mtime = os.path.getmtime(real_theme_path) if real_theme_path else 0
     except OSError:
         wp_mtime = 0
         th_mtime = 0
-        
-    cache_key = hashlib.md5(f"{real_theme_path}:{th_mtime}:{real_wp_path}:{wp_mtime}".encode()).hexdigest()
+
+    cache_key = hashlib.md5(f"dyn-v2:{real_theme_path}:{th_mtime}:{real_wp_path}:{wp_mtime}".encode()).hexdigest()
     cache_path = f"/tmp/qs-palette-{cache_key}.json"
-    
+
     if os.path.exists(cache_path):
         try:
             with open(cache_path, "r", encoding="utf-8") as f:
@@ -68,63 +122,76 @@ def get_wallpaper_palette(wallpaper_path=None, theme_colors_path=None):
         except Exception:
             pass
 
-    dominant = "#88c0d0"
-    wallpaper_tint = None
+    extracted_accent = None
+    dominant_color = None
 
     if real_wp_path and os.path.exists(real_wp_path):
         try:
             with Image.open(real_wp_path) as im:
-                im.thumbnail((128, 128))
                 im_rgb = im.convert("RGB")
-                pal_img = im_rgb.convert("P", palette=Image.ADAPTIVE, colors=8)
-                raw_pal = pal_img.getpalette()[:24]
+                im_rgb.thumbnail((160, 160))
 
-                colors = []
-                for i in range(0, len(raw_pal), 3):
-                    r, g, b = raw_pal[i], raw_pal[i+1], raw_pal[i+2]
-                    colors.append(f"#{r:02x}{g:02x}{b:02x}")
+                quantized = im_rgb.quantize(colors=32, method=Image.MEDIANCUT)
+                raw_palette = quantized.getpalette()[:32*3]
+                raw_data = quantized.get_flattened_data() if hasattr(quantized, "get_flattened_data") else quantized.getdata()
+                color_counts = Counter(raw_data)
 
-                if colors:
-                    dominant = colors[0]
-                    wallpaper_tint = colors[-1]
+                candidates = []
+                max_count = 0
+
+                for idx, count in color_counts.items():
+                    r = raw_palette[idx*3]
+                    g = raw_palette[idx*3 + 1]
+                    b = raw_palette[idx*3 + 2]
+                    h, s, v = colorsys.rgb_to_hsv(r/255.0, g/255.0, b/255.0)
+
+                    if count > max_count:
+                        max_count = count
+                        dominant_color = rgb_to_hex(r, g, b)
+
+                    # Filter for viable UI accent colors:
+                    # - Exclude near-black (v < 0.20) and blown-out white (v > 0.98)
+                    # - Exclude low-saturation monochrome (s < 0.18)
+                    if s >= 0.18 and 0.20 <= v <= 0.98:
+                        v_score = 1.0 - abs(v - 0.78)
+                        s_score = min(s / 0.55, 1.2)
+                        score = (count ** 0.5) * (s_score * 1.5 + v_score)
+                        candidates.append((score, r, g, b, h, s, v, count))
+
+                candidates.sort(key=lambda x: x[0], reverse=True)
+
+                if candidates:
+                    best = candidates[0]
+                    r, g, b, h, s, v = best[1], best[2], best[3], best[4], best[5], best[6]
+                    # Ensure high contrast and readability on dark glass (v >= 0.65)
+                    if v < 0.65:
+                        v = min(0.85, v + 0.22)
+                        r_f, g_f, b_f = colorsys.hsv_to_rgb(h, s, v)
+                        r, g, b = int(r_f * 255), int(g_f * 255), int(b_f * 255)
+                    extracted_accent = rgb_to_hex(r, g, b)
         except Exception:
             pass
 
-    def hex_to_rgb(h):
-        h = h.lstrip("#")
-        if len(h) == 3:
-            h = "".join(c * 2 for c in h)
-        return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
-
-    def blend_hex(h1, h2, w1=0.5):
-        try:
-            rgb1 = hex_to_rgb(h1)
-            rgb2 = hex_to_rgb(h2)
-            w2 = 1.0 - w1
-            r = int(rgb1[0] * w1 + rgb2[0] * w2)
-            g = int(rgb1[1] * w1 + rgb2[1] * w2)
-            b = int(rgb1[2] * w1 + rgb2[2] * w2)
-            return f"#{r:02x}{g:02x}{b:02x}"
-        except Exception:
-            return h1
-
-    glass_tint = blend_hex(accent, dominant, 0.40)
-    glass_surface = blend_hex(dominant, background, 0.28)
-    glass_crest = blend_hex(dominant, "#ffffff", 0.35)
-    glass_border = blend_hex(accent, dominant, 0.60)
+    final_accent = extracted_accent or theme_accent
+    final_dominant = dominant_color or background
+    final_selection = blend_hex(final_accent, dark_background, 0.26)
+    glass_tint = blend_hex(final_accent, final_dominant, 0.45)
+    glass_crest = blend_hex(final_accent, "#ffffff", 0.35)
+    glass_border = blend_hex(final_accent, "#ffffff", 0.25)
+    glass_surface = blend_hex(final_dominant, background, 0.30)
 
     data = {
         "wallpaper": real_wp_path,
-        "accent": accent,
-        "dominant": dominant,
+        "accent": final_accent,
+        "dominant": final_dominant,
         "background": background,
         "dark_background": dark_background,
         "lighter_background": lighter_background,
-        "selection": selection,
+        "selection": final_selection,
         "foreground": foreground,
         "muted": muted,
-        "border": accent,
-        "wallpaper_tint": wallpaper_tint or dark_background,
+        "border": final_accent,
+        "wallpaper_tint": final_dominant,
         "glass_tint": glass_tint,
         "glass_surface": glass_surface,
         "glass_crest": glass_crest,
