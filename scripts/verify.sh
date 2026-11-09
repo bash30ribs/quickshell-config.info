@@ -5,6 +5,15 @@ set -e
 
 WORKSPACE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# Auto-recompile liquid glass shader if source is modified:
+if [[ -f "$WORKSPACE_ROOT/effects/glass/liquidglass.frag" ]]; then
+    if [[ ! -f "$WORKSPACE_ROOT/effects/glass/liquidglass.frag.qsb" || "$WORKSPACE_ROOT/effects/glass/liquidglass.frag" -nt "$WORKSPACE_ROOT/effects/glass/liquidglass.frag.qsb" ]]; then
+        if [ -x /usr/lib/qt6/bin/qsb ]; then
+            /usr/lib/qt6/bin/qsb --qt6 -o "$WORKSPACE_ROOT/effects/glass/liquidglass.frag.qsb" "$WORKSPACE_ROOT/effects/glass/liquidglass.frag" >/dev/null 2>&1 || true
+        fi
+    fi
+fi
+
 # If executed directly with --all flag:
 if [[ "$1" == "--all" ]]; then
     echo "Validating all QML files across workspace..."

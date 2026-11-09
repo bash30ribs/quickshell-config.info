@@ -1,26 +1,27 @@
 import QtQuick
 import Quickshell
+import Quickshell.Wayland
 import "../theme"
 
 Item {
     id: root
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Apple macOS Liquid Glass Material Specification (qt-liquid-glass)
-    // Multi-tier optical surface: Liquid / Frosted / Clear / Flat
+    // Quickshell Apple Liquid Glass Panel Component (GLSL 440 ShaderEffect)
+    // Inspired by fsalinas26/qt-liquid-glass visual language & Apple Tahoe glass
     // ─────────────────────────────────────────────────────────────────────────
 
-    // Mode: "liquid"  (Apple Liquid Glass: chromatic refraction + content lensing + specular crest),
-    //       "frosted" (Apple Control Center / Widgets frosted blur),
-    //       "clear"   (Apple ClearGlass: crisp transparent crystal refraction),
-    //       "flat"    (Apple WindowBackground: opaque solid fallback)
+    // Mode: "liquid"  (Full GPU ShaderEffect with Snell's law refraction & specular rim),
+    //       "frosted" (Compositor dual-kawase blur with content lensing),
+    //       "clear"   (Ultra-high clarity crystal refraction),
+    //       "flat"    (High-performance solid fallback)
     property string mode: Appearance.glassMode || "liquid"
 
     // Material preset: "controlCenter", "widgets", "clearGlass", "sidebar", "chromatic"
     property string material: Appearance.glassMaterial || "controlCenter"
 
     // Geometry & Squircles
-    property int radius: Appearance.popupRadius > 0 ? Appearance.popupRadius : 14
+    property int radius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
     property int topLeftRadius: -1
     property int topRightRadius: -1
     property int bottomLeftRadius: -1
@@ -31,7 +32,7 @@ Item {
     readonly property int effectiveBottomLeftRadius: bottomLeftRadius >= 0 ? bottomLeftRadius : radius
     readonly property int effectiveBottomRightRadius: bottomRightRadius >= 0 ? bottomRightRadius : radius
 
-    // Apple Liquid Glass Optical Parameters
+    // Optical Parameters (exposed for live tuning)
     property real clarity: Appearance.glassClarity !== undefined ? Appearance.glassClarity : 0.75
     property real rimIllumination: Appearance.glassRimIllumination !== undefined ? Appearance.glassRimIllumination : 0.50
     property real specularIntensity: Appearance.glassSpecularIntensity !== undefined ? Appearance.glassSpecularIntensity : 0.75
@@ -39,21 +40,31 @@ Item {
     property real innerBevelStrength: Appearance.glassInnerBevel !== undefined ? Appearance.glassInnerBevel : 0.55
     property real chromaticStrength: Appearance.glassChromaticDispersion !== undefined ? Appearance.glassChromaticDispersion : 0.60
 
-    // Interaction State (qt-liquid-glass InteractionState::Normal vs Hovered)
+    // Interaction State
     property bool interactive: false
     property bool isHovered: false
     property bool isPressed: false
     property bool active: false
 
     // Color Tinting
-    property color baseColor: Theme.background
+    property color baseColor: Theme.barBackground || Theme.background
     property color accentTint: Theme.accent
+
+    // External Backdrop Source (optional: allows parent to pass a custom ShaderEffectSource)
+    property var externalBackdrop: null
+    property point backdropOffset: Qt.point(0, 0)
 
     // Child Content Reparenting
     default property alias content: contentContainer.data
 
     implicitWidth: 100
     implicitHeight: 100
+
+    readonly property real padAmount: 10
+    readonly property real marginAmount: 48
+    readonly property url shaderFileUrl: Qt.resolvedUrl("../effects/glass/liquidglass.frag.qsb")
+
+    property bool shaderActive: (root.mode === "liquid" || root.mode === "clear")
 
     // ─────────────────────────────────────────────────────────────────────────
     // Physical Spring Physics Scale & Compression Container (m=1.0, k=420, c=24)
@@ -78,10 +89,116 @@ Item {
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // Master Glass Surface Rectangle (Dual-Kawase Compositor Blur Sampled)
+        // 1. Internal Backdrop Layer (used when no external backdrop is handed in)
+        // ─────────────────────────────────────────────────────────────────────
+        Item {
+            id: localBackdropLayer
+            visible: false
+            x: -root.marginAmount
+            y: -root.marginAmount
+            width: root.width + 2 * root.marginAmount
+            height: root.height + 2 * root.marginAmount
+
+            Rectangle {
+                anchors.fill: parent
+                antialiasing: true
+                color: "transparent"
+
+                gradient: Gradient {
+                    GradientStop {
+                        position: 0.0
+                        color: Qt.rgba(1, 1, 1, 0.16 + (0.08 * root.specularIntensity))
+                    }
+                    GradientStop {
+                        position: 0.08
+                        color: Theme.withAlpha(Theme.lighter_background, 0.36)
+                    }
+                    GradientStop {
+                        position: 0.52
+                        color: Theme.withAlpha(root.baseColor, 0.42)
+                    }
+                    GradientStop {
+                        position: 1.0
+                        color: Theme.withAlpha(Theme.dark_background, 0.50)
+                    }
+                }
+            }
+        }
+
+        // Mipmapped ShaderEffectSource for the 24-tap Gaussian disk sampler
+        ShaderEffectSource {
+            id: localBackdropSes
+            sourceItem: root.externalBackdrop !== null ? null : localBackdropLayer
+            hideSource: true
+            live: true
+            mipmap: true
+            visible: false
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // 2. GLSL Liquid Glass ShaderEffect (Real GPU Snell's Law Refraction)
+        // ─────────────────────────────────────────────────────────────────────
+        Loader {
+            id: shaderLoader
+            anchors.fill: parent
+            active: root.shaderActive
+
+            sourceComponent: Item {
+                ShaderEffect {
+                    id: glassShaderItem
+                    x: -root.padAmount
+                    y: -root.padAmount
+                    width: root.width + 2 * root.padAmount
+                    height: root.height + 2 * root.padAmount
+
+                    fragmentShader: root.shaderFileUrl
+
+                    onStatusChanged: {
+                        if (status === ShaderEffect.Error) {
+                            console.warn("[GlassPanel] Shader compilation failed, falling back to procedural surface");
+                            root.shaderActive = false;
+                        }
+                    }
+
+                    // Sampler and sizes
+                    property variant src: root.externalBackdrop !== null ? root.externalBackdrop : localBackdropSes
+                    property vector2d itemSize: Qt.vector2d(width, height)
+                    property vector2d glassSize: Qt.vector2d(root.width, root.height)
+                    property vector2d srcSize: root.externalBackdrop !== null
+                        ? Qt.vector2d(root.externalBackdrop.width, root.externalBackdrop.height)
+                        : Qt.vector2d(localBackdropLayer.width, localBackdropLayer.height)
+                    property vector2d srcOffset: root.externalBackdrop !== null
+                        ? Qt.vector2d(root.backdropOffset.x - root.padAmount, root.backdropOffset.y - root.padAmount)
+                        : Qt.vector2d(root.marginAmount - root.padAmount, root.marginAmount - root.padAmount)
+
+                    // Optical uniform properties
+                    property real pad: root.padAmount
+                    property real radius: root.radius
+                    property real bezel: Math.min(root.height * 0.38, 28)
+                    property real thickness: 32.0 * root.refractionStrength
+                    property real dispersion: 0.08 * root.chromaticStrength * root.refractionStrength
+                    property real blurPx: 2.0
+                    property real tintMix: (1.0 - root.clarity) * 0.60
+                    property real saturation: 1.35
+                    property real dark: 1.0
+                    property real debug: 0.0
+                    property real rim: root.rimIllumination * (root.isHovered ? 2.2 : 1.7)
+                    property real grain: 0.025
+                    property real magnify: 0.06 * root.refractionStrength
+                    property real shadowAmt: 0.40
+                    property real rimTint: root.active ? 1.0 : 0.0
+                    property real ringW: 1.2
+                    property real flatInner: 0.0
+                }
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // 3. Procedural Surface (Active in Frosted / Flat mode or fallback)
         // ─────────────────────────────────────────────────────────────────────
         Rectangle {
-            id: glassSurface
+            id: fallbackSurface
+            visible: !shaderLoader.active || !root.shaderActive
             anchors.fill: parent
             topLeftRadius: root.effectiveTopLeftRadius
             topRightRadius: root.effectiveTopRightRadius
@@ -89,23 +206,19 @@ Item {
             bottomRightRadius: root.effectiveBottomRightRadius
             antialiasing: true
 
-            // Base color for flat fallback vs transparent for blur sampling
             color: {
                 if (root.mode === "flat") return Theme.darker_background
                 return "transparent"
             }
 
-            // Apple Refraction Lens Multi-stop Gradient
-            gradient: root.mode === "flat" ? null : liquidGradient
+            gradient: root.mode === "flat" ? null : proceduralGradient
 
             Gradient {
-                id: liquidGradient
+                id: proceduralGradient
 
-                // Stop 0.0: Top Specular Crest catch
                 GradientStop {
                     position: 0.0
                     color: {
-                        if (root.mode === "clear") return Qt.rgba(1, 1, 1, 0.16 + (0.08 * root.specularIntensity))
                         var alpha = (root.mode === "liquid")
                             ? (0.13 + (0.07 * root.specularIntensity))
                             : 0.10
@@ -113,47 +226,20 @@ Item {
                         return Qt.rgba(1, 1, 1, alpha)
                     }
                 }
-
-                // Stop 0.05: Refractive transition shelf
                 GradientStop {
                     position: 0.05
-                    color: {
-                        if (root.mode === "clear") return Theme.withAlpha(Theme.lighter_background, 0.12)
-                        var baseAlpha = (root.mode === "liquid") ? 0.32 : 0.36
-                        var c = Theme.withAlpha(Theme.lighter_background, baseAlpha)
-                        if (root.active) c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.16))
-                        return c
-                    }
+                    color: Theme.withAlpha(Theme.lighter_background, 0.34)
                 }
-
-                // Stop 0.50: Apple Smoked Translucent Core (allows vivid compositor blur)
                 GradientStop {
                     position: 0.50
-                    color: {
-                        if (root.mode === "clear") return Theme.withAlpha(root.baseColor, 0.15)
-                        var baseAlpha = (root.mode === "liquid") ? 0.38 : 0.42
-                        var c = Theme.withAlpha(root.baseColor, baseAlpha)
-                        if (root.active) c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.18))
-                        return c
-                    }
+                    color: Theme.withAlpha(root.baseColor, 0.40)
                 }
-
-                // Stop 1.0: Deep ambient lower refraction boundary
                 GradientStop {
                     position: 1.0
-                    color: {
-                        if (root.mode === "clear") return Theme.withAlpha(Theme.dark_background, 0.20)
-                        var baseAlpha = (root.mode === "liquid") ? 0.46 : 0.48
-                        var c = Theme.withAlpha(Theme.dark_background, baseAlpha)
-                        if (root.active) c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.22))
-                        return c
-                    }
+                    color: Theme.withAlpha(Theme.dark_background, 0.48)
                 }
             }
 
-            // ─────────────────────────────────────────────────────────────────
-            // Apple Directional Border Stroke
-            // ─────────────────────────────────────────────────────────────────
             border.width: 1
             border.color: {
                 if (root.mode === "flat") return Theme.withAlpha(Theme.foreground, 0.15)
@@ -162,52 +248,9 @@ Item {
                 return Theme.glassBorder
             }
 
-            Behavior on border.color {
-                ColorAnimation { duration: 150 }
-            }
-
-            // ─────────────────────────────────────────────────────────────────
-            // 1. Apple Chromatic Dispersion (Lateral Prism Refraction Fringing)
-            // Simulates Material::Chromatic from qt-liquid-glass
-            // ─────────────────────────────────────────────────────────────────
+            // Inset Bevel for fallback
             Rectangle {
-                id: chromaticDispersion
-                visible: root.mode === "liquid" || root.material === "chromatic"
-                anchors.fill: parent
-                topLeftRadius: parent.topLeftRadius
-                topRightRadius: parent.topRightRadius
-                bottomLeftRadius: parent.bottomLeftRadius
-                bottomRightRadius: parent.bottomRightRadius
-                antialiasing: true
-                color: "transparent"
-
-                gradient: Gradient {
-                    orientation: Gradient.Horizontal
-                    GradientStop {
-                        position: 0.0
-                        color: Qt.rgba(1.0, 0.82, 0.63, 0.05 * root.chromaticStrength * root.refractionStrength)
-                    }
-                    GradientStop {
-                        position: 0.22
-                        color: "transparent"
-                    }
-                    GradientStop {
-                        position: 0.78
-                        color: "transparent"
-                    }
-                    GradientStop {
-                        position: 1.0
-                        color: Qt.rgba(0.67, 0.84, 1.0, 0.05 * root.chromaticStrength * root.refractionStrength)
-                    }
-                }
-            }
-
-            // ─────────────────────────────────────────────────────────────────
-            // 2. Apple Inset Chamfer Bevel (Content Lensing Perimeter Highlight)
-            // ─────────────────────────────────────────────────────────────────
-            Rectangle {
-                id: innerBevel
-                visible: root.mode === "liquid" || root.mode === "frosted" || root.mode === "clear"
+                visible: root.mode !== "flat"
                 anchors.fill: parent
                 anchors.margins: 1
                 topLeftRadius: Math.max(0, parent.topLeftRadius - 1)
@@ -216,20 +259,13 @@ Item {
                 bottomRightRadius: Math.max(0, parent.bottomRightRadius - 1)
                 color: "transparent"
                 border.width: 1
-                border.color: Qt.rgba(1, 1, 1, (root.isHovered ? 0.12 : 0.07) * root.innerBevelStrength)
+                border.color: Qt.rgba(1, 1, 1, 0.08 * root.innerBevelStrength)
                 antialiasing: true
-
-                Behavior on border.color {
-                    ColorAnimation { duration: 150 }
-                }
             }
 
-            // ─────────────────────────────────────────────────────────────────
-            // 3. Directional Top Specular Sheen (Curved overhead lighting)
-            // ─────────────────────────────────────────────────────────────────
+            // Top specular sheen for fallback
             Rectangle {
-                id: specularSheen
-                visible: root.mode === "liquid" || root.mode === "clear"
+                visible: root.mode !== "flat"
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -243,7 +279,7 @@ Item {
                 gradient: Gradient {
                     GradientStop {
                         position: 0.0
-                        color: Qt.rgba(1, 1, 1, (root.isHovered ? 0.14 : 0.09) * root.specularIntensity)
+                        color: Qt.rgba(1, 1, 1, (root.isHovered ? 0.15 : 0.10) * root.specularIntensity)
                     }
                     GradientStop {
                         position: 1.0
@@ -252,49 +288,39 @@ Item {
                 }
             }
 
-            // ─────────────────────────────────────────────────────────────────
-            // 4. Apple Thin Specular Crest Line (1px illuminated top boundary catch)
-            // ─────────────────────────────────────────────────────────────────
+            // Top illuminated crest line
             Rectangle {
-                id: illuminatedTopEdge
-                visible: root.mode === "liquid" || root.mode === "clear"
+                visible: root.mode !== "flat"
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.leftMargin: Math.min(parent.topLeftRadius, 8)
                 anchors.rightMargin: Math.min(parent.topRightRadius, 8)
                 height: 1
-                color: Qt.rgba(1, 1, 1, (root.isHovered ? 0.36 : 0.25) * root.rimIllumination)
+                color: Qt.rgba(1, 1, 1, (root.isHovered ? 0.38 : 0.26) * root.rimIllumination)
                 antialiasing: true
-
-                Behavior on color {
-                    ColorAnimation { duration: 150 }
-                }
             }
 
-            // ─────────────────────────────────────────────────────────────────
-            // 5. Apple Ambient Bottom Occlusion Edge (1px physical grounding line)
-            // ─────────────────────────────────────────────────────────────────
+            // Bottom edge shadow
             Rectangle {
-                id: bottomEdgeShadow
-                visible: (root.mode === "liquid" || root.mode === "frosted" || root.mode === "clear") && parent.height > 10
+                visible: root.mode !== "flat" && parent.height > 10
                 anchors.bottom: parent.bottom
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.leftMargin: Math.min(parent.bottomLeftRadius, 8)
                 anchors.rightMargin: Math.min(parent.bottomRightRadius, 8)
                 height: 1
-                color: Qt.rgba(0, 0, 0, 0.28)
+                color: Qt.rgba(0, 0, 0, 0.30)
                 antialiasing: true
             }
+        }
 
-            // ─────────────────────────────────────────────────────────────────
-            // Content Container
-            // ─────────────────────────────────────────────────────────────────
-            Item {
-                id: contentContainer
-                anchors.fill: parent
-            }
+        // ─────────────────────────────────────────────────────────────────────
+        // 4. Content Container (Reparents all child items)
+        // ─────────────────────────────────────────────────────────────────────
+        Item {
+            id: contentContainer
+            anchors.fill: parent
         }
     }
 }
