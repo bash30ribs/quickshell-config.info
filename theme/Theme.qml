@@ -274,7 +274,7 @@ QtObject {
 
     property Process wallpaperPaletteProc: Process {
         id: wallpaperPaletteProc
-        command: ["python3", root.wallpaperPaletteScript]
+        command: root._lastWallpaperTarget ? ["python3", root.wallpaperPaletteScript, root._lastWallpaperTarget] : ["python3", root.wallpaperPaletteScript]
         stdout: StdioCollector {
             waitForEnd: true
             onStreamFinished: {
@@ -340,7 +340,7 @@ QtObject {
     }
 
     property Timer symlinkWatcherTimer: Timer {
-        interval: 1500
+        interval: 800
         running: true
         repeat: true
         onTriggered: {
