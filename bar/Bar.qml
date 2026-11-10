@@ -40,6 +40,7 @@ PanelWindow {
         }
         var dy = Theme.wheelDeltaY(event);
         var dx = Theme.wheelDeltaX(event);
+        console.debug("[BarWheel] adY=", event.angleDelta ? event.angleDelta.y : 0, "pdY=", event.pixelDelta ? event.pixelDelta.y : 0, "inv=", Boolean(event.inverted), "dy=", dy, "dx=", dx, "open=", root.clipboardDrawer.isOpen);
         if (dy === 0 || Math.abs(dy) < Math.abs(dx) * 0.6) {
             event.accepted = false;
             return ;
@@ -48,9 +49,10 @@ PanelWindow {
             event.accepted = false;
             return ;
         }
-        if (Date.now() < root.glideCooldownUntil)
+        if (Date.now() < root.glideCooldownUntil) {
+            event.accepted = true;
             return ;
-
+        }
         if ((dy > 0 && root.glideAccum < 0) || (dy < 0 && root.glideAccum > 0))
             root.glideAccum = 0;
 
@@ -169,16 +171,18 @@ PanelWindow {
             id: barHover
         }
 
-        // Topmost touchpad, mouse wheel, and touchscreen overlay across the whole bar
+        // Topmost wheel, touchpad scroll-gesture, and touchscreen overlay across the whole bar
         Item {
             anchors.fill: parent
             z: 100
 
-            WheelHandler {
-                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                margin: 4
-                target: null
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.NoButton
+                hoverEnabled: false
+                scrollGestureEnabled: true
                 onWheel: function(event) {
+                    event.accepted = true;
                     root.handleBarWheel(event);
                 }
             }
