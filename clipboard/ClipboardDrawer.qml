@@ -2,6 +2,7 @@ import "../components"
 import "../services"
 import "../theme"
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
@@ -79,14 +80,13 @@ PanelWindow {
         if (!root.isOpen)
             return ;
 
-        // Prevent accidental reverse bounce right after pull-down opens
-        if (Date.now() - root.openedAtMs < 280)
+        if (Date.now() - root.openedAtMs < 240)
             return ;
 
         if (dy < 0) {
             root.gestureUpAccum += dy;
             gestureDecayTimer.restart();
-            if (root.gestureUpAccum <= -24) {
+            if (root.gestureUpAccum <= -14) {
                 root.gestureUpAccum = 0;
                 root.close();
             }
@@ -116,7 +116,7 @@ PanelWindow {
     visible: root.isVisibleSurface
     color: "transparent"
     implicitWidth: Appearance.clipboardWidth
-    implicitHeight: Appearance.clipboardHeight + 36
+    implicitHeight: Appearance.clipboardHeight + 28
     WlrLayershell.namespace: "quickshell-clipboard"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: (root.isOpen && root.searchFocused) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
@@ -144,15 +144,15 @@ PanelWindow {
         top: Appearance.barHeight + 4
     }
 
-    // Flexy Spring Pull-Down Animation (AGENTS.md spring spec + elastic reveal)
+    // Smooth critically-damped slide reveal from beneath the bar
     SpringAnimation {
         id: openSpring
 
         target: root
         property: "animProgress"
         to: 1
-        spring: 4.8
-        damping: 0.42
+        spring: 5.4
+        damping: 0.56
         epsilon: 0.002
     }
 
@@ -162,7 +162,7 @@ PanelWindow {
         target: root
         property: "animProgress"
         to: 0
-        duration: 210
+        duration: 185
         easing.type: Easing.InCubic
         onFinished: {
             if (!root.isOpen) {
@@ -176,7 +176,7 @@ PanelWindow {
     Timer {
         id: gestureDecayTimer
 
-        interval: 180
+        interval: 220
         repeat: false
         onTriggered: {
             root.gestureUpAccum = 0;
@@ -231,7 +231,7 @@ PanelWindow {
         target: "clipboard"
     }
 
-    // Clipped slide-down viewport so drawer glides smoothly out from under the bar
+    // Clipped viewport so drawer slides out cleanly from beneath the bar
     Item {
         id: clipViewport
 
@@ -244,35 +244,39 @@ PanelWindow {
             width: Appearance.clipboardWidth
             height: Appearance.clipboardHeight
             anchors.horizontalCenter: parent.horizontalCenter
-            y: Math.round((root.animProgress - 1) * (height + 20))
+            y: Math.round((root.animProgress - 1) * (height + 16))
             radius: Appearance.clipboardRadius
             baseColor: Theme.barBackground
             accentTint: Theme.accent
-            clarity: 0.78
-            rimIllumination: 0.52
-            specularIntensity: 0.76
+            clarity: 0.72
+            rimIllumination: 0.34
+            specularIntensity: 0.42
             transformOrigin: Item.Top
-            opacity: Math.max(0, Math.min(1, root.animProgress * 1.4))
-            scale: 0.94 + 0.06 * Math.min(1.05, root.animProgress)
+            opacity: Math.max(0, Math.min(1, root.animProgress * 1.45))
+            scale: 0.96 + 0.04 * Math.min(1.02, root.animProgress)
 
             ColumnLayout {
                 anchors.fill: parent
-                anchors.margins: Appearance.clipboardPadding
+                anchors.leftMargin: Appearance.clipboardPadding
+                anchors.rightMargin: Appearance.clipboardPadding
+                anchors.topMargin: Appearance.clipboardPadding - 2
+                anchors.bottomMargin: 8
                 spacing: 10
 
                 // ─────────────────────────────────────────────────────────────
-                // Top Header Bar (Filter Pills, Search Capsule, Snap & Actions)
-                // Also responds directly to 2-finger glide up to dismiss
+                // Unified Toolbar (Segmented Filters · Search · Ghost Actions)
                 // ─────────────────────────────────────────────────────────────
                 Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 34
+                    Layout.preferredHeight: 32
 
                     WheelHandler {
+                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                         target: null
                         onWheel: function(event) {
-                            if (event.angleDelta.y < 0)
-                                root.handleSwipeUpDelta(event.angleDelta.y);
+                            var dy = Theme.wheelDeltaY(event);
+                            if (dy < 0)
+                                root.handleSwipeUpDelta(dy);
 
                         }
                     }
@@ -281,61 +285,54 @@ PanelWindow {
                         anchors.fill: parent
                         spacing: 10
 
-                        // Segmented Filter Pill Track (All | SS | Text | Pinned)
+                        // Quiet Segmented Switcher
                         Rectangle {
                             id: filterTrack
 
                             Layout.preferredHeight: 30
-                            Layout.preferredWidth: filterRow.implicitWidth + 8
-                            radius: 15
-                            color: Theme.withAlpha(Theme.darker_background, 0.55)
+                            Layout.preferredWidth: filterRow.implicitWidth + 6
+                            radius: 8
+                            color: Theme.withAlpha(Theme.darker_background, 0.44)
                             border.width: 1
-                            border.color: Theme.withAlpha(Theme.glassBorderColor, 0.22)
+                            border.color: Theme.withAlpha(Theme.bright_foreground, 0.08)
 
                             Rectangle {
-                                id: activeFilterPill
+                                id: activeTabIndicator
+
+                                readonly property int activeIndex: {
+                                    if (root.filterMode === "image")
+                                        return 1;
+
+                                    if (root.filterMode === "text")
+                                        return 2;
+
+                                    if (root.filterMode === "pinned")
+                                        return 3;
+
+                                    return 0;
+                                }
+                                readonly property var activeItem: filterRepeater.itemAt(activeIndex)
 
                                 y: 3
                                 height: 24
-                                radius: 12
-                                color: Theme.accent
-                                x: {
-                                    if (root.filterMode === "all")
-                                        return 4;
-
-                                    if (root.filterMode === "image")
-                                        return tabAll.width + 4;
-
-                                    if (root.filterMode === "text")
-                                        return tabAll.width + tabImg.width + 4;
-
-                                    return tabAll.width + tabImg.width + tabTxt.width + 4;
-                                }
-                                width: {
-                                    if (root.filterMode === "all")
-                                        return tabAll.width;
-
-                                    if (root.filterMode === "image")
-                                        return tabImg.width;
-
-                                    if (root.filterMode === "text")
-                                        return tabTxt.width;
-
-                                    return tabPin.width;
-                                }
+                                radius: 6
+                                color: Theme.withAlpha(Theme.lighter_background, 0.82)
+                                border.width: 1
+                                border.color: Theme.withAlpha(Theme.bright_foreground, 0.1)
+                                x: activeItem ? (activeItem.x + 3) : 3
+                                width: activeItem ? activeItem.width : 44
 
                                 Behavior on x {
                                     NumberAnimation {
-                                        duration: 210
-                                        easing.type: Easing.OutBack
-                                        easing.overshoot: 1.15
+                                        duration: 180
+                                        easing.type: Easing.OutCubic
                                     }
 
                                 }
 
                                 Behavior on width {
                                     NumberAnimation {
-                                        duration: 160
+                                        duration: 150
                                         easing.type: Easing.OutCubic
                                     }
 
@@ -347,178 +344,62 @@ PanelWindow {
                                 id: filterRow
 
                                 anchors.left: parent.left
-                                anchors.leftMargin: 4
+                                anchors.leftMargin: 3
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: 0
 
-                                // Tab 1: All
-                                Item {
-                                    id: tabAll
+                                Repeater {
+                                    id: filterRepeater
 
-                                    width: rowAll.implicitWidth + 16
-                                    height: 24
+                                    model: [{
+                                        "label": "All",
+                                        "modeValue": "all"
+                                    }, {
+                                        "label": "Images",
+                                        "modeValue": "image"
+                                    }, {
+                                        "label": "Text",
+                                        "modeValue": "text"
+                                    }, {
+                                        "label": "Pinned",
+                                        "modeValue": "pinned"
+                                    }]
 
-                                    Row {
-                                        id: rowAll
+                                    delegate: Item {
+                                        required property var modelData
+                                        readonly property bool isCurrent: root.filterMode === modelData.modeValue
 
-                                        anchors.centerIn: parent
-                                        spacing: 4
+                                        width: tabLbl.implicitWidth + 22
+                                        height: 24
 
                                         Text {
-                                            text: Icons.clipboard
-                                            font.family: Icons.effectiveFont(text)
-                                            font.pixelSize: 12
-                                            color: (root.filterMode === "all") ? Theme.darker_background : (mAll.containsMouse ? Theme.bright_foreground : Theme.foreground)
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
+                                            id: tabLbl
 
-                                        Text {
-                                            text: "All"
+                                            anchors.centerIn: parent
+                                            text: parent.modelData.label
                                             font.family: Fonts.uiFont
                                             font.pixelSize: 11
-                                            font.bold: root.filterMode === "all"
-                                            color: (root.filterMode === "all") ? Theme.darker_background : (mAll.containsMouse ? Theme.bright_foreground : Theme.foreground)
-                                            anchors.verticalCenter: parent.verticalCenter
+                                            font.weight: parent.isCurrent ? Font.DemiBold : Font.Normal
+                                            color: parent.isCurrent ? Theme.bright_foreground : (tMouse.containsMouse ? Theme.foreground : Theme.muted)
+
+                                            Behavior on color {
+                                                ColorAnimation {
+                                                    duration: 120
+                                                }
+
+                                            }
+
                                         }
 
-                                    }
+                                        MouseArea {
+                                            id: tMouse
 
-                                    MouseArea {
-                                        id: mAll
-
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.filterMode = "all"
-                                    }
-
-                                }
-
-                                // Tab 2: Images / Screenshots
-                                Item {
-                                    id: tabImg
-
-                                    width: rowImg.implicitWidth + 16
-                                    height: 24
-
-                                    Row {
-                                        id: rowImg
-
-                                        anchors.centerIn: parent
-                                        spacing: 4
-
-                                        Text {
-                                            text: Icons.photo
-                                            font.family: Icons.effectiveFont(text)
-                                            font.pixelSize: 12
-                                            color: (root.filterMode === "image") ? Theme.darker_background : (mImg.containsMouse ? Theme.bright_foreground : Theme.foreground)
-                                            anchors.verticalCenter: parent.verticalCenter
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.filterMode = parent.modelData.modeValue
                                         }
 
-                                        Text {
-                                            text: "SS (" + (root.clipboardService ? root.clipboardService.imageCount : 0) + ")"
-                                            font.family: Fonts.uiFont
-                                            font.pixelSize: 11
-                                            font.bold: root.filterMode === "image"
-                                            color: (root.filterMode === "image") ? Theme.darker_background : (mImg.containsMouse ? Theme.bright_foreground : Theme.foreground)
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-
-                                    }
-
-                                    MouseArea {
-                                        id: mImg
-
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.filterMode = "image"
-                                    }
-
-                                }
-
-                                // Tab 3: Text
-                                Item {
-                                    id: tabTxt
-
-                                    width: rowTxt.implicitWidth + 16
-                                    height: 24
-
-                                    Row {
-                                        id: rowTxt
-
-                                        anchors.centerIn: parent
-                                        spacing: 4
-
-                                        Text {
-                                            text: Icons.textDoc
-                                            font.family: Icons.effectiveFont(text)
-                                            font.pixelSize: 12
-                                            color: (root.filterMode === "text") ? Theme.darker_background : (mTxt.containsMouse ? Theme.bright_foreground : Theme.foreground)
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-
-                                        Text {
-                                            text: "Text (" + (root.clipboardService ? root.clipboardService.textCount : 0) + ")"
-                                            font.family: Fonts.uiFont
-                                            font.pixelSize: 11
-                                            font.bold: root.filterMode === "text"
-                                            color: (root.filterMode === "text") ? Theme.darker_background : (mTxt.containsMouse ? Theme.bright_foreground : Theme.foreground)
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-
-                                    }
-
-                                    MouseArea {
-                                        id: mTxt
-
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.filterMode = "text"
-                                    }
-
-                                }
-
-                                // Tab 4: Pinned
-                                Item {
-                                    id: tabPin
-
-                                    width: rowPin.implicitWidth + 16
-                                    height: 24
-
-                                    Row {
-                                        id: rowPin
-
-                                        anchors.centerIn: parent
-                                        spacing: 4
-
-                                        Text {
-                                            text: Icons.pin
-                                            font.family: Icons.effectiveFont(text)
-                                            font.pixelSize: 12
-                                            color: (root.filterMode === "pinned") ? Theme.darker_background : (mPin.containsMouse ? Theme.bright_foreground : Theme.foreground)
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-
-                                        Text {
-                                            text: "Pinned"
-                                            font.family: Fonts.uiFont
-                                            font.pixelSize: 11
-                                            font.bold: root.filterMode === "pinned"
-                                            color: (root.filterMode === "pinned") ? Theme.darker_background : (mPin.containsMouse ? Theme.bright_foreground : Theme.foreground)
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-
-                                    }
-
-                                    MouseArea {
-                                        id: mPin
-
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: root.filterMode = "pinned"
                                     }
 
                                 }
@@ -527,20 +408,20 @@ PanelWindow {
 
                         }
 
-                        // Compact Search Capsule
+                        // Integrated Search Field
                         Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 30
-                            radius: 15
-                            color: Theme.withAlpha(Theme.darker_background, 0.45)
+                            radius: 8
+                            color: Theme.withAlpha(Theme.darker_background, searchInput.activeFocus ? 0.52 : 0.34)
                             border.width: 1
-                            border.color: searchInput.activeFocus ? Theme.withAlpha(Theme.accent, 0.55) : Theme.withAlpha(Theme.glassBorderColor, 0.2)
+                            border.color: searchInput.activeFocus ? Theme.withAlpha(Theme.accent, 0.48) : Theme.withAlpha(Theme.bright_foreground, 0.07)
 
                             RowLayout {
                                 anchors.fill: parent
                                 anchors.leftMargin: 10
                                 anchors.rightMargin: 8
-                                spacing: 6
+                                spacing: 7
 
                                 Text {
                                     text: Icons.search
@@ -556,10 +437,10 @@ PanelWindow {
                                     Text {
                                         anchors.fill: parent
                                         verticalAlignment: Text.AlignVCenter
-                                        text: "Search clips or screenshots..."
+                                        text: "Search clipboard..."
                                         font.family: Fonts.uiFont
-                                        font.pixelSize: 11
-                                        color: Theme.muted
+                                        font.pixelSize: 12
+                                        color: Theme.withAlpha(Theme.foreground, 0.45)
                                         visible: searchInput.text.length === 0
                                     }
 
@@ -569,82 +450,57 @@ PanelWindow {
                                         anchors.fill: parent
                                         verticalAlignment: TextInput.AlignVCenter
                                         font.family: Fonts.uiFont
-                                        font.pixelSize: 11
+                                        font.pixelSize: 12
                                         color: Theme.bright_foreground
                                         selectionColor: Theme.selection
                                         selectedTextColor: Theme.bright_foreground
                                         clip: true
                                         onTextChanged: root.searchQuery = text
+                                        Keys.onReturnPressed: {
+                                            if (root.filteredAll && root.filteredAll.length > 0)
+                                                root.pasteCard(root.filteredAll[0].id);
+
+                                        }
+                                        Keys.onEscapePressed: root.close()
                                     }
 
                                 }
 
-                                Text {
-                                    text: Icons.close
-                                    font.family: Icons.effectiveFont(text)
-                                    font.pixelSize: 12
-                                    color: clearQueryMouse.containsMouse ? Theme.foreground : Theme.muted
+                                GhostIconButton {
                                     visible: searchInput.text.length > 0
-
-                                    MouseArea {
-                                        id: clearQueryMouse
-
-                                        anchors.fill: parent
-                                        anchors.margins: -4
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            searchInput.text = "";
-                                            searchInput.focus = false;
-                                        }
+                                    glyph: Icons.close
+                                    buttonSize: 20
+                                    glyphSize: 12
+                                    onClicked: {
+                                        searchInput.text = "";
+                                        searchInput.focus = false;
                                     }
+                                }
 
+                            }
+
+                            Behavior on border.color {
+                                ColorAnimation {
+                                    duration: 120
                                 }
 
                             }
 
                         }
 
-                        // Quick Snap Button (Region Screenshot directly into Clipboard)
+                        // Quiet Vertical Separator
                         Rectangle {
-                            Layout.preferredHeight: 30
-                            Layout.preferredWidth: snapRow.implicitWidth + 16
-                            radius: 15
-                            color: snapMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.22) : Theme.withAlpha(Theme.darker_background, 0.45)
-                            border.width: 1
-                            border.color: snapMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.55) : Theme.withAlpha(Theme.glassBorderColor, 0.22)
+                            Layout.preferredWidth: 1
+                            Layout.preferredHeight: 16
+                            color: Theme.withAlpha(Theme.bright_foreground, 0.1)
+                        }
 
-                            Row {
-                                id: snapRow
+                        // Compact Borderless Ghost Actions
+                        Row {
+                            spacing: 2
 
-                                anchors.centerIn: parent
-                                spacing: 5
-
-                                Text {
-                                    text: Icons.camera
-                                    font.family: Icons.effectiveFont(text)
-                                    font.pixelSize: 13
-                                    color: Theme.accent
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                Text {
-                                    text: "Snap"
-                                    font.family: Fonts.uiFont
-                                    font.pixelSize: 11
-                                    font.weight: Font.DemiBold
-                                    color: Theme.bright_foreground
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                            }
-
-                            MouseArea {
-                                id: snapMouse
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
+                            GhostIconButton {
+                                glyph: Icons.camera
                                 onClicked: {
                                     root.close();
                                     if (root.clipboardService)
@@ -653,59 +509,15 @@ PanelWindow {
                                 }
                             }
 
-                        }
-
-                        // Lock / Pin Drawer Open Toggle (handy for multi-drag workflow)
-                        Rectangle {
-                            Layout.preferredWidth: 30
-                            Layout.preferredHeight: 30
-                            radius: 15
-                            color: root.stayPinnedOpen ? Theme.withAlpha(Theme.accent, 0.25) : (stayMouse.containsMouse ? Theme.withAlpha(Theme.lighter_background, 0.45) : Theme.withAlpha(Theme.darker_background, 0.45))
-                            border.width: 1
-                            border.color: root.stayPinnedOpen ? Theme.withAlpha(Theme.accent, 0.6) : Theme.withAlpha(Theme.glassBorderColor, 0.22)
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: Icons.pin
-                                font.family: Icons.effectiveFont(text)
-                                font.pixelSize: 13
-                                color: root.stayPinnedOpen ? Theme.accent : Theme.foreground
-                            }
-
-                            MouseArea {
-                                id: stayMouse
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
+                            GhostIconButton {
+                                glyph: Icons.pin
+                                active: root.stayPinnedOpen
                                 onClicked: root.stayPinnedOpen = !root.stayPinnedOpen
                             }
 
-                        }
-
-                        // Clear Unpinned Button
-                        Rectangle {
-                            Layout.preferredWidth: 30
-                            Layout.preferredHeight: 30
-                            radius: 15
-                            color: clearMouse.containsMouse ? Theme.withAlpha(Theme.urgent, 0.24) : Theme.withAlpha(Theme.darker_background, 0.45)
-                            border.width: 1
-                            border.color: clearMouse.containsMouse ? Theme.withAlpha(Theme.urgent, 0.55) : Theme.withAlpha(Theme.glassBorderColor, 0.22)
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: Icons.clearSweep
-                                font.family: Icons.effectiveFont(text)
-                                font.pixelSize: 13
-                                color: clearMouse.containsMouse ? Theme.urgent : Theme.muted
-                            }
-
-                            MouseArea {
-                                id: clearMouse
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
+                            GhostIconButton {
+                                glyph: Icons.clearSweep
+                                destructive: true
                                 onClicked: {
                                     if (root.clipboardService)
                                         root.clipboardService.clearUnpinned();
@@ -713,31 +525,9 @@ PanelWindow {
                                 }
                             }
 
-                        }
-
-                        // Glide-up / Close Button
-                        Rectangle {
-                            Layout.preferredWidth: 30
-                            Layout.preferredHeight: 30
-                            radius: 15
-                            color: closeBtnMouse.containsMouse ? Theme.withAlpha(Theme.lighter_background, 0.55) : Theme.withAlpha(Theme.darker_background, 0.45)
-                            border.width: 1
-                            border.color: Theme.withAlpha(Theme.glassBorderColor, 0.22)
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: Icons.chevronUp
-                                font.family: Icons.effectiveFont(text)
-                                font.pixelSize: 16
-                                color: Theme.foreground
-                            }
-
-                            MouseArea {
-                                id: closeBtnMouse
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
+                            GhostIconButton {
+                                glyph: Icons.chevronUp
+                                glyphSize: 16
                                 onClicked: root.close()
                             }
 
@@ -751,11 +541,11 @@ PanelWindow {
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 1
-                    color: Theme.withAlpha(Theme.glassBorderColor, 0.22)
+                    color: Theme.withAlpha(Theme.bright_foreground, 0.07)
                 }
 
                 // ─────────────────────────────────────────────────────────────
-                // Empty State when no items match
+                // Empty State
                 // ─────────────────────────────────────────────────────────────
                 Item {
                     Layout.fillWidth: true
@@ -763,38 +553,40 @@ PanelWindow {
                     visible: root.totalCount === 0
 
                     WheelHandler {
+                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                         target: null
                         onWheel: function(event) {
-                            if (event.angleDelta.y < 0)
-                                root.handleSwipeUpDelta(event.angleDelta.y);
+                            var dy = Theme.wheelDeltaY(event);
+                            if (dy < 0)
+                                root.handleSwipeUpDelta(dy);
 
                         }
                     }
 
                     Column {
                         anchors.centerIn: parent
-                        spacing: 8
+                        spacing: 6
 
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: Icons.clipboard
                             font.family: Icons.effectiveFont(text)
-                            font.pixelSize: 34
-                            color: Theme.muted
+                            font.pixelSize: 26
+                            color: Theme.withAlpha(Theme.muted, 0.65)
                         }
 
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: root.searchQuery.length > 0 ? "No matching clips found" : "Clipboard & Screenshot Drawer Ready"
+                            text: root.searchQuery.length > 0 ? "No matching entries" : "Clipboard is empty"
                             font.family: Fonts.uiFont
                             font.pixelSize: 13
-                            font.weight: Font.DemiBold
-                            color: Theme.foreground
+                            font.weight: Font.Medium
+                            color: Theme.withAlpha(Theme.bright_foreground, 0.82)
                         }
 
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Copy text, capture screenshots, or click Snap — glide two fingers up on the bar to hide"
+                            text: root.searchQuery.length > 0 ? "Try another keyword or clear filters" : "Copied text and screenshots appear here"
                             font.family: Fonts.uiFont
                             font.pixelSize: 11
                             color: Theme.muted
@@ -805,7 +597,7 @@ PanelWindow {
                 }
 
                 // ─────────────────────────────────────────────────────────────
-                // Main Content Body (Horizontal SS Gallery + Text Clips)
+                // Content Area (Screenshots Strip/Grid + Clean History List)
                 // ─────────────────────────────────────────────────────────────
                 Flickable {
                     id: mainScroll
@@ -816,16 +608,25 @@ PanelWindow {
                     clip: true
                     contentWidth: width
                     contentHeight: contentColumn.implicitHeight
+                    interactive: false
                     boundsBehavior: Flickable.StopAtBounds
 
-                    // Overscroll UP past top of drawer closes smoothly on 2-finger glide up!
                     WheelHandler {
+                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                         target: null
                         onWheel: function(event) {
-                            if (event.angleDelta.y < 0 && mainScroll.contentY <= 2)
-                                root.handleSwipeUpDelta(event.angleDelta.y);
-                            else if (event.angleDelta.y !== 0)
-                                mainScroll.flick(0, event.angleDelta.y * 5.5);
+                            var dy = Theme.wheelDeltaY(event);
+                            if (dy === 0)
+                                return ;
+
+                            var maxY = Math.max(0, mainScroll.contentHeight - mainScroll.height);
+                            if (maxY <= 0) {
+                                if (dy < 0)
+                                    root.handleSwipeUpDelta(dy);
+
+                                return ;
+                            }
+                            mainScroll.contentY = Math.max(0, Math.min(maxY, mainScroll.contentY - (dy * 0.45)));
                         }
                     }
 
@@ -833,92 +634,63 @@ PanelWindow {
                         id: contentColumn
 
                         width: mainScroll.width
-                        spacing: 12
+                        spacing: 14
 
-                        // ─────────────────────────────────────────────────────
-                        // Section 1: Screenshots & Images Strip / Grid
-                        // ─────────────────────────────────────────────────────
+                        // Section 1: Screenshots
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 6
+                            spacing: 7
                             visible: root.imageItems.length > 0
 
                             RowLayout {
                                 Layout.fillWidth: true
 
                                 Text {
-                                    text: "SCREENSHOTS & IMAGES"
+                                    text: "Screenshots"
                                     font.family: Fonts.uiFont
-                                    font.pixelSize: 10
-                                    font.weight: Font.Bold
-                                    font.letterSpacing: 1.1
-                                    color: Theme.muted
+                                    font.pixelSize: 11
+                                    font.weight: Font.DemiBold
+                                    color: Theme.withAlpha(Theme.bright_foreground, 0.68)
                                 }
 
                                 Item {
                                     Layout.fillWidth: true
                                 }
 
-                                Row {
-                                    spacing: 4
-
-                                    Text {
-                                        text: "Click to paste  ·  Drag onto any app  ·"
-                                        font.family: Fonts.uiFont
-                                        font.pixelSize: 10
-                                        color: Theme.withAlpha(Theme.foreground, 0.55)
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
-
-                                    Text {
-                                        text: Icons.copy
-                                        font.family: Icons.effectiveFont(text)
-                                        font.pixelSize: 11
-                                        color: Theme.withAlpha(Theme.accent, 0.8)
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
-
-                                    Text {
-                                        text: "to re-copy"
-                                        font.family: Fonts.uiFont
-                                        font.pixelSize: 10
-                                        color: Theme.withAlpha(Theme.foreground, 0.55)
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
-
+                                Text {
+                                    text: String(root.imageItems.length)
+                                    font.family: Fonts.uiFont
+                                    font.pixelSize: 11
+                                    color: Theme.muted
                                 }
 
                             }
 
-                            // In "all" mode: crisp horizontal scrollable strip; in "image" mode: 4-col gallery grid!
                             Loader {
                                 id: imageLayoutLoader
 
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: (root.filterMode === "image") ? Math.max(132, Math.ceil(root.imageItems.length / 4) * 130) : (Appearance.clipboardThumbHeight + 10)
+                                Layout.preferredHeight: (root.filterMode === "image") ? Math.max(118, Math.ceil(root.imageItems.length / 4) * 118) : Appearance.clipboardThumbHeight
                                 sourceComponent: (root.filterMode === "image") ? imageGridComp : imageStripComp
                             }
 
                         }
 
-                        // ─────────────────────────────────────────────────────
-                        // Section 2: Text & Code Snippets List
-                        // ─────────────────────────────────────────────────────
+                        // Section 2: Text & Snippet History (Clean Hairline List)
                         ColumnLayout {
                             Layout.fillWidth: true
-                            spacing: 6
+                            spacing: 7
                             visible: root.textItems.length > 0
 
                             RowLayout {
                                 Layout.fillWidth: true
 
                                 Text {
-                                    text: "TEXT, URLS & SNIPPETS"
+                                    text: root.filterMode === "pinned" ? "Pinned" : "History"
                                     font.family: Fonts.uiFont
-                                    font.pixelSize: 10
-                                    font.weight: Font.Bold
-                                    font.letterSpacing: 1.1
-                                    color: Theme.muted
+                                    font.pixelSize: 11
+                                    font.weight: Font.DemiBold
+                                    color: Theme.withAlpha(Theme.bright_foreground, 0.68)
                                 }
 
                                 Item {
@@ -926,130 +698,148 @@ PanelWindow {
                                 }
 
                                 Text {
-                                    text: root.textItems.length + " clips"
+                                    text: String(root.textItems.length)
                                     font.family: Fonts.uiFont
-                                    font.pixelSize: 10
-                                    color: Theme.withAlpha(Theme.foreground, 0.55)
+                                    font.pixelSize: 11
+                                    color: Theme.muted
                                 }
 
                             }
 
-                            Repeater {
-                                model: root.textItems
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: textListCol.implicitHeight
+                                radius: 10
+                                color: Theme.withAlpha(Theme.darker_background, 0.34)
+                                border.width: 1
+                                border.color: Theme.withAlpha(Theme.bright_foreground, 0.08)
+                                clip: true
 
-                                delegate: Item {
-                                    id: textCardRoot
+                                ColumnLayout {
+                                    id: textListCol
 
-                                    required property var modelData
-                                    required property int index
-                                    readonly property bool isCopiedNow: root.clipboardService && root.clipboardService.copiedFeedbackId === modelData.id
+                                    width: parent.width
+                                    spacing: 0
 
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: Math.max(54, Math.min(82, textPreviewLabel.implicitHeight + 28))
+                                    Repeater {
+                                        model: root.textItems
 
-                                    // Wayland Drag & Drop Payload for Text
-                                    Item {
-                                        id: textDragPayload
+                                        delegate: Item {
+                                            id: rowRoot
 
-                                        Drag.active: textDragHandler.active
-                                        Drag.dragType: Drag.Automatic
-                                        Drag.supportedActions: Qt.CopyAction
-                                        Drag.hotSpot: Qt.point(24, 16)
-                                        Drag.mimeData: {
-                                            "text/plain": textCardRoot.modelData.text || ""
-                                        }
-                                        Drag.onDragStarted: root.isDragging = true
-                                        Drag.onDragFinished: function(dropAction) {
-                                            root.isDragging = false;
-                                            if (dropAction !== Qt.IgnoreAction && !root.stayPinnedOpen)
-                                                root.close();
+                                            required property var modelData
+                                            required property int index
+                                            readonly property bool showDivider: index < (root.textItems.length - 1)
+                                            readonly property bool isCopiedNow: root.clipboardService && root.clipboardService.copiedFeedbackId === modelData.id
 
-                                        }
-                                    }
+                                            Layout.fillWidth: true
+                                            Layout.preferredHeight: Math.max(42, Math.min(62, textPreviewLabel.implicitHeight + 18))
 
-                                    Rectangle {
-                                        id: textCardBg
+                                            Item {
+                                                id: textDragPayload
 
-                                        anchors.fill: parent
-                                        radius: 12
-                                        color: textCardRoot.isCopiedNow ? Theme.withAlpha(Theme.green, 0.16) : (textCardHover.hovered ? Theme.withAlpha(Theme.accent, 0.14) : Theme.withAlpha(Theme.darker_background, 0.42))
-                                        border.width: 1
-                                        border.color: textCardRoot.isCopiedNow ? Theme.withAlpha(Theme.green, 0.65) : (textCardHover.hovered ? Theme.withAlpha(Theme.accent, 0.45) : (textCardRoot.modelData.pinned ? Theme.withAlpha(Theme.accent, 0.35) : Theme.withAlpha(Theme.glassBorderColor, 0.18)))
-                                        scale: textDragHandler.active ? 0.97 : (textCardHover.hovered ? 1.008 : 1)
+                                                Drag.active: textDragHandler.active
+                                                Drag.dragType: Drag.Automatic
+                                                Drag.supportedActions: Qt.CopyAction
+                                                Drag.hotSpot: Qt.point(24, 16)
+                                                Drag.mimeData: {
+                                                    "text/plain": rowRoot.modelData.text || ""
+                                                }
+                                                Drag.onDragStarted: root.isDragging = true
+                                                Drag.onDragFinished: function(dropAction) {
+                                                    root.isDragging = false;
+                                                    if (dropAction !== Qt.IgnoreAction && !root.stayPinnedOpen)
+                                                        root.close();
 
-                                        // Main body hitbox behind action buttons
-                                        Item {
-                                            anchors.fill: parent
-
-                                            HoverHandler {
-                                                id: textCardHover
+                                                }
                                             }
 
-                                            DragHandler {
-                                                id: textDragHandler
+                                            Rectangle {
+                                                anchors.fill: parent
+                                                color: {
+                                                    if (rowRoot.isCopiedNow)
+                                                        return Theme.withAlpha(Theme.green, 0.12);
 
-                                                target: null
-                                                dragThreshold: 8
-                                            }
+                                                    if (textDragHandler.active)
+                                                        return Theme.withAlpha(Theme.accent, 0.14);
 
-                                            TapHandler {
-                                                onTapped: root.pasteCard(textCardRoot.modelData.id)
-                                            }
+                                                    if (rowHover.hovered)
+                                                        return Theme.withAlpha(Theme.bright_foreground, 0.055);
 
-                                        }
-
-                                        RowLayout {
-                                            anchors.fill: parent
-                                            anchors.leftMargin: 12
-                                            anchors.rightMargin: 10
-                                            spacing: 10
-
-                                            // Drag Grip & Kind Badge / Color Swatch
-                                            Row {
-                                                spacing: 6
-                                                Layout.alignment: Qt.AlignVCenter
-
-                                                Text {
-                                                    text: Icons.dragGrip
-                                                    font.family: Icons.effectiveFont(text)
-                                                    font.pixelSize: 14
-                                                    color: textCardHover.hovered ? Theme.accent : Theme.withAlpha(Theme.muted, 0.65)
-                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    return "transparent";
                                                 }
 
-                                                Rectangle {
-                                                    width: 26
-                                                    height: 26
-                                                    radius: 8
-                                                    color: textCardRoot.modelData.isColor ? textCardRoot.modelData.colorHex : Theme.withAlpha(Theme.accent, 0.15)
-                                                    border.width: 1
-                                                    border.color: Theme.withAlpha(Theme.glassBorderColor, 0.3)
-                                                    anchors.verticalCenter: parent.verticalCenter
-
-                                                    Text {
-                                                        visible: !textCardRoot.modelData.isColor
-                                                        anchors.centerIn: parent
-                                                        text: textCardRoot.modelData.isUrl ? Icons.linkIcon : (textCardRoot.modelData.isCode ? Icons.codeIcon : Icons.textDoc)
-                                                        font.family: Icons.effectiveFont(text)
-                                                        font.pixelSize: 13
-                                                        color: Theme.accent
+                                                Behavior on color {
+                                                    ColorAnimation {
+                                                        duration: 100
                                                     }
 
                                                 }
 
                                             }
 
-                                            // Text Preview & Metadata
-                                            ColumnLayout {
-                                                Layout.fillWidth: true
-                                                spacing: 2
+                                            // Interaction Hitbox Behind Right-Aligned Action Icons
+                                            Item {
+                                                anchors.fill: parent
 
+                                                HoverHandler {
+                                                    id: rowHover
+                                                }
+
+                                                DragHandler {
+                                                    id: textDragHandler
+
+                                                    target: null
+                                                    dragThreshold: 8
+                                                }
+
+                                                TapHandler {
+                                                    onTapped: root.pasteCard(rowRoot.modelData.id)
+                                                }
+
+                                            }
+
+                                            RowLayout {
+                                                anchors.fill: parent
+                                                anchors.leftMargin: 12
+                                                anchors.rightMargin: 10
+                                                spacing: 10
+
+                                                // Type Indicator / Color Swatch Dot
+                                                Item {
+                                                    Layout.preferredWidth: 16
+                                                    Layout.preferredHeight: 16
+                                                    Layout.alignment: Qt.AlignVCenter
+
+                                                    Rectangle {
+                                                        visible: Boolean(rowRoot.modelData.isColor)
+                                                        anchors.centerIn: parent
+                                                        width: 14
+                                                        height: 14
+                                                        radius: 7
+                                                        color: rowRoot.modelData.colorHex || "transparent"
+                                                        border.width: 1
+                                                        border.color: Theme.withAlpha(Theme.bright_foreground, 0.28)
+                                                    }
+
+                                                    Text {
+                                                        visible: !rowRoot.modelData.isColor
+                                                        anchors.centerIn: parent
+                                                        text: rowRoot.modelData.isUrl ? Icons.linkIcon : (rowRoot.modelData.isCode ? Icons.codeIcon : Icons.textDoc)
+                                                        font.family: Icons.effectiveFont(text)
+                                                        font.pixelSize: 14
+                                                        color: rowHover.hovered ? Theme.accent : Theme.muted
+                                                    }
+
+                                                }
+
+                                                // Snippet Content
                                                 Text {
                                                     id: textPreviewLabel
 
                                                     Layout.fillWidth: true
-                                                    text: textCardRoot.modelData.preview || textCardRoot.modelData.text || ""
-                                                    font.family: textCardRoot.modelData.isCode ? Fonts.monoFont : Fonts.uiFont
+                                                    text: rowRoot.modelData.preview || rowRoot.modelData.text || ""
+                                                    font.family: (rowRoot.modelData.isCode || rowRoot.modelData.isColor) ? Fonts.monoFont : Fonts.uiFont
                                                     font.pixelSize: 12
                                                     color: Theme.bright_foreground
                                                     elide: Text.ElideRight
@@ -1057,154 +847,120 @@ PanelWindow {
                                                     wrapMode: Text.WrapAnywhere
                                                 }
 
-                                                Row {
-                                                    spacing: 8
+                                                // Right-Aligned Quiet Metadata OR Hover Action Cluster
+                                                Item {
+                                                    Layout.preferredWidth: Math.max(metaCluster.implicitWidth, hoverActionRow.implicitWidth)
+                                                    Layout.preferredHeight: 24
+                                                    Layout.alignment: Qt.AlignVCenter
+                                                    z: 10
 
-                                                    Text {
-                                                        text: root.clipboardService ? root.clipboardService.formatRelativeTime(textCardRoot.modelData.timestamp) : ""
-                                                        font.family: Fonts.uiFont
-                                                        font.pixelSize: 10
-                                                        color: Theme.muted
+                                                    // Rest State: Multi-line pill, pin mark, relative time
+                                                    Row {
+                                                        id: metaCluster
+
+                                                        anchors.right: parent.right
+                                                        anchors.verticalCenter: parent.verticalCenter
+                                                        spacing: 7
+                                                        visible: !rowHover.hovered && !rowRoot.isCopiedNow
+
+                                                        Text {
+                                                            visible: (rowRoot.modelData.lineCount || 1) > 1
+                                                            text: rowRoot.modelData.lineCount + "L"
+                                                            font.family: Fonts.monoFont
+                                                            font.pixelSize: 10
+                                                            color: Theme.withAlpha(Theme.muted, 0.85)
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                        }
+
+                                                        Text {
+                                                            visible: Boolean(rowRoot.modelData.pinned)
+                                                            text: Icons.pin
+                                                            font.family: Icons.effectiveFont(text)
+                                                            font.pixelSize: 11
+                                                            color: Theme.accent
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                        }
+
+                                                        Text {
+                                                            text: root.clipboardService ? root.clipboardService.formatRelativeTime(rowRoot.modelData.timestamp) : ""
+                                                            font.family: Fonts.uiFont
+                                                            font.pixelSize: 11
+                                                            color: Theme.muted
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                        }
+
                                                     }
 
+                                                    // Copied State
                                                     Text {
-                                                        visible: (textCardRoot.modelData.lineCount || 1) > 1
-                                                        text: "• " + textCardRoot.modelData.lineCount + " lines"
+                                                        anchors.right: parent.right
+                                                        anchors.verticalCenter: parent.verticalCenter
+                                                        visible: rowRoot.isCopiedNow
+                                                        text: "Copied"
                                                         font.family: Fonts.uiFont
-                                                        font.pixelSize: 10
-                                                        color: Theme.muted
-                                                    }
-
-                                                    Text {
-                                                        visible: textCardRoot.modelData.isColor
-                                                        text: "• Color Swatch"
-                                                        font.family: Fonts.uiFont
-                                                        font.pixelSize: 10
-                                                        color: Theme.accent
-                                                    }
-
-                                                    Text {
-                                                        visible: textCardRoot.isCopiedNow
-                                                        text: "• Copied ✓"
-                                                        font.family: Fonts.uiFont
-                                                        font.pixelSize: 10
-                                                        font.bold: true
+                                                        font.pixelSize: 11
+                                                        font.weight: Font.DemiBold
                                                         color: Theme.green
                                                     }
 
-                                                }
+                                                    // Hover State: Quiet Borderless Actions
+                                                    Row {
+                                                        id: hoverActionRow
 
-                                            }
+                                                        anchors.right: parent.right
+                                                        anchors.verticalCenter: parent.verticalCenter
+                                                        spacing: 2
+                                                        visible: rowHover.hovered && !rowRoot.isCopiedNow
 
-                                            // Inline Action Pill Buttons (Copy Again, Pin, Delete)
-                                            Row {
-                                                spacing: 4
-                                                z: 10
-                                                Layout.alignment: Qt.AlignVCenter
-
-                                                // Copy Again Button
-                                                Rectangle {
-                                                    width: 26
-                                                    height: 26
-                                                    radius: 8
-                                                    color: txtCopyMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.24) : Theme.withAlpha(Theme.darker_background, 0.5)
-                                                    border.width: 1
-                                                    border.color: txtCopyMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.5) : "transparent"
-
-                                                    Text {
-                                                        anchors.centerIn: parent
-                                                        text: textCardRoot.isCopiedNow ? Icons.check : Icons.copy
-                                                        font.family: Icons.effectiveFont(text)
-                                                        font.pixelSize: 13
-                                                        color: textCardRoot.isCopiedNow ? Theme.green : Theme.foreground
-                                                    }
-
-                                                    MouseArea {
-                                                        id: txtCopyMouse
-
-                                                        anchors.fill: parent
-                                                        hoverEnabled: true
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: root.copyCard(textCardRoot.modelData.id)
-                                                    }
-
-                                                }
-
-                                                // Pin Button
-                                                Rectangle {
-                                                    width: 26
-                                                    height: 26
-                                                    radius: 8
-                                                    color: textCardRoot.modelData.pinned ? Theme.withAlpha(Theme.accent, 0.22) : (txtPinMouse.containsMouse ? Theme.withAlpha(Theme.lighter_background, 0.5) : Theme.withAlpha(Theme.darker_background, 0.5))
-
-                                                    Text {
-                                                        anchors.centerIn: parent
-                                                        text: Icons.pin
-                                                        font.family: Icons.effectiveFont(text)
-                                                        font.pixelSize: 13
-                                                        color: textCardRoot.modelData.pinned ? Theme.accent : Theme.muted
-                                                    }
-
-                                                    MouseArea {
-                                                        id: txtPinMouse
-
-                                                        anchors.fill: parent
-                                                        hoverEnabled: true
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            if (root.clipboardService)
-                                                                root.clipboardService.togglePin(textCardRoot.modelData.id);
-
+                                                        GhostIconButton {
+                                                            glyph: Icons.copy
+                                                            buttonSize: 24
+                                                            glyphSize: 13
+                                                            cornerRadius: 6
+                                                            onClicked: root.copyCard(rowRoot.modelData.id)
                                                         }
-                                                    }
 
-                                                }
+                                                        GhostIconButton {
+                                                            glyph: Icons.pin
+                                                            buttonSize: 24
+                                                            glyphSize: 13
+                                                            cornerRadius: 6
+                                                            active: Boolean(rowRoot.modelData.pinned)
+                                                            onClicked: {
+                                                                if (root.clipboardService)
+                                                                    root.clipboardService.togglePin(rowRoot.modelData.id);
 
-                                                // Delete Button
-                                                Rectangle {
-                                                    width: 26
-                                                    height: 26
-                                                    radius: 8
-                                                    color: txtDelMouse.containsMouse ? Theme.withAlpha(Theme.urgent, 0.24) : Theme.withAlpha(Theme.darker_background, 0.5)
-
-                                                    Text {
-                                                        anchors.centerIn: parent
-                                                        text: Icons.trash
-                                                        font.family: Icons.effectiveFont(text)
-                                                        font.pixelSize: 13
-                                                        color: txtDelMouse.containsMouse ? Theme.urgent : Theme.muted
-                                                    }
-
-                                                    MouseArea {
-                                                        id: txtDelMouse
-
-                                                        anchors.fill: parent
-                                                        hoverEnabled: true
-                                                        cursorShape: Qt.PointingHandCursor
-                                                        onClicked: {
-                                                            if (root.clipboardService)
-                                                                root.clipboardService.deleteItem(textCardRoot.modelData.id);
-
+                                                            }
                                                         }
+
+                                                        GhostIconButton {
+                                                            glyph: Icons.trash
+                                                            buttonSize: 24
+                                                            glyphSize: 13
+                                                            cornerRadius: 6
+                                                            destructive: true
+                                                            onClicked: {
+                                                                if (root.clipboardService)
+                                                                    root.clipboardService.deleteItem(rowRoot.modelData.id);
+
+                                                            }
+                                                        }
+
                                                     }
 
                                                 }
 
                                             }
 
-                                        }
-
-                                        Behavior on scale {
-                                            NumberAnimation {
-                                                duration: 140
-                                                easing.type: Easing.OutCubic
-                                            }
-
-                                        }
-
-                                        Behavior on color {
-                                            ColorAnimation {
-                                                duration: 140
+                                            // Hairline Row Divider
+                                            Rectangle {
+                                                visible: rowRoot.showDivider
+                                                anchors.left: parent.left
+                                                anchors.right: parent.right
+                                                anchors.leftMargin: 38
+                                                anchors.bottom: parent.bottom
+                                                height: 1
+                                                color: Theme.withAlpha(Theme.bright_foreground, 0.055)
                                             }
 
                                         }
@@ -1222,31 +978,33 @@ PanelWindow {
                 }
 
                 // ─────────────────────────────────────────────────────────────
-                // Bottom Glide-Up Grabber Handle (Interactive visual affordance)
+                // Minimal Bottom Handle (Swipe up or click to collapse)
                 // ─────────────────────────────────────────────────────────────
                 Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 10
+                    Layout.preferredHeight: 8
 
                     WheelHandler {
+                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                         target: null
                         onWheel: function(event) {
-                            if (event.angleDelta.y < 0)
-                                root.handleSwipeUpDelta(event.angleDelta.y);
+                            var dy = Theme.wheelDeltaY(event);
+                            if (dy < 0)
+                                root.handleSwipeUpDelta(dy);
 
                         }
                     }
 
                     Rectangle {
                         anchors.centerIn: parent
-                        width: grabMouse.containsMouse ? 58 : 42
-                        height: 4
-                        radius: 2
-                        color: grabMouse.containsMouse ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
+                        width: grabMouse.containsMouse ? 40 : 30
+                        height: 3
+                        radius: 1.5
+                        color: grabMouse.containsMouse ? Theme.withAlpha(Theme.bright_foreground, 0.6) : Theme.withAlpha(Theme.bright_foreground, 0.2)
 
                         Behavior on width {
                             NumberAnimation {
-                                duration: 150
+                                duration: 140
                                 easing.type: Easing.OutCubic
                             }
 
@@ -1254,7 +1012,7 @@ PanelWindow {
 
                         Behavior on color {
                             ColorAnimation {
-                                duration: 150
+                                duration: 140
                             }
 
                         }
@@ -1279,7 +1037,7 @@ PanelWindow {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Reusable Screenshot Card Component Templates
+    // Screenshot Strip & Grid Containers
     // ─────────────────────────────────────────────────────────────────────────
     Component {
         id: imageStripComp
@@ -1296,14 +1054,20 @@ PanelWindow {
             model: root.imageItems
 
             WheelHandler {
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                 target: null
                 onWheel: function(event) {
-                    if (Math.abs(event.angleDelta.x) > Math.abs(event.angleDelta.y))
-                        imgStripList.flick(event.angleDelta.x * 6, 0);
-                    else if (event.angleDelta.y < 0 && mainScroll.contentY <= 2)
-                        root.handleSwipeUpDelta(event.angleDelta.y);
-                    else if (event.angleDelta.y !== 0)
-                        imgStripList.flick(event.angleDelta.y * 5, 0);
+                    var dx = Theme.wheelDeltaX(event);
+                    var dy = Theme.wheelDeltaY(event);
+                    if (Math.abs(dx) > Math.abs(dy) && dx !== 0) {
+                        var maxX = Math.max(0, imgStripList.contentWidth - imgStripList.width);
+                        if (maxX > 0) {
+                            imgStripList.contentX = Math.max(0, Math.min(maxX, imgStripList.contentX - (dx * 0.45)));
+                            return ;
+                        }
+                    }
+                    // Let vertical wheel pass cleanly to mainScroll / drawer dismissal
+                    event.accepted = false;
                 }
             }
 
@@ -1323,7 +1087,7 @@ PanelWindow {
             id: imgGrid
 
             cellWidth: Math.floor((width - 2) / 4)
-            cellHeight: 128
+            cellHeight: 116
             clip: true
             interactive: false
             cacheBuffer: 2400
@@ -1349,7 +1113,9 @@ PanelWindow {
 
     }
 
-    // Inline Component for Screenshot/Image Card (Click-to-Paste + Copy + Edit + Pin + Drag&Drop)
+    // ─────────────────────────────────────────────────────────────────────────
+    // Gallery-Grade Image Thumbnail Delegate (Clean at Rest · HUD on Hover)
+    // ─────────────────────────────────────────────────────────────────────────
     component ImageCardDelegate: Item {
         id: imgCard
 
@@ -1357,7 +1123,6 @@ PanelWindow {
         required property int index
         readonly property bool isCopiedNow: root.clipboardService && root.clipboardService.copiedFeedbackId === modelData.id
 
-        // Wayland External Drag & Drop Payload (Carries file URI & thumbnail pixmap)
         Item {
             id: imgDragPayload
 
@@ -1384,49 +1149,58 @@ PanelWindow {
             id: imgCardFrame
 
             anchors.fill: parent
-            radius: 13
+            radius: 10
             color: Theme.withAlpha(Theme.darker_background, 0.72)
             clip: true
-            border.width: imgCard.isCopiedNow || imgCardHover.hovered || imgCard.modelData.pinned ? 2 : 1
-            border.color: imgCard.isCopiedNow ? Theme.green : (imgCardHover.hovered ? Theme.accent : (imgCard.modelData.pinned ? Theme.withAlpha(Theme.accent, 0.55) : Theme.withAlpha(Theme.glassBorderColor, 0.25)))
-            scale: imgDragHandler.active ? 0.96 : (imgCardHover.hovered ? 1.022 : 1)
+            scale: imgDragHandler.active ? 0.96 : (imgCardHover.hovered ? 1.015 : 1)
 
-            // Thumbnail Image Preview
+            Rectangle {
+                id: thumbMask
+
+                anchors.fill: parent
+                radius: 10
+                color: "black"
+                layer.enabled: true
+                visible: false
+            }
+
             Image {
                 anchors.fill: parent
-                anchors.margins: 1
                 source: imgCard.modelData.thumbPath ? ("file://" + imgCard.modelData.thumbPath) : (imgCard.modelData.path ? ("file://" + imgCard.modelData.path) : "")
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 cache: true
                 smooth: true
                 mipmap: true
-                sourceSize: Qt.size(320, 200)
+                sourceSize: Qt.size(340, 220)
+                layer.enabled: true
+
+                layer.effect: MultiEffect {
+                    maskEnabled: true
+                    maskSource: thumbMask
+                }
+
             }
 
-            // Subtle dark bottom gradient scrim for badge readability
+            // Crisp Topmost Rounded Hairline Frame
             Rectangle {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                height: 44
+                anchors.fill: parent
+                radius: 10
+                color: "transparent"
+                border.width: 1
+                border.color: imgCard.isCopiedNow ? Theme.green : (imgCardHover.hovered ? Theme.withAlpha(Theme.accent, 0.7) : (imgCard.modelData.pinned ? Theme.withAlpha(Theme.accent, 0.4) : Theme.withAlpha(Theme.bright_foreground, 0.1)))
+                z: 20
 
-                gradient: Gradient {
-                    GradientStop {
-                        position: 0
-                        color: "transparent"
-                    }
-
-                    GradientStop {
-                        position: 1
-                        color: Qt.rgba(0, 0, 0, 0.78)
+                Behavior on border.color {
+                    ColorAnimation {
+                        duration: 120
                     }
 
                 }
 
             }
 
-            // Card Body Interaction Layer (Behind Action Buttons)
+            // Body Interaction Layer (Hover, Wayland DnD, Click-to-Paste)
             Item {
                 anchors.fill: parent
 
@@ -1447,139 +1221,63 @@ PanelWindow {
 
             }
 
-            // Top-Left Drag Grip + Resolution Badge
+            // Quiet Pinned Marker (Visible at rest ONLY if pinned)
             Rectangle {
+                visible: Boolean(imgCard.modelData.pinned) && !imgCardHover.hovered
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.margins: 6
-                height: 20
-                width: metaRow.implicitWidth + 10
-                radius: 10
-                color: Qt.rgba(0, 0, 0, 0.65)
-                border.width: 1
-                border.color: Theme.withAlpha(Theme.glassBorderColor, 0.25)
+                width: 18
+                height: 18
+                radius: 9
+                color: Qt.rgba(0, 0, 0, 0.56)
 
-                Row {
-                    id: metaRow
-
+                Text {
                     anchors.centerIn: parent
-                    spacing: 3
-
-                    Text {
-                        text: Icons.dragGrip
-                        font.family: Icons.effectiveFont(text)
-                        font.pixelSize: 11
-                        color: imgCardHover.hovered ? Theme.accent : Theme.bright_foreground
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-
-                    Text {
-                        text: (imgCard.modelData.width > 0) ? (imgCard.modelData.width + "×" + imgCard.modelData.height) : "IMG"
-                        font.family: Fonts.uiFont
-                        font.pixelSize: 9
-                        font.bold: true
-                        color: Theme.bright_foreground
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-
+                    text: Icons.pin
+                    font.family: Icons.effectiveFont(text)
+                    font.pixelSize: 10
+                    color: Theme.accent
                 }
 
             }
 
-            // "Copied ✓" Flash Badge
+            // Hover-Only Top-Right Frosted Floating Action Bar
             Rectangle {
-                anchors.centerIn: parent
-                height: 26
-                width: copiedLabelRow.implicitWidth + 18
-                radius: 13
-                color: Theme.green
-                visible: imgCard.isCopiedNow
-                z: 15
-
-                Row {
-                    id: copiedLabelRow
-
-                    anchors.centerIn: parent
-                    spacing: 4
-
-                    Text {
-                        text: Icons.check
-                        font.family: Icons.effectiveFont(text)
-                        font.pixelSize: 13
-                        color: Theme.darker_background
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-
-                    Text {
-                        text: "Copied"
-                        font.family: Fonts.uiFont
-                        font.pixelSize: 11
-                        font.bold: true
-                        color: Theme.darker_background
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-
-                }
-
-            }
-
-            // Top-Right Action Pill Cluster (Copy, Edit in Swappy, Pin, Delete)
-            Row {
                 anchors.top: parent.top
                 anchors.right: parent.right
                 anchors.margins: 6
-                spacing: 4
+                height: 24
+                width: imgActionRow.implicitWidth + 6
+                radius: 12
+                color: Qt.rgba(16, 18, 22, 0.78)
+                border.width: 1
+                border.color: Theme.withAlpha(Theme.bright_foreground, 0.14)
+                opacity: imgCardHover.hovered ? 1 : 0
+                visible: opacity > 0.01
                 z: 10
-                opacity: (imgCardHover.hovered || imgCard.modelData.pinned) ? 1 : 0.72
 
-                // Copy Again
-                Rectangle {
-                    width: 22
-                    height: 22
-                    radius: 11
-                    color: imgCopyM.containsMouse ? Theme.accent : Qt.rgba(0, 0, 0, 0.68)
+                Row {
+                    id: imgActionRow
 
-                    Text {
-                        anchors.centerIn: parent
-                        text: Icons.copy
-                        font.family: Icons.effectiveFont(text)
-                        font.pixelSize: 11
-                        color: imgCopyM.containsMouse ? Theme.darker_background : Theme.bright_foreground
-                    }
+                    anchors.centerIn: parent
+                    spacing: 1
 
-                    MouseArea {
-                        id: imgCopyM
-
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                    GhostIconButton {
+                        glyph: Icons.copy
+                        buttonSize: 20
+                        glyphSize: 11
+                        cornerRadius: 10
+                        darkSurface: true
                         onClicked: root.copyCard(imgCard.modelData.id)
                     }
 
-                }
-
-                // Annotate / Edit in Swappy
-                Rectangle {
-                    width: 22
-                    height: 22
-                    radius: 11
-                    visible: imgCardHover.hovered
-                    color: imgEditM.containsMouse ? Theme.accent : Qt.rgba(0, 0, 0, 0.68)
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: Icons.editBrush
-                        font.family: Icons.effectiveFont(text)
-                        font.pixelSize: 11
-                        color: imgEditM.containsMouse ? Theme.darker_background : Theme.bright_foreground
-                    }
-
-                    MouseArea {
-                        id: imgEditM
-
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                    GhostIconButton {
+                        glyph: Icons.editBrush
+                        buttonSize: 20
+                        glyphSize: 11
+                        cornerRadius: 10
+                        darkSurface: true
                         onClicked: {
                             if (root.clipboardService)
                                 root.clipboardService.annotateImage(imgCard.modelData.path);
@@ -1587,29 +1285,13 @@ PanelWindow {
                         }
                     }
 
-                }
-
-                // Pin
-                Rectangle {
-                    width: 22
-                    height: 22
-                    radius: 11
-                    color: imgCard.modelData.pinned ? Theme.accent : (imgPinM.containsMouse ? Theme.lighter_background : Qt.rgba(0, 0, 0, 0.68))
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: Icons.pin
-                        font.family: Icons.effectiveFont(text)
-                        font.pixelSize: 11
-                        color: imgCard.modelData.pinned ? Theme.darker_background : Theme.bright_foreground
-                    }
-
-                    MouseArea {
-                        id: imgPinM
-
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                    GhostIconButton {
+                        glyph: Icons.pin
+                        buttonSize: 20
+                        glyphSize: 11
+                        cornerRadius: 10
+                        active: Boolean(imgCard.modelData.pinned)
+                        darkSurface: true
                         onClicked: {
                             if (root.clipboardService)
                                 root.clipboardService.togglePin(imgCard.modelData.id);
@@ -1617,30 +1299,13 @@ PanelWindow {
                         }
                     }
 
-                }
-
-                // Delete
-                Rectangle {
-                    width: 22
-                    height: 22
-                    radius: 11
-                    visible: imgCardHover.hovered
-                    color: imgDelM.containsMouse ? Theme.urgent : Qt.rgba(0, 0, 0, 0.68)
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: Icons.trash
-                        font.family: Icons.effectiveFont(text)
-                        font.pixelSize: 11
-                        color: Theme.bright_foreground
-                    }
-
-                    MouseArea {
-                        id: imgDelM
-
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                    GhostIconButton {
+                        glyph: Icons.trash
+                        buttonSize: 20
+                        glyphSize: 11
+                        cornerRadius: 10
+                        destructive: true
+                        darkSurface: true
                         onClicked: {
                             if (root.clipboardService)
                                 root.clipboardService.deleteItem(imgCard.modelData.id);
@@ -1650,37 +1315,104 @@ PanelWindow {
 
                 }
 
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 120
+                    }
+
+                }
+
             }
 
-            // Bottom Footer Caption (Timestamp / Click to Paste hint)
-            RowLayout {
+            // Hover-Only Subtle Bottom Scrim & Technical Caption
+            Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                anchors.margins: 7
+                height: 28
+                opacity: imgCardHover.hovered ? 1 : 0
+                visible: opacity > 0.01
 
                 Text {
-                    text: imgCardHover.hovered ? "Click to paste" : (root.clipboardService ? root.clipboardService.formatRelativeTime(imgCard.modelData.timestamp) : "")
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.leftMargin: 7
+                    anchors.rightMargin: 7
+                    anchors.bottomMargin: 5
+                    text: {
+                        var parts = [];
+                        if (imgCard.modelData.width > 0)
+                            parts.push(imgCard.modelData.width + "×" + imgCard.modelData.height);
+
+                        if (root.clipboardService) {
+                            var tm = root.clipboardService.formatRelativeTime(imgCard.modelData.timestamp);
+                            var sz = root.clipboardService.formatSize(imgCard.modelData.sizeBytes);
+                            if (tm)
+                                parts.push(tm);
+
+                            if (sz)
+                                parts.push(sz);
+
+                        }
+                        return parts.join(" · ");
+                    }
                     font.family: Fonts.uiFont
                     font.pixelSize: 10
-                    font.bold: imgCardHover.hovered
-                    color: imgCardHover.hovered ? Theme.accent : Theme.bright_foreground
+                    color: Theme.withAlpha(Theme.bright_foreground, 0.9)
                     elide: Text.ElideRight
-                    Layout.fillWidth: true
                 }
 
+                gradient: Gradient {
+                    GradientStop {
+                        position: 0
+                        color: "transparent"
+                    }
+
+                    GradientStop {
+                        position: 1
+                        color: Qt.rgba(0, 0, 0, 0.72)
+                    }
+
+                }
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 120
+                    }
+
+                }
+
+            }
+
+            // Restrained Copied Toast
+            Rectangle {
+                anchors.centerIn: parent
+                height: 24
+                width: copiedLabel.implicitWidth + 18
+                radius: 12
+                color: Qt.rgba(16, 20, 20, 0.86)
+                border.width: 1
+                border.color: Theme.withAlpha(Theme.green, 0.7)
+                visible: imgCard.isCopiedNow
+                z: 15
+
                 Text {
-                    text: root.clipboardService ? root.clipboardService.formatSize(imgCard.modelData.sizeBytes) : ""
+                    id: copiedLabel
+
+                    anchors.centerIn: parent
+                    text: "Copied"
                     font.family: Fonts.uiFont
-                    font.pixelSize: 9
-                    color: Theme.withAlpha(Theme.bright_foreground, 0.78)
+                    font.pixelSize: 11
+                    font.weight: Font.DemiBold
+                    color: Theme.green
                 }
 
             }
 
             Behavior on scale {
                 NumberAnimation {
-                    duration: 140
+                    duration: 130
                     easing.type: Easing.OutCubic
                 }
 

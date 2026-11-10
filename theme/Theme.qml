@@ -131,6 +131,24 @@ QtObject {
         return Qt.rgba(colorVal.r, colorVal.g, colorVal.b, alphaVal);
     }
 
+    function wheelDeltaY(event) {
+        if (!event)
+            return 0;
+
+        var ay = event.angleDelta ? Number(event.angleDelta.y || 0) : 0;
+        var py = event.pixelDelta ? Number(event.pixelDelta.y || 0) * 2 : 0;
+        return (Math.abs(ay) >= Math.abs(py)) ? ay : py;
+    }
+
+    function wheelDeltaX(event) {
+        if (!event)
+            return 0;
+
+        var ax = event.angleDelta ? Number(event.angleDelta.x || 0) : 0;
+        var px = event.pixelDelta ? Number(event.pixelDelta.x || 0) * 2 : 0;
+        return (Math.abs(ax) >= Math.abs(px)) ? ax : px;
+    }
+
     function setBlurState(enabled) {
         root.blurEnabled = enabled;
         var stateStr = enabled ? "on" : "off";

@@ -33,6 +33,36 @@ PanelWindow {
     readonly property bool hasSideAnchors: isFloating || isIslands
     readonly property real totalContentWidth: leftSection.width + clockWidget.width + rightSection.width + (Appearance.barSectionSpacing * 4)
 
+    function handleBarWheel(event) {
+        if (!root.clipboardDrawer)
+            return ;
+
+        var dy = Theme.wheelDeltaY(event);
+        var dx = Theme.wheelDeltaX(event);
+        if (dy === 0 || Math.abs(dy) < Math.abs(dx) * 0.6)
+            return ;
+
+        if (Date.now() < root.glideCooldownUntil)
+            return ;
+
+        if ((dy > 0 && root.glideAccum < 0) || (dy < 0 && root.glideAccum > 0))
+            root.glideAccum = 0;
+
+        root.glideAccum += dy;
+        glideResetTimer.restart();
+        // Natural scroll: gliding 2 fingers DOWN produces positive delta.y;
+        // gliding 2 fingers UP produces negative delta.y
+        if (!root.clipboardDrawer.isOpen && root.glideAccum >= 4) {
+            root.glideAccum = 0;
+            root.glideCooldownUntil = Date.now() + 220;
+            root.clipboardDrawer.open();
+        } else if (root.clipboardDrawer.isOpen && root.glideAccum <= -4) {
+            root.glideAccum = 0;
+            root.glideCooldownUntil = Date.now() + 220;
+            root.clipboardDrawer.close();
+        }
+    }
+
     visible: Appearance.barVisible
     implicitHeight: Appearance.barHeight
     implicitWidth: root.isCompact ? Math.round(root.totalContentWidth + (Appearance.barMarginHorizontal * 2)) : (root.isWide ? Math.round((root.screen ? root.screen.width : 1920) * 0.72) : (root.screen ? root.screen.width - (Appearance.barMarginHorizontal * 2) : 1896))
@@ -116,7 +146,7 @@ PanelWindow {
     Timer {
         id: glideResetTimer
 
-        interval: 180
+        interval: 320
         repeat: false
         onTriggered: {
             root.glideAccum = 0;
@@ -133,73 +163,64 @@ PanelWindow {
             id: barHover
         }
 
-        // Two-finger trackpad glide down (open) / glide up (close) across the bar
+        // Physical mouse wheel fallback behind child widgets (preserves WorkspacesWidget wheel)
         WheelHandler {
+            acceptedDevices: PointerDevice.Mouse
+            margin: 4
             target: null
             onWheel: function(event) {
-                if (!root.clipboardDrawer)
-                    return ;
-
-                var dy = (event.angleDelta.y !== 0) ? event.angleDelta.y : (event.pixelDelta.y * 2);
-                var dx = (event.angleDelta.x !== 0) ? event.angleDelta.x : (event.pixelDelta.x * 2);
-                if (dy === 0 || Math.abs(dy) < Math.abs(dx))
-                    return ;
-
-                if (Date.now() < root.glideCooldownUntil)
-                    return ;
-
-                // Reset accumulator if gesture direction flipped mid-scroll
-                if ((dy > 0 && root.glideAccum < 0) || (dy < 0 && root.glideAccum > 0))
-                    root.glideAccum = 0;
-
-                root.glideAccum += dy;
-                glideResetTimer.restart();
-                // Natural scroll: gliding 2 fingers DOWN produces positive delta.y;
-                // gliding 2 fingers UP produces negative delta.y
-                if (!root.clipboardDrawer.isOpen && root.glideAccum >= 8) {
-                    root.glideAccum = 0;
-                    root.glideCooldownUntil = Date.now() + 280;
-                    root.clipboardDrawer.open();
-                } else if (root.clipboardDrawer.isOpen && root.glideAccum <= -8) {
-                    root.glideAccum = 0;
-                    root.glideCooldownUntil = Date.now() + 280;
-                    root.clipboardDrawer.close();
-                }
+                root.handleBarWheel(event);
             }
         }
 
-        // Touchscreen 2-finger vertical drag fallback
-        DragHandler {
-            id: twoFingerBarDrag
+        // Topmost touchpad & touchscreen overlay across the whole bar
+        Item {
+            anchors.fill: parent
+            z: 100
 
-            minimumPointCount: 2
-            maximumPointCount: 2
-            target: null
-            xAxis.enabled: false
-            onTranslationChanged: {
-                if (!root.clipboardDrawer || Date.now() < root.glideCooldownUntil)
-                    return ;
-
-                if (!root.clipboardDrawer.isOpen && translation.y >= 18) {
-                    root.glideCooldownUntil = Date.now() + 320;
-                    root.clipboardDrawer.open();
-                } else if (root.clipboardDrawer.isOpen && translation.y <= -18) {
-                    root.glideCooldownUntil = Date.now() + 320;
-                    root.clipboardDrawer.close();
+            WheelHandler {
+                acceptedDevices: PointerDevice.TouchPad
+                margin: 4
+                target: null
+                onWheel: function(event) {
+                    root.handleBarWheel(event);
                 }
             }
+
+            DragHandler {
+                id: twoFingerBarDrag
+
+                acceptedDevices: PointerDevice.TouchScreen
+                minimumPointCount: 2
+                maximumPointCount: 2
+                target: null
+                xAxis.enabled: false
+                onTranslationChanged: {
+                    if (!root.clipboardDrawer || Date.now() < root.glideCooldownUntil)
+                        return ;
+
+                    if (!root.clipboardDrawer.isOpen && translation.y >= 16) {
+                        root.glideCooldownUntil = Date.now() + 280;
+                        root.clipboardDrawer.open();
+                    } else if (root.clipboardDrawer.isOpen && translation.y <= -16) {
+                        root.glideCooldownUntil = Date.now() + 280;
+                        root.clipboardDrawer.close();
+                    }
+                }
+            }
+
         }
 
-        // Subtle tactile pull-down indicator pill along bottom center of bar
+        // Subtle pull-down indicator along bottom center of bar
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 1
             height: 2
             radius: 1
-            width: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? 44 : (barHover.hovered ? 32 : 16)
-            color: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.65)
-            opacity: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? 0.9 : (barHover.hovered ? 0.8 : 0)
+            width: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? 32 : (barHover.hovered ? 24 : 12)
+            color: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? Theme.accent : Theme.withAlpha(Theme.bright_foreground, 0.55)
+            opacity: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? 0.8 : (barHover.hovered ? 0.5 : 0)
             visible: !root.isIslands
             z: 20
 
