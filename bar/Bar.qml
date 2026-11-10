@@ -140,8 +140,8 @@ PanelWindow {
                 if (!root.clipboardDrawer)
                     return ;
 
-                var dy = event.angleDelta.y;
-                var dx = event.angleDelta.x;
+                var dy = (event.angleDelta.y !== 0) ? event.angleDelta.y : (event.pixelDelta.y * 2);
+                var dx = (event.angleDelta.x !== 0) ? event.angleDelta.x : (event.pixelDelta.x * 2);
                 if (dy === 0 || Math.abs(dy) < Math.abs(dx))
                     return ;
 
@@ -154,13 +154,13 @@ PanelWindow {
 
                 root.glideAccum += dy;
                 glideResetTimer.restart();
-                // Natural scroll: gliding 2 fingers DOWN produces positive angleDelta.y;
-                // gliding 2 fingers UP produces negative angleDelta.y
-                if (!root.clipboardDrawer.isOpen && root.glideAccum >= 18) {
+                // Natural scroll: gliding 2 fingers DOWN produces positive delta.y;
+                // gliding 2 fingers UP produces negative delta.y
+                if (!root.clipboardDrawer.isOpen && root.glideAccum >= 8) {
                     root.glideAccum = 0;
                     root.glideCooldownUntil = Date.now() + 280;
                     root.clipboardDrawer.open();
-                } else if (root.clipboardDrawer.isOpen && root.glideAccum <= -18) {
+                } else if (root.clipboardDrawer.isOpen && root.glideAccum <= -8) {
                     root.glideAccum = 0;
                     root.glideCooldownUntil = Date.now() + 280;
                     root.clipboardDrawer.close();

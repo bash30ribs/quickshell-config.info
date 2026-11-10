@@ -240,6 +240,47 @@ function parseFiles(rawLines, query) {
     return results;
 }
 
+/**
+ * Launches a desktop application entry, routing terminal apps through kitty
+ * since QuickShell's DesktopEntry.execute() does not honor runInTerminal.
+ */
+function launchAppEntry(item, execDetachedFn) {
+    if (!item)
+        return false;
+
+    var entry = item.entry;
+    if (entry && entry.runInTerminal && typeof execDetachedFn === "function") {
+        var rawCmd = entry.command;
+        var cmd = [];
+        if (rawCmd && rawCmd.length > 0) {
+            for (var i = 0; i < rawCmd.length; i++)
+                cmd.push(rawCmd[i]);
+        }
+        if (cmd.length > 0) {
+            var launchSpec = {
+                command: ["kitty", "--"].concat(cmd)
+            };
+            if (entry.workingDirectory)
+                launchSpec.workingDirectory = entry.workingDirectory;
+            execDetachedFn(launchSpec);
+            return true;
+        }
+    }
+
+    try {
+        if (entry && typeof entry.execute === "function") {
+            entry.execute();
+            return true;
+        }
+    } catch (e) {}
+
+    if (item.id && typeof execDetachedFn === "function") {
+        execDetachedFn(["gtk-launch", item.id]);
+        return true;
+    }
+    return false;
+}
+
 if (typeof module !== "undefined") {
     module.exports = {
         normalizeText: normalizeText,
@@ -247,6 +288,7 @@ if (typeof module !== "undefined") {
         filterApps: filterApps,
         parseWindows: parseWindows,
         filterCommands: filterCommands,
-        parseFiles: parseFiles
+        parseFiles: parseFiles,
+        launchAppEntry: launchAppEntry
     };
 }

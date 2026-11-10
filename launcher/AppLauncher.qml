@@ -60,16 +60,7 @@ PanelWindow {
         if (!item)
             return ;
 
-        try {
-            if (item.entry && item.entry.runInTerminal)
-                Quickshell.execDetached(["gtk-launch", item.id]);
-            else if (item.entry && item.entry.execute)
-                item.entry.execute();
-            else
-                Quickshell.execDetached(["gtk-launch", item.id]);
-        } catch (e) {
-            Quickshell.execDetached(["gtk-launch", item.id]);
-        }
+        LauncherModel.launchAppEntry(item, Quickshell.execDetached);
         root.close();
     }
 

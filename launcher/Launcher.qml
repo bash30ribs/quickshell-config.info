@@ -126,18 +126,9 @@ PanelWindow {
         if (!item)
             return ;
 
-        if (item.type === "app") {
-            try {
-                if (item.entry && item.entry.runInTerminal)
-                    Quickshell.execDetached(["gtk-launch", item.id]);
-                else if (item.entry && item.entry.execute)
-                    item.entry.execute();
-                else
-                    Quickshell.execDetached(["gtk-launch", item.id]);
-            } catch (e) {
-                Quickshell.execDetached(["gtk-launch", item.id]);
-            }
-        } else if (item.type === "command")
+        if (item.type === "app")
+            LauncherModel.launchAppEntry(item, Quickshell.execDetached);
+        else if (item.type === "command")
             Quickshell.execDetached(["bash", "-c", item.cmd]);
         else if (item.type === "file")
             Quickshell.execDetached(["xdg-open", item.path]);
