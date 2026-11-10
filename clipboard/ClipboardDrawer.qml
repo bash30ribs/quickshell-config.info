@@ -80,18 +80,28 @@ PanelWindow {
         if (!root.isOpen)
             return ;
 
-        if (Date.now() - root.openedAtMs < 240)
+        if (Date.now() - root.openedAtMs < 320)
             return ;
 
         if (dy < 0) {
             root.gestureUpAccum += dy;
             gestureDecayTimer.restart();
-            if (root.gestureUpAccum <= -14) {
+            if (root.gestureUpAccum <= -10) {
                 root.gestureUpAccum = 0;
                 root.close();
             }
         } else if (dy > 6) {
             root.gestureUpAccum = 0;
+        }
+    }
+
+    function handleUpWheel(event) {
+        var dy = Theme.wheelDeltaY(event);
+        if (dy < 0) {
+            event.accepted = true;
+            root.handleSwipeUpDelta(dy);
+        } else {
+            event.accepted = false;
         }
     }
 
@@ -151,8 +161,8 @@ PanelWindow {
         target: root
         property: "animProgress"
         to: 1
-        spring: 5.4
-        damping: 0.56
+        spring: 9.2
+        damping: 0.72
         epsilon: 0.002
     }
 
@@ -270,14 +280,14 @@ PanelWindow {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 32
 
-                    WheelHandler {
-                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                        target: null
+                    MouseArea {
+                        anchors.fill: parent
+                        z: 100
+                        acceptedButtons: Qt.NoButton
+                        hoverEnabled: false
+                        scrollGestureEnabled: true
                         onWheel: function(event) {
-                            var dy = Theme.wheelDeltaY(event);
-                            if (dy < 0)
-                                root.handleSwipeUpDelta(dy);
-
+                            root.handleUpWheel(event);
                         }
                     }
 
@@ -552,14 +562,14 @@ PanelWindow {
                     Layout.fillHeight: true
                     visible: root.totalCount === 0
 
-                    WheelHandler {
-                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                        target: null
+                    MouseArea {
+                        anchors.fill: parent
+                        z: 100
+                        acceptedButtons: Qt.NoButton
+                        hoverEnabled: false
+                        scrollGestureEnabled: true
                         onWheel: function(event) {
-                            var dy = Theme.wheelDeltaY(event);
-                            if (dy < 0)
-                                root.handleSwipeUpDelta(dy);
-
+                            root.handleUpWheel(event);
                         }
                     }
 
@@ -599,368 +609,396 @@ PanelWindow {
                 // ─────────────────────────────────────────────────────────────
                 // Content Area (Screenshots Strip/Grid + Clean History List)
                 // ─────────────────────────────────────────────────────────────
-                Flickable {
-                    id: mainScroll
+                Item {
+                    id: mainScrollWrap
 
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     visible: root.totalCount > 0
-                    clip: true
-                    contentWidth: width
-                    contentHeight: contentColumn.implicitHeight
-                    interactive: false
-                    boundsBehavior: Flickable.StopAtBounds
 
-                    WheelHandler {
-                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                        target: null
+                    MouseArea {
+                        id: mainWheelArea
+
+                        anchors.fill: parent
+                        z: 100
+                        acceptedButtons: Qt.NoButton
+                        hoverEnabled: false
+                        scrollGestureEnabled: true
                         onWheel: function(event) {
+                            var dx = Theme.wheelDeltaX(event);
                             var dy = Theme.wheelDeltaY(event);
-                            if (dy === 0)
+                            if (root.filterMode !== "image" && Math.abs(dx) > Math.abs(dy) && dx !== 0 && imageLayoutLoader.item) {
+                                var p = mainWheelArea.mapToItem(imageLayoutLoader, event.x, event.y);
+                                if (p.y >= 0 && p.y <= imageLayoutLoader.height && p.x >= 0 && p.x <= imageLayoutLoader.width) {
+                                    var strip = imageLayoutLoader.item;
+                                    var maxX = Math.max(0, strip.contentWidth - strip.width);
+                                    if (maxX > 0) {
+                                        strip.contentX = Math.max(0, Math.min(maxX, strip.contentX - (dx * 0.45)));
+                                        event.accepted = true;
+                                        return ;
+                                    }
+                                }
+                            }
+                            if (dy === 0 || Math.abs(dy) < Math.abs(dx) * 0.5) {
+                                event.accepted = false;
                                 return ;
-
+                            }
                             var maxY = Math.max(0, mainScroll.contentHeight - mainScroll.height);
-                            if (maxY <= 0) {
+                            if (maxY <= 0 || (dy < 0 && mainScroll.contentY >= maxY - 1)) {
                                 if (dy < 0)
                                     root.handleSwipeUpDelta(dy);
 
+                                event.accepted = true;
                                 return ;
                             }
                             mainScroll.contentY = Math.max(0, Math.min(maxY, mainScroll.contentY - (dy * 0.45)));
+                            event.accepted = true;
                         }
                     }
 
-                    ColumnLayout {
-                        id: contentColumn
+                    Flickable {
+                        id: mainScroll
 
-                        width: mainScroll.width
-                        spacing: 14
+                        anchors.fill: parent
+                        clip: true
+                        contentWidth: width
+                        contentHeight: contentColumn.implicitHeight
+                        interactive: false
+                        boundsBehavior: Flickable.StopAtBounds
 
-                        // Section 1: Screenshots
                         ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 7
-                            visible: root.imageItems.length > 0
+                            id: contentColumn
 
-                            RowLayout {
+                            width: mainScroll.width
+                            spacing: 14
+
+                            // Section 1: Screenshots
+                            ColumnLayout {
                                 Layout.fillWidth: true
+                                spacing: 7
+                                visible: root.imageItems.length > 0
 
-                                Text {
-                                    text: "Screenshots"
-                                    font.family: Fonts.uiFont
-                                    font.pixelSize: 11
-                                    font.weight: Font.DemiBold
-                                    color: Theme.withAlpha(Theme.bright_foreground, 0.68)
-                                }
-
-                                Item {
+                                RowLayout {
                                     Layout.fillWidth: true
+
+                                    Text {
+                                        text: "Screenshots"
+                                        font.family: Fonts.uiFont
+                                        font.pixelSize: 11
+                                        font.weight: Font.DemiBold
+                                        color: Theme.withAlpha(Theme.bright_foreground, 0.68)
+                                    }
+
+                                    Item {
+                                        Layout.fillWidth: true
+                                    }
+
+                                    Text {
+                                        text: String(root.imageItems.length)
+                                        font.family: Fonts.uiFont
+                                        font.pixelSize: 11
+                                        color: Theme.muted
+                                    }
+
                                 }
 
-                                Text {
-                                    text: String(root.imageItems.length)
-                                    font.family: Fonts.uiFont
-                                    font.pixelSize: 11
-                                    color: Theme.muted
-                                }
+                                Loader {
+                                    id: imageLayoutLoader
 
-                            }
-
-                            Loader {
-                                id: imageLayoutLoader
-
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: (root.filterMode === "image") ? Math.max(118, Math.ceil(root.imageItems.length / 4) * 118) : Appearance.clipboardThumbHeight
-                                sourceComponent: (root.filterMode === "image") ? imageGridComp : imageStripComp
-                            }
-
-                        }
-
-                        // Section 2: Text & Snippet History (Clean Hairline List)
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 7
-                            visible: root.textItems.length > 0
-
-                            RowLayout {
-                                Layout.fillWidth: true
-
-                                Text {
-                                    text: root.filterMode === "pinned" ? "Pinned" : "History"
-                                    font.family: Fonts.uiFont
-                                    font.pixelSize: 11
-                                    font.weight: Font.DemiBold
-                                    color: Theme.withAlpha(Theme.bright_foreground, 0.68)
-                                }
-
-                                Item {
                                     Layout.fillWidth: true
-                                }
-
-                                Text {
-                                    text: String(root.textItems.length)
-                                    font.family: Fonts.uiFont
-                                    font.pixelSize: 11
-                                    color: Theme.muted
+                                    Layout.preferredHeight: (root.filterMode === "image") ? Math.max(118, Math.ceil(root.imageItems.length / 4) * 118) : Appearance.clipboardThumbHeight
+                                    sourceComponent: (root.filterMode === "image") ? imageGridComp : imageStripComp
                                 }
 
                             }
 
-                            Rectangle {
+                            // Section 2: Text & Snippet History (Clean Hairline List)
+                            ColumnLayout {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: textListCol.implicitHeight
-                                radius: 10
-                                color: Theme.withAlpha(Theme.darker_background, 0.34)
-                                border.width: 1
-                                border.color: Theme.withAlpha(Theme.bright_foreground, 0.08)
-                                clip: true
+                                spacing: 7
+                                visible: root.textItems.length > 0
 
-                                ColumnLayout {
-                                    id: textListCol
+                                RowLayout {
+                                    Layout.fillWidth: true
 
-                                    width: parent.width
-                                    spacing: 0
+                                    Text {
+                                        text: root.filterMode === "pinned" ? "Pinned" : "History"
+                                        font.family: Fonts.uiFont
+                                        font.pixelSize: 11
+                                        font.weight: Font.DemiBold
+                                        color: Theme.withAlpha(Theme.bright_foreground, 0.68)
+                                    }
 
-                                    Repeater {
-                                        model: root.textItems
+                                    Item {
+                                        Layout.fillWidth: true
+                                    }
 
-                                        delegate: Item {
-                                            id: rowRoot
+                                    Text {
+                                        text: String(root.textItems.length)
+                                        font.family: Fonts.uiFont
+                                        font.pixelSize: 11
+                                        color: Theme.muted
+                                    }
 
-                                            required property var modelData
-                                            required property int index
-                                            readonly property bool showDivider: index < (root.textItems.length - 1)
-                                            readonly property bool isCopiedNow: root.clipboardService && root.clipboardService.copiedFeedbackId === modelData.id
+                                }
 
-                                            Layout.fillWidth: true
-                                            Layout.preferredHeight: Math.max(42, Math.min(62, textPreviewLabel.implicitHeight + 18))
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: textListCol.implicitHeight
+                                    radius: 10
+                                    color: Theme.withAlpha(Theme.darker_background, 0.34)
+                                    border.width: 1
+                                    border.color: Theme.withAlpha(Theme.bright_foreground, 0.08)
+                                    clip: true
 
-                                            Item {
-                                                id: textDragPayload
+                                    ColumnLayout {
+                                        id: textListCol
 
-                                                Drag.active: textDragHandler.active
-                                                Drag.dragType: Drag.Automatic
-                                                Drag.supportedActions: Qt.CopyAction
-                                                Drag.hotSpot: Qt.point(24, 16)
-                                                Drag.mimeData: {
-                                                    "text/plain": rowRoot.modelData.text || ""
-                                                }
-                                                Drag.onDragStarted: root.isDragging = true
-                                                Drag.onDragFinished: function(dropAction) {
-                                                    root.isDragging = false;
-                                                    if (dropAction !== Qt.IgnoreAction && !root.stayPinnedOpen)
-                                                        root.close();
+                                        width: parent.width
+                                        spacing: 0
 
-                                                }
-                                            }
+                                        Repeater {
+                                            model: root.textItems
 
-                                            Rectangle {
-                                                anchors.fill: parent
-                                                color: {
-                                                    if (rowRoot.isCopiedNow)
-                                                        return Theme.withAlpha(Theme.green, 0.12);
+                                            delegate: Item {
+                                                id: rowRoot
 
-                                                    if (textDragHandler.active)
-                                                        return Theme.withAlpha(Theme.accent, 0.14);
+                                                required property var modelData
+                                                required property int index
+                                                readonly property bool showDivider: index < (root.textItems.length - 1)
+                                                readonly property bool isCopiedNow: root.clipboardService && root.clipboardService.copiedFeedbackId === modelData.id
 
-                                                    if (rowHover.hovered)
-                                                        return Theme.withAlpha(Theme.bright_foreground, 0.055);
+                                                Layout.fillWidth: true
+                                                Layout.preferredHeight: Math.max(42, Math.min(62, textPreviewLabel.implicitHeight + 18))
 
-                                                    return "transparent";
-                                                }
-
-                                                Behavior on color {
-                                                    ColorAnimation {
-                                                        duration: 100
-                                                    }
-
-                                                }
-
-                                            }
-
-                                            // Interaction Hitbox Behind Right-Aligned Action Icons
-                                            Item {
-                                                anchors.fill: parent
-
-                                                HoverHandler {
-                                                    id: rowHover
-                                                }
-
-                                                DragHandler {
-                                                    id: textDragHandler
-
-                                                    target: null
-                                                    dragThreshold: 8
-                                                }
-
-                                                TapHandler {
-                                                    onTapped: root.pasteCard(rowRoot.modelData.id)
-                                                }
-
-                                            }
-
-                                            RowLayout {
-                                                anchors.fill: parent
-                                                anchors.leftMargin: 12
-                                                anchors.rightMargin: 10
-                                                spacing: 10
-
-                                                // Type Indicator / Color Swatch Dot
                                                 Item {
-                                                    Layout.preferredWidth: 16
-                                                    Layout.preferredHeight: 16
-                                                    Layout.alignment: Qt.AlignVCenter
+                                                    id: textDragPayload
 
-                                                    Rectangle {
-                                                        visible: Boolean(rowRoot.modelData.isColor)
-                                                        anchors.centerIn: parent
-                                                        width: 14
-                                                        height: 14
-                                                        radius: 7
-                                                        color: rowRoot.modelData.colorHex || "transparent"
-                                                        border.width: 1
-                                                        border.color: Theme.withAlpha(Theme.bright_foreground, 0.28)
+                                                    Drag.active: textDragHandler.active
+                                                    Drag.dragType: Drag.Automatic
+                                                    Drag.supportedActions: Qt.CopyAction
+                                                    Drag.hotSpot: Qt.point(24, 16)
+                                                    Drag.mimeData: {
+                                                        "text/plain": rowRoot.modelData.text || ""
+                                                    }
+                                                    Drag.onDragStarted: root.isDragging = true
+                                                    Drag.onDragFinished: function(dropAction) {
+                                                        root.isDragging = false;
+                                                        if (dropAction !== Qt.IgnoreAction && !root.stayPinnedOpen)
+                                                            root.close();
+
+                                                    }
+                                                }
+
+                                                Rectangle {
+                                                    anchors.fill: parent
+                                                    color: {
+                                                        if (rowRoot.isCopiedNow)
+                                                            return Theme.withAlpha(Theme.green, 0.12);
+
+                                                        if (textDragHandler.active)
+                                                            return Theme.withAlpha(Theme.accent, 0.14);
+
+                                                        if (rowHover.hovered)
+                                                            return Theme.withAlpha(Theme.bright_foreground, 0.055);
+
+                                                        return "transparent";
                                                     }
 
-                                                    Text {
-                                                        visible: !rowRoot.modelData.isColor
-                                                        anchors.centerIn: parent
-                                                        text: rowRoot.modelData.isUrl ? Icons.linkIcon : (rowRoot.modelData.isCode ? Icons.codeIcon : Icons.textDoc)
-                                                        font.family: Icons.effectiveFont(text)
-                                                        font.pixelSize: 14
-                                                        color: rowHover.hovered ? Theme.accent : Theme.muted
+                                                    Behavior on color {
+                                                        ColorAnimation {
+                                                            duration: 100
+                                                        }
+
                                                     }
 
                                                 }
 
-                                                // Snippet Content
-                                                Text {
-                                                    id: textPreviewLabel
-
-                                                    Layout.fillWidth: true
-                                                    text: rowRoot.modelData.preview || rowRoot.modelData.text || ""
-                                                    font.family: (rowRoot.modelData.isCode || rowRoot.modelData.isColor) ? Fonts.monoFont : Fonts.uiFont
-                                                    font.pixelSize: 12
-                                                    color: Theme.bright_foreground
-                                                    elide: Text.ElideRight
-                                                    maximumLineCount: 2
-                                                    wrapMode: Text.WrapAnywhere
-                                                }
-
-                                                // Right-Aligned Quiet Metadata OR Hover Action Cluster
+                                                // Interaction Hitbox Behind Right-Aligned Action Icons
                                                 Item {
-                                                    Layout.preferredWidth: Math.max(metaCluster.implicitWidth, hoverActionRow.implicitWidth)
-                                                    Layout.preferredHeight: 24
-                                                    Layout.alignment: Qt.AlignVCenter
-                                                    z: 10
+                                                    anchors.fill: parent
 
-                                                    // Rest State: Multi-line pill, pin mark, relative time
-                                                    Row {
-                                                        id: metaCluster
+                                                    HoverHandler {
+                                                        id: rowHover
+                                                    }
 
-                                                        anchors.right: parent.right
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                        spacing: 7
-                                                        visible: !rowHover.hovered && !rowRoot.isCopiedNow
+                                                    DragHandler {
+                                                        id: textDragHandler
 
-                                                        Text {
-                                                            visible: (rowRoot.modelData.lineCount || 1) > 1
-                                                            text: rowRoot.modelData.lineCount + "L"
-                                                            font.family: Fonts.monoFont
-                                                            font.pixelSize: 10
-                                                            color: Theme.withAlpha(Theme.muted, 0.85)
-                                                            anchors.verticalCenter: parent.verticalCenter
+                                                        target: null
+                                                        dragThreshold: 8
+                                                    }
+
+                                                    TapHandler {
+                                                        onTapped: root.pasteCard(rowRoot.modelData.id)
+                                                    }
+
+                                                }
+
+                                                RowLayout {
+                                                    anchors.fill: parent
+                                                    anchors.leftMargin: 12
+                                                    anchors.rightMargin: 10
+                                                    spacing: 10
+
+                                                    // Type Indicator / Color Swatch Dot
+                                                    Item {
+                                                        Layout.preferredWidth: 16
+                                                        Layout.preferredHeight: 16
+                                                        Layout.alignment: Qt.AlignVCenter
+
+                                                        Rectangle {
+                                                            visible: Boolean(rowRoot.modelData.isColor)
+                                                            anchors.centerIn: parent
+                                                            width: 14
+                                                            height: 14
+                                                            radius: 7
+                                                            color: rowRoot.modelData.colorHex || "transparent"
+                                                            border.width: 1
+                                                            border.color: Theme.withAlpha(Theme.bright_foreground, 0.28)
                                                         }
 
                                                         Text {
-                                                            visible: Boolean(rowRoot.modelData.pinned)
-                                                            text: Icons.pin
+                                                            visible: !rowRoot.modelData.isColor
+                                                            anchors.centerIn: parent
+                                                            text: rowRoot.modelData.isUrl ? Icons.linkIcon : (rowRoot.modelData.isCode ? Icons.codeIcon : Icons.textDoc)
                                                             font.family: Icons.effectiveFont(text)
-                                                            font.pixelSize: 11
-                                                            color: Theme.accent
-                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            font.pixelSize: 14
+                                                            color: rowHover.hovered ? Theme.accent : Theme.muted
                                                         }
 
+                                                    }
+
+                                                    // Snippet Content
+                                                    Text {
+                                                        id: textPreviewLabel
+
+                                                        Layout.fillWidth: true
+                                                        text: rowRoot.modelData.preview || rowRoot.modelData.text || ""
+                                                        font.family: (rowRoot.modelData.isCode || rowRoot.modelData.isColor) ? Fonts.monoFont : Fonts.uiFont
+                                                        font.pixelSize: 12
+                                                        color: Theme.bright_foreground
+                                                        elide: Text.ElideRight
+                                                        maximumLineCount: 2
+                                                        wrapMode: Text.WrapAnywhere
+                                                    }
+
+                                                    // Right-Aligned Quiet Metadata OR Hover Action Cluster
+                                                    Item {
+                                                        Layout.preferredWidth: Math.max(metaCluster.implicitWidth, hoverActionRow.implicitWidth)
+                                                        Layout.preferredHeight: 24
+                                                        Layout.alignment: Qt.AlignVCenter
+                                                        z: 10
+
+                                                        // Rest State: Multi-line pill, pin mark, relative time
+                                                        Row {
+                                                            id: metaCluster
+
+                                                            anchors.right: parent.right
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            spacing: 7
+                                                            visible: !rowHover.hovered && !rowRoot.isCopiedNow
+
+                                                            Text {
+                                                                visible: (rowRoot.modelData.lineCount || 1) > 1
+                                                                text: rowRoot.modelData.lineCount + "L"
+                                                                font.family: Fonts.monoFont
+                                                                font.pixelSize: 10
+                                                                color: Theme.withAlpha(Theme.muted, 0.85)
+                                                                anchors.verticalCenter: parent.verticalCenter
+                                                            }
+
+                                                            Text {
+                                                                visible: Boolean(rowRoot.modelData.pinned)
+                                                                text: Icons.pin
+                                                                font.family: Icons.effectiveFont(text)
+                                                                font.pixelSize: 11
+                                                                color: Theme.accent
+                                                                anchors.verticalCenter: parent.verticalCenter
+                                                            }
+
+                                                            Text {
+                                                                text: root.clipboardService ? root.clipboardService.formatRelativeTime(rowRoot.modelData.timestamp) : ""
+                                                                font.family: Fonts.uiFont
+                                                                font.pixelSize: 11
+                                                                color: Theme.muted
+                                                                anchors.verticalCenter: parent.verticalCenter
+                                                            }
+
+                                                        }
+
+                                                        // Copied State
                                                         Text {
-                                                            text: root.clipboardService ? root.clipboardService.formatRelativeTime(rowRoot.modelData.timestamp) : ""
+                                                            anchors.right: parent.right
+                                                            anchors.verticalCenter: parent.verticalCenter
+                                                            visible: rowRoot.isCopiedNow
+                                                            text: "Copied"
                                                             font.family: Fonts.uiFont
                                                             font.pixelSize: 11
-                                                            color: Theme.muted
+                                                            font.weight: Font.DemiBold
+                                                            color: Theme.green
+                                                        }
+
+                                                        // Hover State: Quiet Borderless Actions
+                                                        Row {
+                                                            id: hoverActionRow
+
+                                                            anchors.right: parent.right
                                                             anchors.verticalCenter: parent.verticalCenter
-                                                        }
+                                                            spacing: 2
+                                                            visible: rowHover.hovered && !rowRoot.isCopiedNow
 
-                                                    }
-
-                                                    // Copied State
-                                                    Text {
-                                                        anchors.right: parent.right
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                        visible: rowRoot.isCopiedNow
-                                                        text: "Copied"
-                                                        font.family: Fonts.uiFont
-                                                        font.pixelSize: 11
-                                                        font.weight: Font.DemiBold
-                                                        color: Theme.green
-                                                    }
-
-                                                    // Hover State: Quiet Borderless Actions
-                                                    Row {
-                                                        id: hoverActionRow
-
-                                                        anchors.right: parent.right
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                        spacing: 2
-                                                        visible: rowHover.hovered && !rowRoot.isCopiedNow
-
-                                                        GhostIconButton {
-                                                            glyph: Icons.copy
-                                                            buttonSize: 24
-                                                            glyphSize: 13
-                                                            cornerRadius: 6
-                                                            onClicked: root.copyCard(rowRoot.modelData.id)
-                                                        }
-
-                                                        GhostIconButton {
-                                                            glyph: Icons.pin
-                                                            buttonSize: 24
-                                                            glyphSize: 13
-                                                            cornerRadius: 6
-                                                            active: Boolean(rowRoot.modelData.pinned)
-                                                            onClicked: {
-                                                                if (root.clipboardService)
-                                                                    root.clipboardService.togglePin(rowRoot.modelData.id);
-
+                                                            GhostIconButton {
+                                                                glyph: Icons.copy
+                                                                buttonSize: 24
+                                                                glyphSize: 13
+                                                                cornerRadius: 6
+                                                                onClicked: root.copyCard(rowRoot.modelData.id)
                                                             }
-                                                        }
 
-                                                        GhostIconButton {
-                                                            glyph: Icons.trash
-                                                            buttonSize: 24
-                                                            glyphSize: 13
-                                                            cornerRadius: 6
-                                                            destructive: true
-                                                            onClicked: {
-                                                                if (root.clipboardService)
-                                                                    root.clipboardService.deleteItem(rowRoot.modelData.id);
+                                                            GhostIconButton {
+                                                                glyph: Icons.pin
+                                                                buttonSize: 24
+                                                                glyphSize: 13
+                                                                cornerRadius: 6
+                                                                active: Boolean(rowRoot.modelData.pinned)
+                                                                onClicked: {
+                                                                    if (root.clipboardService)
+                                                                        root.clipboardService.togglePin(rowRoot.modelData.id);
 
+                                                                }
                                                             }
+
+                                                            GhostIconButton {
+                                                                glyph: Icons.trash
+                                                                buttonSize: 24
+                                                                glyphSize: 13
+                                                                cornerRadius: 6
+                                                                destructive: true
+                                                                onClicked: {
+                                                                    if (root.clipboardService)
+                                                                        root.clipboardService.deleteItem(rowRoot.modelData.id);
+
+                                                                }
+                                                            }
+
                                                         }
 
                                                     }
 
                                                 }
 
-                                            }
+                                                // Hairline Row Divider
+                                                Rectangle {
+                                                    visible: rowRoot.showDivider
+                                                    anchors.left: parent.left
+                                                    anchors.right: parent.right
+                                                    anchors.leftMargin: 38
+                                                    anchors.bottom: parent.bottom
+                                                    height: 1
+                                                    color: Theme.withAlpha(Theme.bright_foreground, 0.055)
+                                                }
 
-                                            // Hairline Row Divider
-                                            Rectangle {
-                                                visible: rowRoot.showDivider
-                                                anchors.left: parent.left
-                                                anchors.right: parent.right
-                                                anchors.leftMargin: 38
-                                                anchors.bottom: parent.bottom
-                                                height: 1
-                                                color: Theme.withAlpha(Theme.bright_foreground, 0.055)
                                             }
 
                                         }
@@ -983,17 +1021,6 @@ PanelWindow {
                 Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 8
-
-                    WheelHandler {
-                        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                        target: null
-                        onWheel: function(event) {
-                            var dy = Theme.wheelDeltaY(event);
-                            if (dy < 0)
-                                root.handleSwipeUpDelta(dy);
-
-                        }
-                    }
 
                     Rectangle {
                         anchors.centerIn: parent
@@ -1024,8 +1051,12 @@ PanelWindow {
 
                         anchors.fill: parent
                         hoverEnabled: true
+                        scrollGestureEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: root.close()
+                        onWheel: function(event) {
+                            root.handleUpWheel(event);
+                        }
                     }
 
                 }
@@ -1052,24 +1083,6 @@ PanelWindow {
             cacheBuffer: 2400
             snapMode: ListView.SnapToItem
             model: root.imageItems
-
-            WheelHandler {
-                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-                target: null
-                onWheel: function(event) {
-                    var dx = Theme.wheelDeltaX(event);
-                    var dy = Theme.wheelDeltaY(event);
-                    if (Math.abs(dx) > Math.abs(dy) && dx !== 0) {
-                        var maxX = Math.max(0, imgStripList.contentWidth - imgStripList.width);
-                        if (maxX > 0) {
-                            imgStripList.contentX = Math.max(0, Math.min(maxX, imgStripList.contentX - (dx * 0.45)));
-                            return ;
-                        }
-                    }
-                    // Let vertical wheel pass cleanly to mainScroll / drawer dismissal
-                    event.accepted = false;
-                }
-            }
 
             delegate: ImageCardDelegate {
                 width: Math.floor((imgStripList.width - 30) / 4)

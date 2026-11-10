@@ -28,6 +28,7 @@ ShellRoot {
     property WallpaperSwitcherService wallpaperSwitcherService
     property AuditService auditService
     property ClipboardService clipboardService
+    readonly property ClipboardDrawer clipboardDrawer: clipboardDrawerWindow
 
     IpcHandler {
         function toggle() : string {
@@ -73,7 +74,7 @@ ShellRoot {
 
     // Pull-Down Clipboard & Screenshot Shade Drawer
     ClipboardDrawer {
-        id: clipboardDrawer
+        id: clipboardDrawerWindow
 
         clipboardService: root.clipboardService
     }
@@ -134,7 +135,7 @@ ShellRoot {
             networkService: root.networkService
             bluetoothService: root.bluetoothService
             powerService: root.powerService
-            clipboardDrawer: clipboardDrawer
+            clipboardDrawer: root.clipboardDrawer
         }
 
     }

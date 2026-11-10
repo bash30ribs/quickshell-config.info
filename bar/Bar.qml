@@ -17,7 +17,7 @@ PanelWindow {
     required property NetworkService networkService
     required property BluetoothService bluetoothService
     required property PowerService powerService
-    property var clipboardDrawer: null
+    property QtObject clipboardDrawer: null
     property real glideAccum: 0
     property real glideCooldownUntil: 0
     // Bar layout mode configuration (floating, islands, wide, compact)
@@ -40,16 +40,20 @@ PanelWindow {
         }
         var dy = Theme.wheelDeltaY(event);
         var dx = Theme.wheelDeltaX(event);
-        console.debug("[BarWheel] adY=", event.angleDelta ? event.angleDelta.y : 0, "pdY=", event.pixelDelta ? event.pixelDelta.y : 0, "inv=", Boolean(event.inverted), "dy=", dy, "dx=", dx, "open=", root.clipboardDrawer.isOpen);
-        if (dy === 0 || Math.abs(dy) < Math.abs(dx) * 0.6) {
+        if (dy === 0 || Math.abs(dy) < Math.abs(dx) * 0.5) {
             event.accepted = false;
             return ;
         }
         if (!root.clipboardDrawer.isOpen && dy < 0) {
-            event.accepted = false;
+            // Eat tiny initial contact jitter over WorkspacesWidget; allow deliberate scroll-through
+            event.accepted = Math.abs(dy) < 12;
             return ;
         }
         if (Date.now() < root.glideCooldownUntil) {
+            event.accepted = true;
+            return ;
+        }
+        if (root.clipboardDrawer.isOpen && dy < 0 && (Date.now() - root.clipboardDrawer.openedAtMs) < 320) {
             event.accepted = true;
             return ;
         }
@@ -62,13 +66,14 @@ PanelWindow {
         // gliding 2 fingers UP produces negative delta.y
         if (!root.clipboardDrawer.isOpen && root.glideAccum >= 4) {
             root.glideAccum = 0;
-            root.glideCooldownUntil = Date.now() + 220;
+            root.glideCooldownUntil = Date.now() + 340;
             root.clipboardDrawer.open();
         } else if (root.clipboardDrawer.isOpen && root.glideAccum <= -4) {
             root.glideAccum = 0;
-            root.glideCooldownUntil = Date.now() + 220;
+            root.glideCooldownUntil = Date.now() + 340;
             root.clipboardDrawer.close();
         }
+        event.accepted = true;
     }
 
     visible: Appearance.barVisible
