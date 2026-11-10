@@ -257,6 +257,8 @@ qs ipc call audit status                # Query daemon running state
 │   ├── qdeck-wallpaper-palette.py# Multi-theme dynamic wallpaper palette extractor
 │   └── qdeck-wallpaper-thumbs.py # High-speed cached carousel thumbnail generator
 └── scripts/
+    ├── ralph                     # Native Antigravity Ralph Loop CLI & PRD runner
+    ├── ralph-stop-hook.py        # Antigravity Stop-hook verification loop controller
     └── verify.sh                 # Autonomous syntax & shader verification pipeline
 ```
 

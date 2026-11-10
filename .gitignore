@@ -4,6 +4,7 @@ bar-visibility
 dns-provider
 text-size
 wallpaper-palette.json
+.ralph/
 *.log
 *.tmp*
 

@@ -1,0 +1,252 @@
+#!/usr/bin/env python3
+"""
+QDeck / Antigravity Ralph Loop CLI
+Controls native Antigravity Stop-hook verification loops and headless `agy -p`
+PRD/progress.txt external loops without needing remote debugging extensions.
+"""
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+import time
+
+HOME = os.path.expanduser("~")
+WORKSPACE_ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+STATE_DIR = os.path.join(
+    os.environ.get("XDG_STATE_HOME", os.path.join(HOME, ".local", "state")),
+    "qdeck",
+)
+STATE_FILE = os.path.join(STATE_DIR, "ralph-state.json")
+LOG_FILE = os.path.join(STATE_DIR, "ralph-history.log")
+STOP_HOOK = os.path.join(WORKSPACE_ROOT, "scripts", "ralph-stop-hook.py")
+DEFAULT_PRD_DIR = os.path.join(WORKSPACE_ROOT, ".ralph")
+
+
+def save_state(state):
+    os.makedirs(STATE_DIR, exist_ok=True)
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2)
+        f.flush()
+
+
+def load_state():
+    if not os.path.isfile(STATE_FILE):
+        return None
+    try:
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def cmd_start(args):
+    state = {
+        "active": True,
+        "workspace": WORKSPACE_ROOT,
+        "mode": args.mode,
+        "command": args.cmd,
+        "completionPromise": args.promise,
+        "maxIterations": args.max,
+        "iteration": 0,
+        "goal": args.goal or "",
+        "startedAt": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "lastOutcome": "armed",
+    }
+    save_state(state)
+    print(f"Ralph Loop armed ({args.mode} mode, max {args.max} iterations).")
+    if args.mode in ("command", "tests", "build"):
+        print(f"Validation command: {args.cmd}")
+    else:
+        print(f"Completion token: {args.promise}")
+    print("Antigravity Stop hook will auto-verify and continue until passing or stopped.")
+
+
+def cmd_stop(_args):
+    state = load_state() or {}
+    state["active"] = False
+    state["lastOutcome"] = "stopped_manually"
+    save_state(state)
+    print("Ralph Loop deactivated.")
+
+
+def cmd_status(_args):
+    state = load_state()
+    if not state:
+        print("Ralph Loop: inactive (never started)")
+        return
+    status_str = "ACTIVE" if state.get("active") else "INACTIVE"
+    print(f"Ralph Loop Status : {status_str}")
+    print(f"Mode              : {state.get('mode')}")
+    print(f"Iterations        : {state.get('iteration', 0)} / {state.get('maxIterations', 15)}")
+    print(f"Command           : {state.get('command')}")
+    print(f"Completion Token  : {state.get('completionPromise')}")
+    print(f"Last Outcome      : {state.get('lastOutcome')}")
+    if state.get("goal"):
+        print(f"Goal              : {state.get('goal')}")
+    if os.path.isfile(LOG_FILE):
+        print("\nRecent History:")
+        with open(LOG_FILE, "r", encoding="utf-8") as f:
+            lines = f.readlines()[-6:]
+        for line in lines:
+            print("  " + line.rstrip())
+
+
+def cmd_init_prd(args):
+    prd_dir = os.path.abspath(args.dir or DEFAULT_PRD_DIR)
+    os.makedirs(prd_dir, exist_ok=True)
+    prd_file = os.path.join(prd_dir, "PRD.md")
+    prog_file = os.path.join(prd_dir, "progress.txt")
+
+    if not os.path.exists(prd_file):
+        with open(prd_file, "w", encoding="utf-8") as f:
+            f.write(
+                "# Ralph Loop Product Requirements (PRD)\n\n"
+                "## Tasks\n"
+                "- [ ] Task 1: Replace this line with your first requirement\n"
+                "- [ ] Task 2: Verify via `./scripts/verify.sh --all`\n"
+            )
+        print(f"Created {prd_file}")
+    else:
+        print(f"PRD already exists at {prd_file}")
+
+    if not os.path.exists(prog_file):
+        with open(prog_file, "w", encoding="utf-8") as f:
+            f.write("# Ralph Loop Progress Log\n")
+        print(f"Created {prog_file}")
+
+
+def count_unchecked_tasks(prd_path):
+    if not os.path.isfile(prd_path):
+        return 0
+    count = 0
+    with open(prd_path, "r", encoding="utf-8") as f:
+        for line in f:
+            if line.lstrip().startswith("- [ ]"):
+                count += 1
+    return count
+
+
+def cmd_run_prd(args):
+    prd_dir = os.path.abspath(args.dir or DEFAULT_PRD_DIR)
+    prd_file = os.path.join(prd_dir, "PRD.md")
+    prog_file = os.path.join(prd_dir, "progress.txt")
+
+    if not os.path.isfile(prd_file):
+        print(f"Missing {prd_file}. Run `./scripts/ralph init-prd` first.", file=sys.stderr)
+        sys.exit(1)
+
+    if not os.path.isfile(prog_file):
+        with open(prog_file, "w", encoding="utf-8") as f:
+            f.write("# Ralph Loop Progress Log\n")
+
+    for i in range(1, args.max + 1):
+        remaining = count_unchecked_tasks(prd_file)
+        if remaining == 0:
+            print(f"All PRD tasks complete at iteration {i - 1}.")
+            return
+
+        print(f"=== Ralph PRD Loop · Iteration {i}/{args.max} ({remaining} tasks remaining) ===")
+        prompt = (
+            f"You are executing Ralph Loop iteration {i} of {args.max} in workspace {WORKSPACE_ROOT}.\n"
+            f"1. Read `{prd_file}` and `{prog_file}`.\n"
+            f"2. Pick the next single unchecked `- [ ]` task in `{prd_file}`.\n"
+            f"3. Implement it cleanly following AGENTS.md standards.\n"
+            f"4. Run verification command `{args.verify}` and confirm exit code 0.\n"
+            f"5. Update `{prd_file}` changing ONLY that completed item to `- [x]`, and append a concise summary to `{prog_file}`.\n"
+            f"6. Do NOT stop until verification passes for the task you selected."
+        )
+
+        cmd = ["agy", "-p", prompt]
+        if args.auto_approve:
+            cmd.append("--dangerously-skip-permissions")
+        if args.model:
+            cmd.extend(["--model", args.model])
+
+        proc = subprocess.run(cmd, cwd=WORKSPACE_ROOT)
+        if proc.returncode != 0:
+            print(f"Warning: `agy` exited with code {proc.returncode}; stopping loop.", file=sys.stderr)
+            sys.exit(proc.returncode)
+
+        if args.verify:
+            ver = subprocess.run(args.verify, shell=True, cwd=WORKSPACE_ROOT)
+            if ver.returncode != 0:
+                print(f"Verification `{args.verify}` failed after iteration {i}; continuing to next fresh iteration.")
+
+    remaining = count_unchecked_tasks(prd_file)
+    print(f"Max iterations ({args.max}) reached. Remaining unchecked PRD tasks: {remaining}")
+
+
+def cmd_verify(_args):
+    # Sanity test the Stop hook contract with temporary state backup
+    prev = load_state()
+    try:
+        test_state = {
+            "active": True,
+            "workspace": WORKSPACE_ROOT,
+            "mode": "command",
+            "command": "false",
+            "completionPromise": "DONE",
+            "maxIterations": 3,
+            "iteration": 0,
+            "goal": "self-test",
+        }
+        save_state(test_state)
+        payload = json.dumps({"cwd": WORKSPACE_ROOT, "terminationReason": "NO_TOOL_CALL"})
+        out = subprocess.check_output(["python3", STOP_HOOK], input=payload, text=True)
+        res = json.loads(out)
+        assert res.get("decision") == "continue", f"Expected continue, got {res}"
+
+        test_state["command"] = "true"
+        save_state(test_state)
+        out2 = subprocess.check_output(["python3", STOP_HOOK], input=payload, text=True)
+        res2 = json.loads(out2)
+        assert res2 == {}, f"Expected empty object on pass, got {res2}"
+        print("Ralph Stop-Hook contract self-test passed (continue on failure, stop on pass).")
+    finally:
+        if prev is not None:
+            save_state(prev)
+        elif os.path.isfile(STATE_FILE):
+            os.remove(STATE_FILE)
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="ralph", description="Antigravity Native Ralph Loop Controller")
+    sub = parser.add_subparsers(dest="subcommand", required=True)
+
+    p_start = sub.add_parser("start", help="Arm native Stop-hook Ralph Loop for this workspace")
+    p_start.add_argument("--mode", choices=["command", "tests", "build", "promise"], default="command")
+    p_start.add_argument("--cmd", default="./scripts/verify.sh --all", help="Validation command to run on Stop")
+    p_start.add_argument("--promise", default="DONE", help="Completion token when using --mode promise")
+    p_start.add_argument("--max", type=int, default=15, help="Maximum forced loop iterations")
+    p_start.add_argument("--goal", default="", help="Goal reminder injected on failed iterations")
+    p_start.set_defaults(func=cmd_start)
+
+    p_stop = sub.add_parser("stop", aliases=["cancel"], help="Disarm active Stop-hook Ralph Loop")
+    p_stop.set_defaults(func=cmd_stop)
+
+    p_status = sub.add_parser("status", help="Show current Ralph Loop state and recent logs")
+    p_status.set_defaults(func=cmd_status)
+
+    p_init = sub.add_parser("init-prd", help="Create .ralph/PRD.md and .ralph/progress.txt templates")
+    p_init.add_argument("--dir", default="", help="Target directory (defaults to .ralph/)")
+    p_init.set_defaults(func=cmd_init_prd)
+
+    p_prd = sub.add_parser("run-prd", help="Run headless fresh-context Ralph Loop over PRD.md using `agy -p`")
+    p_prd.add_argument("--dir", default="", help="Directory containing PRD.md and progress.txt")
+    p_prd.add_argument("--max", type=int, default=10, help="Maximum iterations")
+    p_prd.add_argument("--verify", default="./scripts/verify.sh --all", help="Verification command after each turn")
+    p_prd.add_argument("--model", default="", help="Optional model override for `agy`")
+    p_prd.add_argument("--auto-approve", action="store_true", help="Pass --dangerously-skip-permissions to `agy`")
+    p_prd.set_defaults(func=cmd_run_prd)
+
+    p_ver = sub.add_parser("verify", help="Run self-test against ralph-stop-hook.py contract")
+    p_ver.set_defaults(func=cmd_verify)
+
+    args = parser.parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()
