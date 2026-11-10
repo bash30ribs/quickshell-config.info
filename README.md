@@ -238,7 +238,8 @@ qs ipc call audit status                # Query daemon running state
 ├── src/
 │   ├── qdeck-audit-daemon.py     # Background application activity auditor
 │   ├── qdeck-lockstate-monitor.c # High-efficiency C sysfs LED monitor (0.0% CPU)
-│   └── qdeck-wallpaper-palette.py# Multi-theme dynamic wallpaper palette extractor
+│   ├── qdeck-wallpaper-palette.py# Multi-theme dynamic wallpaper palette extractor
+│   └── qdeck-wallpaper-thumbs.py # High-speed cached carousel thumbnail generator
 └── scripts/
     └── verify.sh                 # Autonomous syntax & shader verification pipeline
 ```

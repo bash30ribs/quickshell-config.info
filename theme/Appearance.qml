@@ -1,8 +1,10 @@
-pragma Singleton
 import QtQuick
 import Quickshell
+pragma Singleton
 
 QtObject {
+    // Lateral prism refraction
+
     id: root
 
     // Bar dimensions and layout
@@ -13,76 +15,72 @@ QtObject {
     property int barSectionSpacing: 8
     property int barButtonHeight: barHeight - 4
     property bool barVisible: true
-
     // =========================================================================
     // Apple macOS Liquid Glass Optical Settings (qt-liquid-glass Specification)
     // =========================================================================
-    property string glassMode: "liquid" // "liquid", "frosted", "clear", "flat"
-    property string glassMaterial: "controlCenter" // "controlCenter", "widgets", "clearGlass", "sidebar", "chromatic"
-    property real glassClarity: 0.75    // Apple liquid clarity
-    property real glassRimIllumination: 0.50 // Specular crest illumination
-    property real glassSpecularIntensity: 0.75 // Top specular sheen
-    property real glassRefractionStrength: 0.85 // Chromatic dispersion & lensing
-    property real glassInnerBevel: 0.55 // Inset chamfer light catch
-    property real glassChromaticDispersion: 0.60 // Lateral prism refraction
-
+    property string glassMode: "liquid"
+    // "liquid", "frosted", "clear", "flat"
+    property string glassMaterial: "controlCenter"
+    // "controlCenter", "widgets", "clearGlass", "sidebar", "chromatic"
+    property real glassClarity: 0.75
+    // Apple liquid clarity
+    property real glassRimIllumination: 0.5
+    // Specular crest illumination
+    property real glassSpecularIntensity: 0.75
+    // Top specular sheen
+    property real glassRefractionStrength: 0.85
+    // Chromatic dispersion & lensing
+    property real glassInnerBevel: 0.55
+    // Inset chamfer light catch
+    property real glassChromaticDispersion: 0.6
     // Mornye Spring Physics Settings (mornye_glass_press.dart)
-    property real springMass: 1.0
-    property real springStiffness: 420.0
-    property real springDamping: 24.0
-
+    property real springMass: 1
+    property real springStiffness: 420
+    property real springDamping: 24
     // =========================================================================
     // Border Toggles (off by default)
     // =========================================================================
     // Bar border toggle
     property bool barBorder: false
-
     // Polkit password input border toggle (off by default)
     property bool polkitInputBorder: false
     property alias polkitBorder: root.polkitInputBorder
-
     // PowerMenu power switch / action buttons border toggle (off by default)
     property bool powerMenuSwitchBorder: false
     property alias powerMenuPowerSwitchBorder: root.powerMenuSwitchBorder
     property alias powerSwitchBorder: root.powerMenuSwitchBorder
-
     // Theme Switcher individual theme card border toggle (off by default)
     property bool themeSwitcherCardBorder: false
     property alias themeCardBorder: root.themeSwitcherCardBorder
     property alias themeSwitcherThemeBorder: root.themeSwitcherCardBorder
-
     // Wallpaper Switcher card border toggle (off by default)
     property bool wallpaperSwitcherCardBorder: true
     property alias wallpaperCardBorder: root.wallpaperSwitcherCardBorder
-
     // Bar widget display options
     property bool batteryShowPercentage: true
     property bool batteryShowCycles: true
     property bool batteryShowHealth: true
     property int batteryCycleOverride: 0
-
     // Individual bar widget icon sizes (px) - adaptively scaled with global text size
     property int barIconSize: Icons.barIconSize
-    property int batteryIconSize: Math.max(14, Math.round(Fonts.baseTextSize * (22 / 12.0)))
+    property int batteryIconSize: Math.max(14, Math.round(Fonts.baseTextSize * (22 / 12)))
     property int audioIconSize: root.barIconSize
     property int bluetoothIconSize: root.barIconSize
     property int networkIconSize: root.barIconSize
     property int monitorIconSize: root.barIconSize
-
     // Hyprland Workspaces Indicator Controls - adaptively scaled with global text size
-    property int workspacesPaddingHorizontal: Math.max(2, Math.round(Fonts.baseTextSize * (4 / 12.0)))
-    property int workspacesPaddingVertical: Math.max(2, Math.round(Fonts.baseTextSize * (3 / 12.0)))
+    property int workspacesPaddingHorizontal: Math.max(2, Math.round(Fonts.baseTextSize * (4 / 12)))
+    property int workspacesPaddingVertical: Math.max(2, Math.round(Fonts.baseTextSize * (3 / 12)))
     property int workspacesMargin: 0
-    property int workspacesSpacing: Math.max(2, Math.round(Fonts.baseTextSize * (4 / 12.0)))
-    property int workspacesDotSize: Math.max(4, Math.round(Fonts.baseTextSize * (7 / 12.0)))
-    property int workspacesStarSize: Math.max(8, Math.round(Fonts.baseTextSize * (14 / 12.0)))
+    property int workspacesSpacing: Math.max(2, Math.round(Fonts.baseTextSize * (4 / 12)))
+    property int workspacesDotSize: Math.max(4, Math.round(Fonts.baseTextSize * (7 / 12)))
+    property int workspacesStarSize: Math.max(8, Math.round(Fonts.baseTextSize * (14 / 12)))
     property int workspacesIconSize: root.workspacesStarSize
-    property int workspacesInactiveIconSize: Math.max(6, Math.round(Fonts.baseTextSize * (11 / 12.0)))
+    property int workspacesInactiveIconSize: Math.max(6, Math.round(Fonts.baseTextSize * (11 / 12)))
     property int workspacesIconOffsetX: 0
     property int workspacesIconOffsetY: 0
-    property int workspacesCapsuleWidth: Math.max(16, Math.round(Fonts.baseTextSize * (24 / 12.0)))
-    property int workspacesActiveCapsuleWidth: Math.max(30, Math.round(Fonts.baseTextSize * (46 / 12.0)))
-
+    property int workspacesCapsuleWidth: Math.max(16, Math.round(Fonts.baseTextSize * (24 / 12)))
+    property int workspacesActiveCapsuleWidth: Math.max(30, Math.round(Fonts.baseTextSize * (46 / 12)))
     // =========================================================================
     // Corner Radii
     // =========================================================================
@@ -92,14 +90,12 @@ QtObject {
     property int radiusLarge: 12
     property int radiusXl: 14
     property int radiusPill: 24
-
     // Semantic component radii
     property int buttonRadius: root.radiusSmall
     property int popupRadius: root.radiusMedium
     property int cardRadius: root.radiusLarge
     property int dialogRadius: root.radiusXl
     property int surfaceRadius: 10
-
     // =========================================================================
     // Borders & Outlines
     // =========================================================================
@@ -108,7 +104,6 @@ QtObject {
     property int borderWidthMedium: 2
     property int borderWidthThick: 3
     property int defaultBorderWidth: root.borderWidthThin
-
     // =========================================================================
     // Padding & Spacing
     // =========================================================================
@@ -117,23 +112,19 @@ QtObject {
     property int spacingMedium: 8
     property int spacingLarge: 12
     property int spacingXl: 16
-
     property int paddingSmall: 6
     property int paddingMedium: 10
     property int paddingLarge: 14
     property int paddingXl: 20
-
     // Popup card geometry
     property int popupPadding: 12
     property int popupMargin: 8
     property int popupHeaderHeight: 38
-
     // =========================================================================
     // Button & Control Dimensions
     // =========================================================================
     property int buttonHeight: 32
     property int buttonPadding: 8
-
     // =========================================================================
     // Sliders
     // =========================================================================
@@ -146,12 +137,10 @@ QtObject {
     property int sliderKnobRadius: 8
     property int sliderKnobBorderWidth: 2
     property int sliderSpacing: 10
-
     // Compact audio mixer slider
     property int audioSliderHeight: 22
     property int audioSliderTrackHeight: 4
     property int audioSliderTrackRadius: 2
-
     // =========================================================================
     // Toggle Switches
     // =========================================================================
@@ -161,7 +150,6 @@ QtObject {
     property int toggleThumbSize: 16
     property int toggleThumbRadius: 2
     property int toggleBorderWidth: 1
-
     // =========================================================================
     // On-Screen Display (OSD)
     // =========================================================================
@@ -172,7 +160,6 @@ QtObject {
     property int osdTrackWidth: 140
     property int osdTrackHeight: 6
     property int osdTrackRadius: 3
-
     // =========================================================================
     // Notifications
     // =========================================================================
@@ -182,30 +169,27 @@ QtObject {
     property int notificationTopMargin: (root.barVisible ? root.barHeight : 0) + 12
     property int notificationSpacing: 8
     property int notificationUrgencyStripWidth: 4
-
     // =========================================================================
     // Application Launcher
     // =========================================================================
-    property int launcherWidth: 600
-    property int launcherHeight: 410
+    property int launcherWidth: 620
+    property int launcherHeight: 460
     property int launcherModalWidth: 700
     property int launcherModalHeight: 468
-    property int launcherRadius: 10
-    property int launcherPadding: 30
-    property int launcherItemHeight: 36
+    property int launcherRadius: 20
+    property int launcherPadding: 16
+    property int launcherItemHeight: 42
     property int launcherItemRadius: 10
-    property int launcherIconSize: Math.max(16, Math.round(Fonts.baseTextSize * (24 / 12.0)))
-
+    property int launcherIconSize: Math.max(16, Math.round(Fonts.baseTextSize * (24 / 12)))
     // =========================================================================
     // Power & Unified Menu
     // =========================================================================
     property int powerMenuRadiusActive: 14
     property int powerMenuRadiusInactive: 32
     property int powerMenuWidthPower: 380
-    property int powerMenuHeightPower: 136
-    property int powerMenuHeightTheme: 252
-    property int powerMenuHeightWallpaper: 196
-
+    property int powerMenuHeightPower: 146
+    property int powerMenuHeightTheme: 254
+    property int powerMenuHeightWallpaper: 202
     // =========================================================================
     // Media Controls & Pills
     // =========================================================================
@@ -216,7 +200,6 @@ QtObject {
     property int mediaIslandWidth: 340
     property int mediaIslandHeight: 140
     property int mediaIslandRadius: 22
-
     // =========================================================================
     // Opacity & Transparency Tokens
     // =========================================================================
@@ -224,9 +207,8 @@ QtObject {
     property real elevatedOpacity: 0.88
     property real layerOpacity: 0.28
     property real scrimOpacity: 0.35
-    property real subtleOpacity: 0.60
+    property real subtleOpacity: 0.6
     property real disabledOpacity: 0.38
-
     // =========================================================================
     // Animation Durations (ms)
     // =========================================================================

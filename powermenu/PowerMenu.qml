@@ -112,7 +112,7 @@ PanelWindow {
         Qt.callLater(function() {
             keyCatcher.forceActiveFocus();
             if (themesList)
-                themesList.positionViewAtIndex(root.themeIndex, ListView.Center);
+                themesList.positionViewAtIndex(root.themeIndex, ListView.Contain);
 
         });
     }
@@ -130,7 +130,7 @@ PanelWindow {
         Qt.callLater(function() {
             keyCatcher.forceActiveFocus();
             if (wallpapersList)
-                wallpapersList.positionViewAtIndex(root.wallpaperIndex, ListView.Center);
+                wallpapersList.positionViewAtIndex(root.wallpaperIndex, ListView.Contain);
 
         });
     }
@@ -175,7 +175,7 @@ PanelWindow {
             root.themeIndex = (root.themeService && root.themeService.middleIndex !== undefined) ? root.themeService.middleIndex : Math.floor(root.themesCount / 2);
             keyCatcher.forceActiveFocus();
             if (themesList)
-                themesList.positionViewAtIndex(root.themeIndex, ListView.Center);
+                themesList.positionViewAtIndex(root.themeIndex, ListView.Contain);
 
         }
     }
@@ -193,7 +193,7 @@ PanelWindow {
             root.wallpaperIndex = (root.wallpaperService && root.wallpaperService.middleIndex !== undefined) ? root.wallpaperService.middleIndex : Math.floor(root.wallpapersCount / 2);
             keyCatcher.forceActiveFocus();
             if (wallpapersList)
-                wallpapersList.positionViewAtIndex(root.wallpaperIndex, ListView.Center);
+                wallpapersList.positionViewAtIndex(root.wallpaperIndex, ListView.Contain);
 
         }
     }
@@ -689,184 +689,267 @@ PanelWindow {
             // ─────────────────────────────────────────────────────────────────
             RowLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 24
+                Layout.preferredHeight: 28
 
-                // Segmented View Switcher Tabs (Session / Themes / Wallpapers in one box)
-                Row {
-                    spacing: 4
-                    Layout.alignment: Qt.AlignVCenter
+                // Segmented View Switcher Tabs (Unified Glass Pill with Sliding Indicator)
+                Rectangle {
+                    id: segmentedTrack
 
-                    // Session Tab
+                    Layout.preferredHeight: 28
+                    Layout.preferredWidth: segmentedRow.implicitWidth + 8
+                    radius: 14
+                    color: Theme.withAlpha(Theme.darker_background, 0.55)
+                    border.width: 1
+                    border.color: Theme.withAlpha(Theme.glassBorderColor, 0.22)
+
+                    // Sliding Active Indicator Pill
                     Rectangle {
-                        width: sessionTabRow.implicitWidth + 14
+                        id: activeTabPill
+
+                        y: 2
                         height: 24
                         radius: 12
-                        color: (root.currentView === "power") ? Theme.accent : (sessionTabMouse.containsMouse ? Theme.lighter_background : "transparent")
+                        color: Theme.accent
+                        x: {
+                            if (root.currentView === "power")
+                                return 4;
 
-                        Row {
-                            id: sessionTabRow
+                            if (root.currentView === "theme")
+                                return sessionTabBtn.width + 4;
 
-                            anchors.centerIn: parent
-                            spacing: 5
+                            return sessionTabBtn.width + themeTabBtn.width + 4;
+                        }
+                        width: {
+                            if (root.currentView === "power")
+                                return sessionTabBtn.width;
 
-                            Text {
-                                text: Icons.power
-                                font.family: Icons.effectiveFont(text)
-                                font.pixelSize: 12
-                                color: (root.currentView === "power") ? Theme.darker_background : Theme.foreground
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
+                            if (root.currentView === "theme")
+                                return themeTabBtn.width;
 
-                            Text {
-                                text: "Session"
-                                font.family: Fonts.uiFont
-                                font.pixelSize: 11
-                                font.bold: (root.currentView === "power")
-                                color: (root.currentView === "power") ? Theme.darker_background : Theme.foreground
-                                anchors.verticalCenter: parent.verticalCenter
+                            return wallpaperTabBtn.width;
+                        }
+
+                        Behavior on x {
+                            NumberAnimation {
+                                duration: 200
+                                easing.type: Easing.OutBack
+                                easing.overshoot: 1.15
                             }
 
                         }
 
-                        MouseArea {
-                            id: sessionTabMouse
-
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                if (root.currentView !== "power") {
-                                    root.currentView = "power";
-                                    root.powerIndex = 0;
-                                }
-                            }
-                        }
-
-                        Behavior on color {
-                            enabled: root.viewTransitionsEnabled
-
-                            ColorAnimation {
-                                duration: 150
+                        Behavior on width {
+                            NumberAnimation {
+                                duration: 160
+                                easing.type: Easing.OutCubic
                             }
 
                         }
 
                     }
 
-                    // Themes Tab
-                    Rectangle {
-                        width: themeTabRow.implicitWidth + 14
-                        height: 24
-                        radius: 12
-                        color: (root.currentView === "theme") ? Theme.accent : (themeTabMouse.containsMouse ? Theme.lighter_background : "transparent")
+                    Row {
+                        id: segmentedRow
 
-                        Row {
-                            id: themeTabRow
+                        anchors.left: parent.left
+                        anchors.leftMargin: 4
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 0
 
-                            anchors.centerIn: parent
-                            spacing: 5
+                        // Tab 1: Session
+                        Item {
+                            id: sessionTabBtn
 
-                            Text {
-                                text: Icons.palette
-                                font.family: Icons.effectiveFont(text)
-                                font.pixelSize: 12
-                                color: (root.currentView === "theme") ? Theme.darker_background : Theme.foreground
-                                anchors.verticalCenter: parent.verticalCenter
+                            width: sessionTabRow.implicitWidth + 18
+                            height: 24
+
+                            Row {
+                                id: sessionTabRow
+
+                                anchors.centerIn: parent
+                                spacing: 5
+
+                                Text {
+                                    text: Icons.power
+                                    font.family: Icons.effectiveFont(text)
+                                    font.pixelSize: 12
+                                    color: (root.currentView === "power") ? Theme.darker_background : (sessionTabMouse.containsMouse ? Theme.bright_foreground : Theme.foreground)
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    Behavior on color {
+                                        ColorAnimation {
+                                            duration: 140
+                                        }
+
+                                    }
+
+                                }
+
+                                Text {
+                                    text: "Session"
+                                    font.family: Fonts.uiFont
+                                    font.pixelSize: 11
+                                    font.bold: (root.currentView === "power")
+                                    color: (root.currentView === "power") ? Theme.darker_background : (sessionTabMouse.containsMouse ? Theme.bright_foreground : Theme.foreground)
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    Behavior on color {
+                                        ColorAnimation {
+                                            duration: 140
+                                        }
+
+                                    }
+
+                                }
+
                             }
 
-                            Text {
-                                text: "Themes"
-                                font.family: Fonts.uiFont
-                                font.pixelSize: 11
-                                font.bold: (root.currentView === "theme")
-                                color: (root.currentView === "theme") ? Theme.darker_background : Theme.foreground
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
+                            MouseArea {
+                                id: sessionTabMouse
 
-                        }
-
-                        MouseArea {
-                            id: themeTabMouse
-
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                if (root.currentView !== "theme") {
-                                    if (root.themeService)
-                                        root.themeService.refresh();
-
-                                    root.currentView = "theme";
-                                    root.themeIndex = (root.themeService && root.themeService.middleIndex !== undefined) ? root.themeService.middleIndex : Math.floor(root.themesCount / 2);
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (root.currentView !== "power") {
+                                        root.currentView = "power";
+                                        root.powerIndex = 0;
+                                    }
                                 }
                             }
-                        }
-
-                        Behavior on color {
-                            enabled: root.viewTransitionsEnabled
-
-                            ColorAnimation {
-                                duration: Appearance.animDurationNormal
-                            }
 
                         }
 
-                    }
+                        // Tab 2: Themes
+                        Item {
+                            id: themeTabBtn
 
-                    // Wallpapers Tab
-                    Rectangle {
-                        width: wallpaperTabRow.implicitWidth + 14
-                        height: 24
-                        radius: 12
-                        color: (root.currentView === "wallpaper") ? Theme.accent : (wallpaperTabMouse.containsMouse ? Theme.lighter_background : "transparent")
+                            width: themeTabRow.implicitWidth + 18
+                            height: 24
 
-                        Row {
-                            id: wallpaperTabRow
+                            Row {
+                                id: themeTabRow
 
-                            anchors.centerIn: parent
-                            spacing: 5
+                                anchors.centerIn: parent
+                                spacing: 5
 
-                            Text {
-                                text: Icons.wallpaper
-                                font.family: Icons.effectiveFont(text)
-                                font.pixelSize: 12
-                                color: (root.currentView === "wallpaper") ? Theme.darker_background : Theme.foreground
-                                anchors.verticalCenter: parent.verticalCenter
+                                Text {
+                                    text: Icons.palette
+                                    font.family: Icons.effectiveFont(text)
+                                    font.pixelSize: 12
+                                    color: (root.currentView === "theme") ? Theme.darker_background : (themeTabMouse.containsMouse ? Theme.bright_foreground : Theme.foreground)
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    Behavior on color {
+                                        ColorAnimation {
+                                            duration: 140
+                                        }
+
+                                    }
+
+                                }
+
+                                Text {
+                                    text: "Themes"
+                                    font.family: Fonts.uiFont
+                                    font.pixelSize: 11
+                                    font.bold: (root.currentView === "theme")
+                                    color: (root.currentView === "theme") ? Theme.darker_background : (themeTabMouse.containsMouse ? Theme.bright_foreground : Theme.foreground)
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    Behavior on color {
+                                        ColorAnimation {
+                                            duration: 140
+                                        }
+
+                                    }
+
+                                }
+
                             }
 
-                            Text {
-                                text: "Wallpapers"
-                                font.family: Fonts.uiFont
-                                font.pixelSize: 11
-                                font.bold: (root.currentView === "wallpaper")
-                                color: (root.currentView === "wallpaper") ? Theme.darker_background : Theme.foreground
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
+                            MouseArea {
+                                id: themeTabMouse
 
-                        }
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (root.currentView !== "theme") {
+                                        if (root.themeService)
+                                            root.themeService.refresh();
 
-                        MouseArea {
-                            id: wallpaperTabMouse
-
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                if (root.currentView !== "wallpaper") {
-                                    if (root.wallpaperService)
-                                        root.wallpaperService.refresh();
-
-                                    root.currentView = "wallpaper";
-                                    root.wallpaperIndex = (root.wallpaperService && root.wallpaperService.middleIndex !== undefined) ? root.wallpaperService.middleIndex : Math.floor(root.wallpapersCount / 2);
+                                        root.currentView = "theme";
+                                        root.themeIndex = (root.themeService && root.themeService.middleIndex !== undefined) ? root.themeService.middleIndex : Math.floor(root.themesCount / 2);
+                                    }
                                 }
                             }
+
                         }
 
-                        Behavior on color {
-                            enabled: root.viewTransitionsEnabled
+                        // Tab 3: Wallpapers
+                        Item {
+                            id: wallpaperTabBtn
 
-                            ColorAnimation {
-                                duration: Appearance.animDurationNormal
+                            width: wallpaperTabRow.implicitWidth + 18
+                            height: 24
+
+                            Row {
+                                id: wallpaperTabRow
+
+                                anchors.centerIn: parent
+                                spacing: 5
+
+                                Text {
+                                    text: Icons.wallpaper
+                                    font.family: Icons.effectiveFont(text)
+                                    font.pixelSize: 12
+                                    color: (root.currentView === "wallpaper") ? Theme.darker_background : (wallpaperTabMouse.containsMouse ? Theme.bright_foreground : Theme.foreground)
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    Behavior on color {
+                                        ColorAnimation {
+                                            duration: 140
+                                        }
+
+                                    }
+
+                                }
+
+                                Text {
+                                    text: "Wallpapers"
+                                    font.family: Fonts.uiFont
+                                    font.pixelSize: 11
+                                    font.bold: (root.currentView === "wallpaper")
+                                    color: (root.currentView === "wallpaper") ? Theme.darker_background : (wallpaperTabMouse.containsMouse ? Theme.bright_foreground : Theme.foreground)
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    Behavior on color {
+                                        ColorAnimation {
+                                            duration: 140
+                                        }
+
+                                    }
+
+                                }
+
+                            }
+
+                            MouseArea {
+                                id: wallpaperTabMouse
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (root.currentView !== "wallpaper") {
+                                        if (root.wallpaperService)
+                                            root.wallpaperService.refresh();
+
+                                        root.currentView = "wallpaper";
+                                        root.wallpaperIndex = (root.wallpaperService && root.wallpaperService.middleIndex !== undefined) ? root.wallpaperService.middleIndex : Math.floor(root.wallpapersCount / 2);
+                                    }
+                                }
                             }
 
                         }
@@ -1094,9 +1177,17 @@ PanelWindow {
                         orientation: ListView.Horizontal
                         spacing: 12
                         clip: true
+                        cacheBuffer: 4000
+                        snapMode: ListView.SnapToItem
                         model: root.themes
                         currentIndex: root.themeIndex
                         boundsBehavior: Flickable.StopAtBounds
+                        onWidthChanged: {
+                            if (contentWidth <= width)
+                                contentX = 0;
+                            else
+                                positionViewAtIndex(currentIndex, ListView.Contain);
+                        }
 
                         WheelHandler {
                             target: null
@@ -1157,9 +1248,10 @@ PanelWindow {
                                         id: wallImg
 
                                         anchors.fill: parent
-                                        source: cardItem.modelData.wallpaper ? ("file://" + cardItem.modelData.wallpaper) : ""
+                                        source: cardItem.modelData.thumbPath ? ("file://" + cardItem.modelData.thumbPath) : (cardItem.modelData.wallpaper ? ("file://" + cardItem.modelData.wallpaper) : "")
                                         fillMode: Image.PreserveAspectCrop
                                         asynchronous: true
+                                        cache: true
                                         smooth: true
                                         mipmap: true
                                         sourceSize: Qt.size(392, 220)
@@ -1206,6 +1298,47 @@ PanelWindow {
                                     anchors.right: parent.right
                                     height: 1
                                     color: Theme.withAlpha(Theme.selection, 0.4)
+                                }
+
+                                // Current Theme Pill Badge
+                                Rectangle {
+                                    anchors.top: parent.top
+                                    anchors.right: parent.right
+                                    anchors.margins: 6
+                                    height: 18
+                                    width: currentThemeBadgeRow.implicitWidth + 12
+                                    radius: 9
+                                    color: Theme.withAlpha(Theme.darker_background, 0.8)
+                                    border.width: 1
+                                    border.color: Theme.withAlpha(Theme.green, 0.5)
+                                    visible: cardItem.isCurrentTheme
+                                    z: 10
+
+                                    Row {
+                                        id: currentThemeBadgeRow
+
+                                        anchors.centerIn: parent
+                                        spacing: 4
+
+                                        Rectangle {
+                                            width: 5
+                                            height: 5
+                                            radius: 2.5
+                                            color: Theme.green
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+
+                                        Text {
+                                            text: "Active"
+                                            font.family: Fonts.uiFont
+                                            font.pixelSize: 9
+                                            font.bold: true
+                                            color: Theme.bright_foreground
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+
+                                    }
+
                                 }
 
                                 // 2. Theme Name - Cleanly centered below thumbnail (no underline dash)
@@ -1284,6 +1417,62 @@ PanelWindow {
 
                     }
 
+                    // Left Edge Gradient Fade
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 8
+                        width: 24
+                        z: 5
+                        visible: (themesList.moving || themesList.flicking) && (themesList.contentX > 4)
+                        opacity: visible ? 1 : 0
+
+                        gradient: Gradient {
+                            orientation: Gradient.Horizontal
+
+                            GradientStop {
+                                position: 0
+                                color: Theme.barBackground
+                            }
+
+                            GradientStop {
+                                position: 1
+                                color: "transparent"
+                            }
+
+                        }
+
+                    }
+
+                    // Right Edge Gradient Fade
+                    Rectangle {
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 8
+                        width: 24
+                        z: 5
+                        visible: (themesList.moving || themesList.flicking) && (themesList.contentX < (themesList.contentWidth - themesList.width - 4))
+                        opacity: visible ? 1 : 0
+
+                        gradient: Gradient {
+                            orientation: Gradient.Horizontal
+
+                            GradientStop {
+                                position: 0
+                                color: "transparent"
+                            }
+
+                            GradientStop {
+                                position: 1
+                                color: Theme.barBackground
+                            }
+
+                        }
+
+                    }
+
                     Behavior on opacity {
                         enabled: root.viewTransitionsEnabled
 
@@ -1310,9 +1499,17 @@ PanelWindow {
                         orientation: ListView.Horizontal
                         spacing: 12
                         clip: true
+                        cacheBuffer: 4000
+                        snapMode: ListView.SnapToItem
                         model: root.wallpapers
                         currentIndex: root.wallpaperIndex
                         boundsBehavior: Flickable.StopAtBounds
+                        onWidthChanged: {
+                            if (contentWidth <= width)
+                                contentX = 0;
+                            else
+                                positionViewAtIndex(currentIndex, ListView.Contain);
+                        }
 
                         WheelHandler {
                             target: null
@@ -1329,7 +1526,7 @@ PanelWindow {
                             required property var modelData
                             required property int index
                             readonly property bool isSelected: (root.currentView === "wallpaper") && (root.wallpaperIndex === wallCardItem.index)
-                            readonly property bool isActiveWall: modelData.isActive === true
+                            readonly property bool isActiveWall: (modelData.isActive === true) || (modelData.path && root.activeWallpaper && modelData.path === root.activeWallpaper)
 
                             width: 196
                             height: 110
@@ -1369,9 +1566,10 @@ PanelWindow {
 
                                 anchors.fill: parent
                                 anchors.margins: 1
-                                source: wallCardItem.modelData.path ? ("file://" + wallCardItem.modelData.path) : ""
+                                source: wallCardItem.modelData.thumbPath ? ("file://" + wallCardItem.modelData.thumbPath) : (wallCardItem.modelData.path ? ("file://" + wallCardItem.modelData.path) : "")
                                 fillMode: Image.PreserveAspectCrop
                                 asynchronous: true
+                                cache: true
                                 smooth: true
                                 mipmap: true
                                 sourceSize: Qt.size(392, 220)
@@ -1410,6 +1608,47 @@ PanelWindow {
                                 Behavior on border.color {
                                     ColorAnimation {
                                         duration: 160
+                                    }
+
+                                }
+
+                            }
+
+                            // Active Wallpaper Pill Badge
+                            Rectangle {
+                                anchors.top: parent.top
+                                anchors.right: parent.right
+                                anchors.margins: 6
+                                height: 18
+                                width: activeWallBadgeRow.implicitWidth + 12
+                                radius: 9
+                                color: Theme.withAlpha(Theme.darker_background, 0.8)
+                                border.width: 1
+                                border.color: Theme.withAlpha(Theme.green, 0.5)
+                                visible: wallCardItem.isActiveWall
+                                z: 10
+
+                                Row {
+                                    id: activeWallBadgeRow
+
+                                    anchors.centerIn: parent
+                                    spacing: 4
+
+                                    Rectangle {
+                                        width: 5
+                                        height: 5
+                                        radius: 2.5
+                                        color: Theme.green
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Text {
+                                        text: "Active"
+                                        font.family: Fonts.uiFont
+                                        font.pixelSize: 9
+                                        font.bold: true
+                                        color: Theme.bright_foreground
+                                        anchors.verticalCenter: parent.verticalCenter
                                     }
 
                                 }
@@ -1462,6 +1701,62 @@ PanelWindow {
 
                     }
 
+                    // Left Edge Gradient Fade
+                    Rectangle {
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 8
+                        width: 24
+                        z: 5
+                        visible: (wallpapersList.moving || wallpapersList.flicking) && (wallpapersList.contentX > 4)
+                        opacity: visible ? 1 : 0
+
+                        gradient: Gradient {
+                            orientation: Gradient.Horizontal
+
+                            GradientStop {
+                                position: 0
+                                color: Theme.barBackground
+                            }
+
+                            GradientStop {
+                                position: 1
+                                color: "transparent"
+                            }
+
+                        }
+
+                    }
+
+                    // Right Edge Gradient Fade
+                    Rectangle {
+                        anchors.right: parent.right
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 8
+                        width: 24
+                        z: 5
+                        visible: (wallpapersList.moving || wallpapersList.flicking) && (wallpapersList.contentX < (wallpapersList.contentWidth - wallpapersList.width - 4))
+                        opacity: visible ? 1 : 0
+
+                        gradient: Gradient {
+                            orientation: Gradient.Horizontal
+
+                            GradientStop {
+                                position: 0
+                                color: "transparent"
+                            }
+
+                            GradientStop {
+                                position: 1
+                                color: Theme.barBackground
+                            }
+
+                        }
+
+                    }
+
                     Behavior on opacity {
                         enabled: root.viewTransitionsEnabled
 
@@ -1484,6 +1779,21 @@ PanelWindow {
             NumberAnimation {
                 duration: 250
                 easing.type: Easing.OutCubic
+                onRunningChanged: {
+                    if (!running) {
+                        if (root.currentView === "wallpaper" && wallpapersList) {
+                            if (wallpapersList.contentWidth <= wallpapersList.width)
+                                wallpapersList.contentX = 0;
+                            else
+                                wallpapersList.positionViewAtIndex(root.wallpaperIndex, ListView.Contain);
+                        } else if (root.currentView === "theme" && themesList) {
+                            if (themesList.contentWidth <= themesList.width)
+                                themesList.contentX = 0;
+                            else
+                                themesList.positionViewAtIndex(root.themeIndex, ListView.Contain);
+                        }
+                    }
+                }
             }
 
         }

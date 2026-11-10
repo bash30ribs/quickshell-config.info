@@ -189,18 +189,22 @@ PanelWindow {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Main Launcher Surface (Rofi style-3 replication)
+    // Main Launcher Surface (Mornye Liquid Glass Material)
     // ─────────────────────────────────────────────────────────────────────────
-    ShellSurface {
+    GlassPanel {
         id: surface
 
         width: Appearance.launcherWidth
         height: Appearance.launcherHeight
         anchors.centerIn: parent
-        surfaceRadius: Appearance.launcherRadius
-        surfaceColor: Theme.barBackground
-        borderColor: Theme.glassBorder
-        borderWidth: 1
+        radius: Appearance.launcherRadius
+        baseColor: Theme.barBackground
+        accentTint: Theme.accent
+        clarity: 0.78
+        rimIllumination: 0.5
+        specularIntensity: 0.75
+        opacity: root.isOpen ? 1 : 0
+        scale: root.isOpen ? 1 : 0.95
 
         // Consume clicks inside card so backdrop doesn't trigger dismissal
         MouseArea {
@@ -213,101 +217,150 @@ PanelWindow {
             anchors.fill: parent
             anchors.margins: Appearance.launcherPadding
 
-            // ── Inputbar ─────────────────────────────────────────────────────
-            RowLayout {
+            // ── Inputbar Capsule ─────────────────────────────────────────────
+            Rectangle {
                 id: inputbar
 
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
-                height: Appearance.buttonHeight
-                spacing: Appearance.spacingMedium + 2
+                height: 44
+                radius: 12
+                color: Theme.withAlpha(Theme.darker_background, 0.4)
+                border.width: 1
+                border.color: searchInput.activeFocus ? Theme.withAlpha(Theme.accent, 0.55) : Theme.withAlpha(Theme.glassBorderColor, 0.22)
 
-                // Prompt glyph
-                Text {
-                    id: promptGlyph
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 14
+                    anchors.rightMargin: 12
+                    spacing: 10
 
-                    text: Icons.search
-                    font.family: Icons.effectiveFont(text)
-                    font.pixelSize: Fonts.sizeMedium
-                    color: Theme.foreground
-                    Layout.alignment: Qt.AlignVCenter
-                }
-
-                // Search Entry
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-
-                    // Placeholder text
+                    // Prompt glyph
                     Text {
-                        anchors.fill: parent
-                        verticalAlignment: Text.AlignVCenter
-                        text: "Search..."
-                        font.family: root.fontFamily
-                        font.pixelSize: Fonts.sizeRegular
-                        color: Theme.muted
-                        visible: searchInput.text.length === 0
+                        id: promptGlyph
+
+                        text: Icons.search
+                        font.family: Icons.effectiveFont(text)
+                        font.pixelSize: Fonts.sizeMedium
+                        color: searchInput.activeFocus ? Theme.accent : Theme.muted
+                        Layout.alignment: Qt.AlignVCenter
+
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: 150
+                            }
+
+                        }
+
                     }
 
-                    TextInput {
-                        id: searchInput
+                    // Search Entry
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
 
-                        anchors.fill: parent
-                        verticalAlignment: TextInput.AlignVCenter
-                        font.family: root.fontFamily
-                        font.pixelSize: Fonts.sizeRegular
-                        color: Theme.foreground
-                        selectionColor: Theme.selection
-                        selectedTextColor: Theme.bright_foreground
-                        clip: true
-                        focus: true
-                        onTextChanged: {
-                            root.filterApps();
-                            listView.currentIndex = 0;
+                        // Placeholder text
+                        Text {
+                            anchors.fill: parent
+                            verticalAlignment: Text.AlignVCenter
+                            text: "Search applications..."
+                            font.family: root.fontFamily
+                            font.pixelSize: Fonts.sizeRegular
+                            color: Theme.muted
+                            visible: searchInput.text.length === 0
                         }
-                        Keys.onDownPressed: {
-                            if (listView.count > 0) {
-                                listView.currentIndex = (listView.currentIndex + 1) % listView.count;
-                                listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
+
+                        TextInput {
+                            id: searchInput
+
+                            anchors.fill: parent
+                            verticalAlignment: TextInput.AlignVCenter
+                            font.family: root.fontFamily
+                            font.pixelSize: Fonts.sizeRegular
+                            color: Theme.bright_foreground
+                            selectionColor: Theme.selection
+                            selectedTextColor: Theme.bright_foreground
+                            clip: true
+                            focus: true
+                            onTextChanged: {
+                                root.filterApps();
+                                listView.currentIndex = 0;
                             }
-                        }
-                        Keys.onUpPressed: {
-                            if (listView.count > 0) {
-                                listView.currentIndex = (listView.currentIndex - 1 + listView.count) % listView.count;
-                                listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
-                            }
-                        }
-                        Keys.onTabPressed: {
-                            if (listView.count > 0) {
-                                listView.currentIndex = (listView.currentIndex + 1) % listView.count;
-                                listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
-                            }
-                        }
-                        Keys.onBacktabPressed: {
-                            if (listView.count > 0) {
-                                listView.currentIndex = (listView.currentIndex - 1 + listView.count) % listView.count;
-                                listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
-                            }
-                        }
-                        Keys.onReturnPressed: root.executeCurrentItem()
-                        Keys.onEnterPressed: root.executeCurrentItem()
-                        Keys.onEscapePressed: root.close()
-                        Keys.onPressed: function(event) {
-                            if (event.key === Qt.Key_PageDown) {
+                            Keys.onDownPressed: {
                                 if (listView.count > 0) {
-                                    listView.currentIndex = Math.min(listView.count - 1, listView.currentIndex + 5);
+                                    listView.currentIndex = (listView.currentIndex + 1) % listView.count;
                                     listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
                                 }
-                                event.accepted = true;
-                            } else if (event.key === Qt.Key_PageUp) {
+                            }
+                            Keys.onUpPressed: {
                                 if (listView.count > 0) {
-                                    listView.currentIndex = Math.max(0, listView.currentIndex - 5);
+                                    listView.currentIndex = (listView.currentIndex - 1 + listView.count) % listView.count;
                                     listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
                                 }
-                                event.accepted = true;
+                            }
+                            Keys.onTabPressed: {
+                                if (listView.count > 0) {
+                                    listView.currentIndex = (listView.currentIndex + 1) % listView.count;
+                                    listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
+                                }
+                            }
+                            Keys.onBacktabPressed: {
+                                if (listView.count > 0) {
+                                    listView.currentIndex = (listView.currentIndex - 1 + listView.count) % listView.count;
+                                    listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
+                                }
+                            }
+                            Keys.onReturnPressed: root.executeCurrentItem()
+                            Keys.onEnterPressed: root.executeCurrentItem()
+                            Keys.onEscapePressed: root.close()
+                            Keys.onPressed: function(event) {
+                                if (event.key === Qt.Key_PageDown) {
+                                    if (listView.count > 0) {
+                                        listView.currentIndex = Math.min(listView.count - 1, listView.currentIndex + 5);
+                                        listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
+                                    }
+                                    event.accepted = true;
+                                } else if (event.key === Qt.Key_PageUp) {
+                                    if (listView.count > 0) {
+                                        listView.currentIndex = Math.max(0, listView.currentIndex - 5);
+                                        listView.positionViewAtIndex(listView.currentIndex, ListView.Contain);
+                                    }
+                                    event.accepted = true;
+                                }
                             }
                         }
+
+                    }
+
+                    // Clear button
+                    Text {
+                        visible: searchInput.text.length > 0
+                        text: "󰅖"
+                        font.family: Icons.effectiveFont("󰅖")
+                        font.pixelSize: 14
+                        color: clearMouse.containsMouse ? Theme.bright_foreground : Theme.muted
+                        Layout.alignment: Qt.AlignVCenter
+
+                        MouseArea {
+                            id: clearMouse
+
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                searchInput.text = "";
+                                searchInput.forceActiveFocus();
+                            }
+                        }
+
+                    }
+
+                }
+
+                Behavior on border.color {
+                    ColorAnimation {
+                        duration: 150
                     }
 
                 }
@@ -317,7 +370,7 @@ PanelWindow {
             // ── Listview ─────────────────────────────────────────────────────
             Item {
                 anchors.top: inputbar.bottom
-                anchors.topMargin: 10
+                anchors.topMargin: 12
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
@@ -326,7 +379,7 @@ PanelWindow {
                     id: listView
 
                     anchors.fill: parent
-                    anchors.rightMargin: scrollbar.visible ? 10 : 0
+                    anchors.rightMargin: scrollbar.visible ? 14 : 0
                     clip: true
                     spacing: 5
                     model: root.filteredApps
@@ -342,14 +395,44 @@ PanelWindow {
                         width: listView.width
                         height: Appearance.launcherItemHeight
                         radius: Appearance.launcherItemRadius
-                        // Element normal / selected background
-                        color: isSelected ? Theme.accent : (isHovered ? Theme.withAlpha(Theme.lighter_background, Theme.layerOpacity) : "transparent")
+                        // Element normal / selected background: Refined translucent glass pill
+                        color: {
+                            if (isSelected)
+                                return Theme.withAlpha(Theme.accent, 0.16);
+
+                            if (isHovered)
+                                return Theme.withAlpha(Theme.bright_foreground, 0.06);
+
+                            return "transparent";
+                        }
+                        border.width: 1
+                        border.color: {
+                            if (isSelected)
+                                return Theme.withAlpha(Theme.accent, 0.48);
+
+                            if (isHovered)
+                                return Theme.withAlpha(Theme.glassBorderColor, 0.14);
+
+                            return "transparent";
+                        }
+
+                        // Left active indicator pill
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.leftMargin: 6
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 3
+                            height: 16
+                            radius: 1.5
+                            color: Theme.accent
+                            visible: element.isSelected
+                        }
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.leftMargin: Appearance.paddingMedium
-                            anchors.rightMargin: Appearance.paddingMedium
-                            spacing: Appearance.spacingMedium + 2
+                            anchors.leftMargin: 16
+                            anchors.rightMargin: 14
+                            spacing: 12
 
                             // Element Icon container with graceful fallback badge
                             Item {
@@ -362,9 +445,11 @@ PanelWindow {
 
                                     anchors.fill: parent
                                     fillMode: Image.PreserveAspectFit
-                                    source: modelData.icon || ""
-                                    sourceSize: Qt.size(Appearance.launcherIconSize, Appearance.launcherIconSize)
+                                    source: LauncherModel.resolveIcon(modelData.icon)
+                                    sourceSize: Qt.size(Appearance.launcherIconSize * 2, Appearance.launcherIconSize * 2)
                                     visible: status === Image.Ready && (modelData.icon || "") !== ""
+                                    smooth: true
+                                    mipmap: true
                                 }
 
                                 Rectangle {
@@ -373,9 +458,9 @@ PanelWindow {
                                     anchors.fill: parent
                                     radius: Appearance.radiusSmall + 2
                                     visible: !appIconImg.visible
-                                    color: element.isSelected ? Theme.selection : Theme.withAlpha(Theme.accent, 0.2)
-                                    border.color: element.isSelected ? Theme.accent : Theme.selection
-                                    border.width: Appearance.borderWidthThin
+                                    color: element.isSelected ? Theme.withAlpha(Theme.accent, 0.25) : Theme.withAlpha(Theme.darker_background, 0.5)
+                                    border.color: element.isSelected ? Theme.accent : Theme.withAlpha(Theme.glassBorderColor, 0.2)
+                                    border.width: 1
 
                                     Text {
                                         anchors.centerIn: parent
@@ -388,7 +473,7 @@ PanelWindow {
                                         font.family: root.fontFamily
                                         font.pixelSize: Fonts.sizeSmall
                                         font.weight: Fonts.weightBold
-                                        color: element.isSelected ? Theme.darker_background : Theme.accent
+                                        color: element.isSelected ? Theme.accent : Theme.muted
                                     }
 
                                 }
@@ -401,20 +486,21 @@ PanelWindow {
                                 font.family: root.fontFamily
                                 font.pixelSize: Fonts.sizeRegular
                                 font.weight: element.isSelected ? Fonts.weightBold : Fonts.weightMedium
-                                color: element.isSelected ? Theme.darker_background : Theme.foreground
+                                color: element.isSelected ? Theme.bright_foreground : Theme.foreground
+                                style: Text.Raised
+                                styleColor: Qt.rgba(0, 0, 0, 0.65)
                                 elide: Text.ElideRight
                                 Layout.alignment: Qt.AlignVCenter
                             }
 
-                            // Generic Name: (Web Browser), (Text Editor) in italics
+                            // Clean description bullet or secondary tag
                             Text {
                                 visible: (modelData.generic || "") !== ""
-                                text: "(" + (modelData.generic || "") + ")"
+                                text: "·  " + (modelData.generic || "")
                                 font.family: root.fontFamily
                                 font.pixelSize: Fonts.sizeSmall
-                                font.italic: true
-                                font.weight: Fonts.weightLight
-                                color: element.isSelected ? Theme.dark_background : Theme.muted
+                                font.weight: Fonts.weightNormal
+                                color: element.isSelected ? Theme.withAlpha(Theme.bright_foreground, 0.7) : Theme.muted
                                 elide: Text.ElideRight
                                 Layout.alignment: Qt.AlignVCenter
                             }
@@ -443,6 +529,20 @@ PanelWindow {
                             }
                         }
 
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: 120
+                            }
+
+                        }
+
+                        Behavior on border.color {
+                            ColorAnimation {
+                                duration: 120
+                            }
+
+                        }
+
                     }
 
                 }
@@ -454,23 +554,40 @@ PanelWindow {
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
-                    width: 5
-                    radius: 10
-                    color: Theme.dark_background
+                    width: 4
+                    radius: 2
+                    color: Theme.withAlpha(Theme.darker_background, 0.3)
                     visible: listView.count > 8
 
                     Rectangle {
                         id: scrollbarHandle
 
                         width: parent.width
-                        radius: 10
-                        color: Theme.accent
-                        height: Math.max(20, listView.visibleArea.heightRatio * scrollbar.height)
+                        radius: 2
+                        color: Theme.withAlpha(Theme.bright_foreground, 0.32)
+                        height: Math.max(24, listView.visibleArea.heightRatio * scrollbar.height)
                         y: listView.visibleArea.yPosition * scrollbar.height
                     }
 
                 }
 
+            }
+
+        }
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 160
+                easing.type: Easing.OutCubic
+            }
+
+        }
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: 220
+                easing.type: Easing.OutBack
+                easing.overshoot: 1.15
             }
 
         }
