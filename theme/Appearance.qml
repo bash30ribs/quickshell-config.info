@@ -201,6 +201,15 @@ QtObject {
     property int mediaIslandHeight: 140
     property int mediaIslandRadius: 22
     // =========================================================================
+    // Clipboard Drawer (Bar Pull-Down Shade)
+    // =========================================================================
+    property int clipboardWidth: 860
+    property int clipboardHeight: 468
+    property int clipboardRadius: 22
+    property int clipboardPadding: 14
+    property int clipboardThumbWidth: 200
+    property int clipboardThumbHeight: 118
+    // =========================================================================
     // Opacity & Transparency Tokens
     // =========================================================================
     property real baseOpacity: 0.62

@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "bar"
+import "clipboard"
 import "components"
 import "launcher"
 import "notifications"
@@ -17,54 +18,16 @@ ShellRoot {
 
     // Core Shared Services
     property WorkspacesService workspacesService
-
-    workspacesService: WorkspacesService {
-    }
-
     property AudioService audioService
-
-    audioService: AudioService {
-    }
-
     property BrightnessService brightnessService
-
-    brightnessService: BrightnessService {
-    }
-
     property BatteryService batteryService
-
-    batteryService: BatteryService {
-    }
-
     property NetworkService networkService
-
-    networkService: NetworkService {
-    }
-
     property BluetoothService bluetoothService
-
-    bluetoothService: BluetoothService {
-    }
-
     property PowerService powerService
-
-    powerService: PowerService {
-    }
-
     property ThemeSwitcherService themeSwitcherService
-
-    themeSwitcherService: ThemeSwitcherService {
-    }
-
     property WallpaperSwitcherService wallpaperSwitcherService
-
-    wallpaperSwitcherService: WallpaperSwitcherService {
-    }
-
     property AuditService auditService
-
-    auditService: AuditService {
-    }
+    property ClipboardService clipboardService
 
     IpcHandler {
         function toggle() : string {
@@ -106,6 +69,13 @@ ShellRoot {
     // App Launcher (Rofi-style Quickshell application launcher)
     AppLauncher {
         id: launcher
+    }
+
+    // Pull-Down Clipboard & Screenshot Shade Drawer
+    ClipboardDrawer {
+        id: clipboardDrawer
+
+        clipboardService: root.clipboardService
     }
 
     // Power Confirmation Dialog (centered overlay)
@@ -164,8 +134,42 @@ ShellRoot {
             networkService: root.networkService
             bluetoothService: root.bluetoothService
             powerService: root.powerService
+            clipboardDrawer: clipboardDrawer
         }
 
+    }
+
+    workspacesService: WorkspacesService {
+    }
+
+    audioService: AudioService {
+    }
+
+    brightnessService: BrightnessService {
+    }
+
+    batteryService: BatteryService {
+    }
+
+    networkService: NetworkService {
+    }
+
+    bluetoothService: BluetoothService {
+    }
+
+    powerService: PowerService {
+    }
+
+    themeSwitcherService: ThemeSwitcherService {
+    }
+
+    wallpaperSwitcherService: WallpaperSwitcherService {
+    }
+
+    auditService: AuditService {
+    }
+
+    clipboardService: ClipboardService {
     }
 
 }

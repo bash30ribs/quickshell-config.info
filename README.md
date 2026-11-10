@@ -94,6 +94,15 @@ Volume, brightness, caps lock, and refresh rate adjustments display through a de
 
 ---
 
+### 📋 Pull-Down Gesture Clipboard & Screenshot Drawer
+Move your pointer to the top bar and glide two fingers downward (trackpad natural scroll or 2-finger touch drag) to drop a spring-animated liquid glass clipboard tray; glide two fingers upward on the bar or tray to slide it away:
+- **Unified Screenshot & Text Stream**: Automatically records copied text, URLs, code snippets, hex color swatches (with live color preview), clipboard-only screenshots, and captures from `~/Pictures/Screenshot` with SHA-256 deduplication and cached Lanczos thumbnails.
+- **Click-to-Paste**: Clicking any card copies it cleanly to the Wayland clipboard and injects `Ctrl+V` (`Ctrl+Shift+V` for terminal windows) directly into your focused window via Hyprland `send_shortcut`.
+- **Re-Copy, Pin, Annotate & Clear**: Dedicated inline pills to copy back to clipboard (`Copied ✓` feedback), pin entries persistently, annotate screenshots with `swappy`, take a quick region `Snap`, filter (`All` | `SS` | `Text` | `Pinned`), or live-search.
+- **Native Wayland Drag & Drop**: Dragging any screenshot (`text/uri-list` + live thumbnail cursor preview) or text snippet (`text/plain`) past `8px` initiates native Qt/Wayland `Drag.Automatic` onto browsers, editors, file managers, or terminals.
+
+---
+
 ### 🚀 Spotlight-Style Application Launcher
 A fast, unified modal launcher (`AppLauncher.qml`) featuring 4 modes:
 1. **Applications**: Categorized desktop applications with icons and launch tracking.
@@ -162,9 +171,12 @@ qs ipc call osd brightness raise        # Raise brightness (+5%)
 qs ipc call osd brightness lower        # Lower brightness (-5%)
 qs ipc call osd refreshRate 60Hz        # Display refresh rate confirmation
 
-# ── Launcher & Power Menu ─────────────────────────────────────────────────────
+# ── Launcher, Power & Clipboard Drawer ───────────────────────────────────────
 qs ipc call launcher toggle             # Toggle application launcher
 qs ipc call powermenu toggle            # Toggle power & unified menu
+qs ipc call clipboard toggle            # Pull down or dismiss clipboard & screenshot drawer
+qs ipc call barpopups toggle clipboard  # Alternate clipboard drawer toggle
+qs ipc call clipboard refresh           # Sync latest clipboard and screenshot entries
 
 # ── Theme & Dynamic Wallpaper ─────────────────────────────────────────────────
 qs ipc call theme reload                # Reload theme colors.toml
@@ -210,6 +222,8 @@ qs ipc call audit status                # Query daemon running state
 │   ├── Osd.qml                   # Translucent liquid glass shortcut OSD
 │   ├── OsdService.qml            # Volume & brightness rate-limiting service
 │   └── OsdModel.js               # OSD state mapping logic
+├── clipboard/
+│   └── ClipboardDrawer.qml       # Pull-down liquid glass clipboard & screenshot drawer
 ├── launcher/
 │   ├── AppLauncher.qml           # Spotlight-style 4-mode application launcher
 │   └── LauncherModel.js          # Desktop entry parsing & search index
@@ -225,6 +239,7 @@ qs ipc call audit status                # Query daemon running state
 │   ├── BatteryService.qml        # UPower / sysfs integration
 │   ├── BluetoothService.qml      # BlueZ D-Bus integration
 │   ├── BrightnessService.qml     # Backlight / brightnessctl integration
+│   ├── ClipboardService.qml      # Wayland clipboard & screenshot history state service
 │   ├── NetworkService.qml        # NetworkManager D-Bus service
 │   ├── PowerService.qml          # systemd login1 power actions
 │   ├── ThemeSwitcherService.qml  # Theme management service
@@ -237,6 +252,7 @@ qs ipc call audit status                # Query daemon running state
 │   └── Icons.qml                 # Unified icon glyph mappings
 ├── src/
 │   ├── qdeck-audit-daemon.py     # Background application activity auditor
+│   ├── qdeck-clipboard.py        # Wayland wl-paste watcher, paste injector & thumbnailer
 │   ├── qdeck-lockstate-monitor.c # High-efficiency C sysfs LED monitor (0.0% CPU)
 │   ├── qdeck-wallpaper-palette.py# Multi-theme dynamic wallpaper palette extractor
 │   └── qdeck-wallpaper-thumbs.py # High-speed cached carousel thumbnail generator

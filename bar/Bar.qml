@@ -17,40 +17,15 @@ PanelWindow {
     required property NetworkService networkService
     required property BluetoothService bluetoothService
     required property PowerService powerService
+    property var clipboardDrawer: null
+    property real glideAccum: 0
+    property real glideCooldownUntil: 0
     // Bar layout mode configuration (floating, islands, wide, compact)
     property string barMode: "floating"
     // Configuration file watcher for dynamic mode changes
     property FileView barStyleFile
-
-    barStyleFile: FileView {
-        path: Quickshell.env("HOME") + "/.config/quickshell/bar-style"
-        watchChanges: true
-        printErrors: false
-        onLoaded: {
-            var raw = String(text() || "").trim().toLowerCase();
-            if (raw === "compact" || raw === "floating" || raw === "islands" || raw === "wide")
-                root.barMode = raw;
-            else
-                root.barMode = "floating";
-        }
-    }
-
     // Configuration file watcher for bar visibility
     property FileView barVisibilityFile
-
-    barVisibilityFile: FileView {
-        path: Quickshell.env("HOME") + "/.config/quickshell/bar-visibility"
-        watchChanges: true
-        printErrors: false
-        onLoaded: {
-            var raw = String(text() || "").trim().toLowerCase();
-            if (raw === "hidden" || raw === "false" || raw === "hide" || raw === "off")
-                Appearance.barVisible = false;
-            else if (raw === "visible" || raw === "true" || raw === "show" || raw === "on")
-                Appearance.barVisible = true;
-        }
-    }
-
     readonly property bool isCompact: barMode === "compact"
     readonly property bool isWide: barMode === "wide"
     readonly property bool isIslands: barMode === "islands"
@@ -66,6 +41,7 @@ PanelWindow {
     WlrLayershell.namespace: "quickshell-bar"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Auto
+
     // Panel anchors: top attached, sides attached only in full-width modes
     anchors {
         top: true
@@ -137,11 +113,111 @@ PanelWindow {
         accentTint: Theme.accent
     }
 
+    Timer {
+        id: glideResetTimer
+
+        interval: 180
+        repeat: false
+        onTriggered: {
+            root.glideAccum = 0;
+        }
+    }
+
     // Widget content container
     Item {
         id: barContainer
 
         anchors.fill: parent
+
+        HoverHandler {
+            id: barHover
+        }
+
+        // Two-finger trackpad glide down (open) / glide up (close) across the bar
+        WheelHandler {
+            target: null
+            onWheel: function(event) {
+                if (!root.clipboardDrawer)
+                    return ;
+
+                var dy = event.angleDelta.y;
+                var dx = event.angleDelta.x;
+                if (dy === 0 || Math.abs(dy) < Math.abs(dx))
+                    return ;
+
+                if (Date.now() < root.glideCooldownUntil)
+                    return ;
+
+                // Reset accumulator if gesture direction flipped mid-scroll
+                if ((dy > 0 && root.glideAccum < 0) || (dy < 0 && root.glideAccum > 0))
+                    root.glideAccum = 0;
+
+                root.glideAccum += dy;
+                glideResetTimer.restart();
+                // Natural scroll: gliding 2 fingers DOWN produces positive angleDelta.y;
+                // gliding 2 fingers UP produces negative angleDelta.y
+                if (!root.clipboardDrawer.isOpen && root.glideAccum >= 18) {
+                    root.glideAccum = 0;
+                    root.glideCooldownUntil = Date.now() + 280;
+                    root.clipboardDrawer.open();
+                } else if (root.clipboardDrawer.isOpen && root.glideAccum <= -18) {
+                    root.glideAccum = 0;
+                    root.glideCooldownUntil = Date.now() + 280;
+                    root.clipboardDrawer.close();
+                }
+            }
+        }
+
+        // Touchscreen 2-finger vertical drag fallback
+        DragHandler {
+            id: twoFingerBarDrag
+
+            minimumPointCount: 2
+            maximumPointCount: 2
+            target: null
+            xAxis.enabled: false
+            onTranslationChanged: {
+                if (!root.clipboardDrawer || Date.now() < root.glideCooldownUntil)
+                    return ;
+
+                if (!root.clipboardDrawer.isOpen && translation.y >= 18) {
+                    root.glideCooldownUntil = Date.now() + 320;
+                    root.clipboardDrawer.open();
+                } else if (root.clipboardDrawer.isOpen && translation.y <= -18) {
+                    root.glideCooldownUntil = Date.now() + 320;
+                    root.clipboardDrawer.close();
+                }
+            }
+        }
+
+        // Subtle tactile pull-down indicator pill along bottom center of bar
+        Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 1
+            height: 2
+            radius: 1
+            width: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? 44 : (barHover.hovered ? 32 : 16)
+            color: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? Theme.accent : Theme.withAlpha(Theme.foreground, barHover.hovered ? 0.65 : 0.2)
+            visible: !root.isIslands
+            z: 20
+
+            Behavior on width {
+                NumberAnimation {
+                    duration: 180
+                    easing.type: Easing.OutCubic
+                }
+
+            }
+
+            Behavior on color {
+                ColorAnimation {
+                    duration: 160
+                }
+
+            }
+
+        }
 
         // Left section: workspace switcher and media pill
         Row {
@@ -232,6 +308,8 @@ PanelWindow {
                 audioWidget.toggle();
             else if (name === "bluetooth")
                 bluetoothWidget.toggle();
+            else if (name === "clipboard" && root.clipboardDrawer)
+                root.clipboardDrawer.toggle();
             return "ok";
         }
 
@@ -267,6 +345,32 @@ PanelWindow {
         }
 
         target: "barpopups"
+    }
+
+    barStyleFile: FileView {
+        path: Quickshell.env("HOME") + "/.config/quickshell/bar-style"
+        watchChanges: true
+        printErrors: false
+        onLoaded: {
+            var raw = String(text() || "").trim().toLowerCase();
+            if (raw === "compact" || raw === "floating" || raw === "islands" || raw === "wide")
+                root.barMode = raw;
+            else
+                root.barMode = "floating";
+        }
+    }
+
+    barVisibilityFile: FileView {
+        path: Quickshell.env("HOME") + "/.config/quickshell/bar-visibility"
+        watchChanges: true
+        printErrors: false
+        onLoaded: {
+            var raw = String(text() || "").trim().toLowerCase();
+            if (raw === "hidden" || raw === "false" || raw === "hide" || raw === "off")
+                Appearance.barVisible = false;
+            else if (raw === "visible" || raw === "true" || raw === "show" || raw === "on")
+                Appearance.barVisible = true;
+        }
     }
 
 }
