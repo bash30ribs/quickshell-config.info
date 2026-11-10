@@ -34,14 +34,20 @@ PanelWindow {
     readonly property real totalContentWidth: leftSection.width + clockWidget.width + rightSection.width + (Appearance.barSectionSpacing * 4)
 
     function handleBarWheel(event) {
-        if (!root.clipboardDrawer)
+        if (!root.clipboardDrawer) {
+            event.accepted = false;
             return ;
-
+        }
         var dy = Theme.wheelDeltaY(event);
         var dx = Theme.wheelDeltaX(event);
-        if (dy === 0 || Math.abs(dy) < Math.abs(dx) * 0.6)
+        if (dy === 0 || Math.abs(dy) < Math.abs(dx) * 0.6) {
+            event.accepted = false;
             return ;
-
+        }
+        if (!root.clipboardDrawer.isOpen && dy < 0) {
+            event.accepted = false;
+            return ;
+        }
         if (Date.now() < root.glideCooldownUntil)
             return ;
 
@@ -163,23 +169,13 @@ PanelWindow {
             id: barHover
         }
 
-        // Physical mouse wheel fallback behind child widgets (preserves WorkspacesWidget wheel)
-        WheelHandler {
-            acceptedDevices: PointerDevice.Mouse
-            margin: 4
-            target: null
-            onWheel: function(event) {
-                root.handleBarWheel(event);
-            }
-        }
-
-        // Topmost touchpad & touchscreen overlay across the whole bar
+        // Topmost touchpad, mouse wheel, and touchscreen overlay across the whole bar
         Item {
             anchors.fill: parent
             z: 100
 
             WheelHandler {
-                acceptedDevices: PointerDevice.TouchPad
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                 margin: 4
                 target: null
                 onWheel: function(event) {
