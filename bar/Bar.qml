@@ -198,9 +198,17 @@ PanelWindow {
             height: 2
             radius: 1
             width: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? 44 : (barHover.hovered ? 32 : 16)
-            color: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? Theme.accent : Theme.withAlpha(Theme.foreground, barHover.hovered ? 0.65 : 0.2)
+            color: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.65)
+            opacity: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? 0.9 : (barHover.hovered ? 0.8 : 0)
             visible: !root.isIslands
             z: 20
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 150
+                }
+
+            }
 
             Behavior on width {
                 NumberAnimation {

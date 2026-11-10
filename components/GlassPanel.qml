@@ -112,25 +112,28 @@ Item {
             Gradient {
                 id: liquidGradient
 
-                // Position 0.0: Top rim highlight catch
+                // Position 0.0: Soft curved glass crest (merges organically without a harsh top stripe)
                 GradientStop {
                     position: 0
                     color: {
-                        var baseA = (root.mode === "liquid" || root.mode === "clear") ? (0.16 + (0.08 * root.specularIntensity)) : 0.12;
+                        var baseA = Theme.isLightWallpaper ? 0.26 : ((root.mode === "liquid" || root.mode === "clear") ? 0.16 : 0.2);
+                        var c = Theme.withAlpha(Theme.dark_background, baseA * (1 - (root.clarity - 0.75) * 0.3));
+                        c = Qt.tint(c, Theme.withAlpha(root.accentTint, root.active ? 0.2 : 0.07));
+                        var sheenMix = (root.mode === "liquid" || root.mode === "clear") ? (0.045 * root.specularIntensity) : 0.03;
                         if (root.isHovered)
-                            baseA += 0.05;
+                            sheenMix += 0.025;
 
-                        return Qt.rgba(1, 1, 1, baseA);
+                        return Qt.tint(c, Qt.rgba(1, 1, 1, sheenMix));
                     }
                 }
 
-                // Position 0.07: Upper translucent crest
+                // Position 0.14: Smooth optical transition into translucent body
                 GradientStop {
-                    position: 0.07
+                    position: 0.14
                     color: {
-                        var baseA = Theme.isLightWallpaper ? 0.28 : ((root.mode === "liquid" || root.mode === "clear") ? 0.18 : 0.22);
+                        var baseA = Theme.isLightWallpaper ? 0.3 : ((root.mode === "liquid" || root.mode === "clear") ? 0.19 : 0.23);
                         var c = Theme.withAlpha(Theme.dark_background, baseA * (1 - (root.clarity - 0.75) * 0.3));
-                        c = Qt.tint(c, Theme.withAlpha(root.accentTint, root.active ? 0.18 : 0.06));
+                        c = Qt.tint(c, Theme.withAlpha(root.accentTint, root.active ? 0.2 : 0.07));
                         return c;
                     }
                 }
@@ -160,7 +163,7 @@ Item {
             }
 
             // ─────────────────────────────────────────────────────────────────
-            // Directional Top Specular Sheen (Apple Control Center diffuse sheen)
+            // Curved Top Specular Diffuse Sheen (follows corner curvature seamlessly)
             // ─────────────────────────────────────────────────────────────────
             Rectangle {
                 id: specularSheen
@@ -169,15 +172,24 @@ Item {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.leftMargin: root.effectiveTopLeftRadius
-                anchors.rightMargin: root.effectiveTopRightRadius
-                height: Math.max(5, Math.min(14, parent.height * 0.26))
+                anchors.margins: 1
+                anchors.bottomMargin: 0
+                topLeftRadius: Math.max(0, root.effectiveTopLeftRadius - 1)
+                topRightRadius: Math.max(0, root.effectiveTopRightRadius - 1)
+                bottomLeftRadius: 0
+                bottomRightRadius: 0
+                height: Math.max(10, Math.min(26, parent.height * 0.26))
                 antialiasing: true
 
                 gradient: Gradient {
                     GradientStop {
                         position: 0
-                        color: Qt.rgba(1, 1, 1, 0.09 * root.specularIntensity)
+                        color: Qt.rgba(1, 1, 1, 0.045 * root.specularIntensity)
+                    }
+
+                    GradientStop {
+                        position: 0.45
+                        color: Qt.rgba(1, 1, 1, 0.015 * root.specularIntensity)
                     }
 
                     GradientStop {
@@ -190,7 +202,7 @@ Item {
             }
 
             // ─────────────────────────────────────────────────────────────────
-            // Thin Illuminated Top Rim Highlight Line (1px specular edge catch)
+            // Feathered Top Rim Catch (merges invisibly into corner arcs)
             // ─────────────────────────────────────────────────────────────────
             Rectangle {
                 id: illuminatedTopEdge
@@ -199,11 +211,37 @@ Item {
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.leftMargin: root.effectiveTopLeftRadius
-                anchors.rightMargin: root.effectiveTopRightRadius
+                anchors.topMargin: 1
+                anchors.leftMargin: Math.max(2, Math.round(root.effectiveTopLeftRadius * 0.4))
+                anchors.rightMargin: Math.max(2, Math.round(root.effectiveTopRightRadius * 0.4))
                 height: 1
-                color: Qt.rgba(1, 1, 1, 0.22 * root.rimIllumination)
                 antialiasing: true
+
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+
+                    GradientStop {
+                        position: 0
+                        color: "transparent"
+                    }
+
+                    GradientStop {
+                        position: 0.18
+                        color: Qt.rgba(1, 1, 1, 0.14 * root.rimIllumination)
+                    }
+
+                    GradientStop {
+                        position: 0.82
+                        color: Qt.rgba(1, 1, 1, 0.14 * root.rimIllumination)
+                    }
+
+                    GradientStop {
+                        position: 1
+                        color: "transparent"
+                    }
+
+                }
+
             }
 
             // ─────────────────────────────────────────────────────────────────

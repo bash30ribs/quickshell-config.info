@@ -1024,11 +1024,36 @@ PanelWindow {
 
             }
 
-            // Divider
+            // Divider (feathered at edges so it melts softly into the glass surface)
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 1
-                color: Theme.withAlpha(Theme.selection, 0.6)
+
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+
+                    GradientStop {
+                        position: 0
+                        color: "transparent"
+                    }
+
+                    GradientStop {
+                        position: 0.1
+                        color: Theme.withAlpha(Theme.glassBorderColor, 0.22)
+                    }
+
+                    GradientStop {
+                        position: 0.9
+                        color: Theme.withAlpha(Theme.glassBorderColor, 0.22)
+                    }
+
+                    GradientStop {
+                        position: 1
+                        color: "transparent"
+                    }
+
+                }
+
             }
 
             // ─────────────────────────────────────────────────────────────────
@@ -1300,47 +1325,6 @@ PanelWindow {
                                     color: Theme.withAlpha(Theme.selection, 0.4)
                                 }
 
-                                // Current Theme Pill Badge
-                                Rectangle {
-                                    anchors.top: parent.top
-                                    anchors.right: parent.right
-                                    anchors.margins: 6
-                                    height: 18
-                                    width: currentThemeBadgeRow.implicitWidth + 12
-                                    radius: 9
-                                    color: Theme.withAlpha(Theme.darker_background, 0.8)
-                                    border.width: 1
-                                    border.color: Theme.withAlpha(Theme.green, 0.5)
-                                    visible: cardItem.isCurrentTheme
-                                    z: 10
-
-                                    Row {
-                                        id: currentThemeBadgeRow
-
-                                        anchors.centerIn: parent
-                                        spacing: 4
-
-                                        Rectangle {
-                                            width: 5
-                                            height: 5
-                                            radius: 2.5
-                                            color: Theme.green
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-
-                                        Text {
-                                            text: "Active"
-                                            font.family: Fonts.uiFont
-                                            font.pixelSize: 9
-                                            font.bold: true
-                                            color: Theme.bright_foreground
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-
-                                    }
-
-                                }
-
                                 // 2. Theme Name - Cleanly centered below thumbnail (no underline dash)
                                 Item {
                                     anchors.top: imgContainer.bottom
@@ -1608,47 +1592,6 @@ PanelWindow {
                                 Behavior on border.color {
                                     ColorAnimation {
                                         duration: 160
-                                    }
-
-                                }
-
-                            }
-
-                            // Active Wallpaper Pill Badge
-                            Rectangle {
-                                anchors.top: parent.top
-                                anchors.right: parent.right
-                                anchors.margins: 6
-                                height: 18
-                                width: activeWallBadgeRow.implicitWidth + 12
-                                radius: 9
-                                color: Theme.withAlpha(Theme.darker_background, 0.8)
-                                border.width: 1
-                                border.color: Theme.withAlpha(Theme.green, 0.5)
-                                visible: wallCardItem.isActiveWall
-                                z: 10
-
-                                Row {
-                                    id: activeWallBadgeRow
-
-                                    anchors.centerIn: parent
-                                    spacing: 4
-
-                                    Rectangle {
-                                        width: 5
-                                        height: 5
-                                        radius: 2.5
-                                        color: Theme.green
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
-
-                                    Text {
-                                        text: "Active"
-                                        font.family: Fonts.uiFont
-                                        font.pixelSize: 9
-                                        font.bold: true
-                                        color: Theme.bright_foreground
-                                        anchors.verticalCenter: parent.verticalCenter
                                     }
 
                                 }
