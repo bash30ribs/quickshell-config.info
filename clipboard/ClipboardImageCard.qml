@@ -92,7 +92,7 @@ Item {
             gradient: Gradient {
                 GradientStop {
                     position: 0
-                    color: Qt.rgba(1, 1, 1, 0.1)
+                    color: Qt.rgba(1, 1, 1, 0.16)
                 }
 
                 GradientStop {
@@ -117,7 +117,7 @@ Item {
                 if (imgCardHover.hovered)
                     return Theme.withAlpha(Theme.accent, 0.82);
 
-                return Qt.rgba(1, 1, 1, 0.16);
+                return Qt.rgba(1, 1, 1, 0.24);
             }
             z: 20
 

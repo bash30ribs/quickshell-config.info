@@ -82,9 +82,9 @@ Item {
                 return Theme.withAlpha(Theme.accent, 0.2);
 
             if (rowHover.hovered)
-                return Theme.withAlpha(Theme.accent, 0.13);
+                return Theme.withAlpha(Theme.accent, 0.16);
 
-            return Qt.rgba(1, 1, 1, 0.035);
+            return Qt.rgba(1, 1, 1, 0.065);
         }
         border.width: 1
         border.color: {
@@ -92,9 +92,21 @@ Item {
                 return Theme.withAlpha(Theme.green, 0.58);
 
             if (rowHover.hovered)
-                return Theme.withAlpha(Theme.accent, 0.48);
+                return Theme.withAlpha(Theme.accent, 0.52);
 
-            return Qt.rgba(1, 1, 1, 0.075);
+            return Qt.rgba(1, 1, 1, 0.14);
+        }
+
+        // Subtle inner top frosted glass glint
+        Rectangle {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.topMargin: 1
+            anchors.leftMargin: 10
+            anchors.rightMargin: 10
+            height: 1
+            color: Qt.rgba(1, 1, 1, rowHover.hovered ? 0.16 : 0.08)
         }
 
         Behavior on color {

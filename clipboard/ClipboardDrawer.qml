@@ -33,7 +33,7 @@ PanelWindow {
         if (root.stage === 1) {
             var headerH = 26;
             var bodyH = root.imageItems.length > 0 ? Appearance.clipboardThumbHeight : 104;
-            var trackH = root.imageItems.length > 4 ? 9 : 0;
+            var trackH = root.imageItems.length > 4 ? 11 : 0;
             var handleH = 14;
             return Math.round(topMargin + headerH + 8 + 1 + 8 + bodyH + trackH + 8 + handleH + bottomMargin);
         }
@@ -347,12 +347,41 @@ PanelWindow {
             radius: Appearance.clipboardRadius
             baseColor: Theme.barBackground
             accentTint: Theme.accent
-            clarity: 0.78
-            rimIllumination: 0.5
-            specularIntensity: 0.75
+            clarity: 1.18
+            rimIllumination: 0.9
+            specularIntensity: 1
             transformOrigin: Item.Top
             opacity: Math.max(0, Math.min(1, root.animProgress * 2.5))
             scale: 0.97 + (0.03 * root.animProgress)
+
+            // Additional liquid-glass refraction wash & inset bevel rim
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: 1
+                radius: Appearance.clipboardRadius - 1
+                border.width: 1
+                border.color: Qt.rgba(1, 1, 1, 0.12)
+                z: -1
+
+                gradient: Gradient {
+                    GradientStop {
+                        position: 0
+                        color: Qt.rgba(1, 1, 1, 0.065)
+                    }
+
+                    GradientStop {
+                        position: 0.35
+                        color: Qt.rgba(1, 1, 1, 0.015)
+                    }
+
+                    GradientStop {
+                        position: 1
+                        color: Theme.withAlpha(Theme.accent, 0.045)
+                    }
+
+                }
+
+            }
 
             ColumnLayout {
                 anchors.fill: parent
@@ -373,7 +402,7 @@ PanelWindow {
                     spacing: 8
                     visible: root.stage === 1
 
-                    // Minimal Stage 1 Header (Title + Count + Glide Hint + Capture/Close)
+                    // Minimal Stage 1 Header (Centered Title Only)
                     Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 26
@@ -389,96 +418,13 @@ PanelWindow {
                             }
                         }
 
-                        RowLayout {
-                            anchors.fill: parent
-                            spacing: 8
-
-                            Rectangle {
-                                width: 6
-                                height: 6
-                                radius: 3
-                                color: Theme.accent
-                            }
-
-                            Text {
-                                text: "Screenshots"
-                                font.family: Fonts.uiFont
-                                font.pixelSize: 12
-                                font.weight: Font.DemiBold
-                                color: Theme.bright_foreground
-                            }
-
-                            Rectangle {
-                                height: 18
-                                width: imgCountLbl.implicitWidth + 12
-                                radius: 9
-                                color: Theme.withAlpha(Theme.accent, 0.16)
-                                border.width: 1
-                                border.color: Theme.withAlpha(Theme.accent, 0.3)
-
-                                Text {
-                                    id: imgCountLbl
-
-                                    anchors.centerIn: parent
-                                    text: String(root.imageItems.length)
-                                    font.family: Fonts.monoFont
-                                    font.pixelSize: 10
-                                    font.weight: Font.DemiBold
-                                    color: Theme.accent
-                                }
-
-                            }
-
-                            Item {
-                                Layout.fillWidth: true
-                            }
-
-                            Text {
-                                text: "Scroll ↔ · Glide ↓ for text"
-                                font.family: Fonts.uiFont
-                                font.pixelSize: 10
-                                color: Theme.withAlpha(Theme.muted, 0.8)
-                            }
-
-                            Rectangle {
-                                height: 26
-                                width: stage1ActionRow.implicitWidth + 6
-                                radius: 13
-                                color: Theme.withAlpha(Theme.darker_background, 0.42)
-                                border.width: 1
-                                border.color: Theme.withAlpha(Theme.glassBorderColor, 0.18)
-
-                                Row {
-                                    id: stage1ActionRow
-
-                                    anchors.centerIn: parent
-                                    spacing: 1
-
-                                    GhostIconButton {
-                                        glyph: Icons.camera
-                                        buttonSize: 22
-                                        glyphSize: 13
-                                        cornerRadius: 11
-                                        onClicked: {
-                                            root.close();
-                                            if (root.clipboardService)
-                                                root.clipboardService.captureSnap("region");
-
-                                        }
-                                    }
-
-                                    GhostIconButton {
-                                        glyph: Icons.chevronUp
-                                        buttonSize: 22
-                                        glyphSize: 14
-                                        cornerRadius: 11
-                                        onClicked: root.close()
-                                    }
-
-                                }
-
-                            }
-
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Screenshots"
+                            font.family: Fonts.uiFont
+                            font.pixelSize: 12
+                            font.weight: Font.DemiBold
+                            color: Theme.bright_foreground
                         }
 
                     }
@@ -667,7 +613,7 @@ PanelWindow {
                     spacing: 8
                     visible: root.stage === 2
 
-                    // Stage 2 Header (Title + Count + Search Button/Capsule + Clear/Close)
+                    // Stage 2 Header (Centered Title + Search Pill in Right Corner)
                     Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 32
@@ -683,225 +629,143 @@ PanelWindow {
                             }
                         }
 
-                        RowLayout {
-                            anchors.fill: parent
-                            spacing: 8
+                        // Centered Title (hidden when search bar expands)
+                        Text {
+                            anchors.centerIn: parent
+                            visible: !root.searchOpen
+                            text: "Copied Text"
+                            font.family: Fonts.uiFont
+                            font.pixelSize: 12
+                            font.weight: Font.DemiBold
+                            color: Theme.bright_foreground
+                        }
 
-                            // Left Title Cluster (visible when search capsule is collapsed)
-                            RowLayout {
-                                spacing: 8
-                                visible: !root.searchOpen
+                        // Stage 2 Search Button Pill in Right Corner
+                        Rectangle {
+                            visible: !root.searchOpen
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            height: 28
+                            width: searchBtnRow.implicitWidth + 18
+                            radius: 14
+                            color: searchBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.22) : Qt.rgba(1, 1, 1, 0.08)
+                            border.width: 1
+                            border.color: searchBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.55) : Qt.rgba(1, 1, 1, 0.2)
 
-                                Rectangle {
-                                    width: 6
-                                    height: 6
-                                    radius: 3
-                                    color: Theme.cyan
+                            Row {
+                                id: searchBtnRow
+
+                                anchors.centerIn: parent
+                                spacing: 5
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: Icons.search
+                                    font.family: Icons.effectiveFont(text)
+                                    font.pixelSize: 13
+                                    color: searchBtnMouse.containsMouse ? Theme.accent : Theme.foreground
                                 }
 
                                 Text {
-                                    text: "Copied Text"
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: "Search"
                                     font.family: Fonts.uiFont
-                                    font.pixelSize: 12
-                                    font.weight: Font.DemiBold
-                                    color: Theme.bright_foreground
-                                }
-
-                                Rectangle {
-                                    height: 18
-                                    width: txtCountLbl.implicitWidth + 12
-                                    radius: 9
-                                    color: Theme.withAlpha(Theme.bright_foreground, 0.08)
-                                    border.width: 1
-                                    border.color: Theme.withAlpha(Theme.bright_foreground, 0.12)
-
-                                    Text {
-                                        id: txtCountLbl
-
-                                        anchors.centerIn: parent
-                                        text: String(root.textItems.length)
-                                        font.family: Fonts.monoFont
-                                        font.pixelSize: 10
-                                        font.weight: Font.DemiBold
-                                        color: Theme.foreground
-                                    }
-
+                                    font.pixelSize: 11
+                                    font.weight: Font.Medium
+                                    color: searchBtnMouse.containsMouse ? Theme.accent : Theme.foreground
                                 }
 
                             }
 
-                            Item {
-                                Layout.fillWidth: true
-                                visible: !root.searchOpen
+                            MouseArea {
+                                id: searchBtnMouse
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.openSearch()
                             }
 
-                            // Expandable Search Capsule (only shown when Search button is toggled)
-                            Rectangle {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 32
-                                radius: 16
-                                visible: root.searchOpen
-                                color: Theme.withAlpha(Theme.darker_background, searchInput.activeFocus ? 0.56 : 0.4)
-                                border.width: 1
-                                border.color: searchInput.activeFocus ? Theme.withAlpha(Theme.accent, 0.6) : Theme.withAlpha(Theme.glassBorderColor, 0.22)
-
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 12
-                                    anchors.rightMargin: 8
-                                    spacing: 8
-
-                                    Text {
-                                        text: Icons.search
-                                        font.family: Icons.effectiveFont(text)
-                                        font.pixelSize: 14
-                                        color: searchInput.activeFocus ? Theme.accent : Theme.muted
-                                    }
-
-                                    Item {
-                                        Layout.fillWidth: true
-                                        Layout.fillHeight: true
-
-                                        Text {
-                                            anchors.fill: parent
-                                            verticalAlignment: Text.AlignVCenter
-                                            text: "Search copied text..."
-                                            font.family: Fonts.uiFont
-                                            font.pixelSize: 12
-                                            color: Theme.withAlpha(Theme.foreground, 0.48)
-                                            visible: searchInput.text.length === 0
-                                        }
-
-                                        TextInput {
-                                            id: searchInput
-
-                                            anchors.fill: parent
-                                            verticalAlignment: TextInput.AlignVCenter
-                                            font.family: Fonts.uiFont
-                                            font.pixelSize: 12
-                                            color: Theme.bright_foreground
-                                            selectionColor: Theme.selection
-                                            selectedTextColor: Theme.bright_foreground
-                                            clip: true
-                                            onTextChanged: root.searchQuery = text
-                                            Keys.onReturnPressed: {
-                                                if (root.textItems && root.textItems.length > 0)
-                                                    root.pasteCard(root.textItems[0].id);
-
-                                            }
-                                            Keys.onEscapePressed: root.closeSearch()
-                                        }
-
-                                    }
-
-                                    GhostIconButton {
-                                        glyph: Icons.close
-                                        buttonSize: 22
-                                        glyphSize: 12
-                                        cornerRadius: 11
-                                        onClicked: root.closeSearch()
-                                    }
-
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: 120
                                 }
 
                             }
 
-                            // Stage 2 Search Button Pill (only exists in Text stage!)
-                            Rectangle {
-                                visible: !root.searchOpen
-                                height: 28
-                                width: searchBtnRow.implicitWidth + 18
-                                radius: 14
-                                color: searchBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.2) : Theme.withAlpha(Theme.darker_background, 0.44)
-                                border.width: 1
-                                border.color: searchBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.5) : Theme.withAlpha(Theme.glassBorderColor, 0.2)
+                            Behavior on border.color {
+                                ColorAnimation {
+                                    duration: 120
+                                }
 
-                                Row {
-                                    id: searchBtnRow
+                            }
 
-                                    anchors.centerIn: parent
-                                    spacing: 5
+                        }
+
+                        // Expandable Search Capsule (only shown when Search button is toggled)
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 16
+                            visible: root.searchOpen
+                            color: Qt.rgba(1, 1, 1, searchInput.activeFocus ? 0.11 : 0.075)
+                            border.width: 1
+                            border.color: searchInput.activeFocus ? Theme.withAlpha(Theme.accent, 0.6) : Qt.rgba(1, 1, 1, 0.22)
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 8
+                                spacing: 8
+
+                                Text {
+                                    text: Icons.search
+                                    font.family: Icons.effectiveFont(text)
+                                    font.pixelSize: 14
+                                    color: searchInput.activeFocus ? Theme.accent : Theme.muted
+                                }
+
+                                Item {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
 
                                     Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: Icons.search
-                                        font.family: Icons.effectiveFont(text)
-                                        font.pixelSize: 13
-                                        color: searchBtnMouse.containsMouse ? Theme.accent : Theme.foreground
-                                    }
-
-                                    Text {
-                                        anchors.verticalCenter: parent.verticalCenter
-                                        text: "Search"
+                                        anchors.fill: parent
+                                        verticalAlignment: Text.AlignVCenter
+                                        text: "Search copied text..."
                                         font.family: Fonts.uiFont
-                                        font.pixelSize: 11
-                                        font.weight: Font.Medium
-                                        color: searchBtnMouse.containsMouse ? Theme.accent : Theme.foreground
+                                        font.pixelSize: 12
+                                        color: Theme.withAlpha(Theme.foreground, 0.48)
+                                        visible: searchInput.text.length === 0
                                     }
 
-                                }
+                                    TextInput {
+                                        id: searchInput
 
-                                MouseArea {
-                                    id: searchBtnMouse
-
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.openSearch()
-                                }
-
-                                Behavior on color {
-                                    ColorAnimation {
-                                        duration: 120
-                                    }
-
-                                }
-
-                                Behavior on border.color {
-                                    ColorAnimation {
-                                        duration: 120
-                                    }
-
-                                }
-
-                            }
-
-                            // Stage 2 Clear + Close Action Pill
-                            Rectangle {
-                                height: 28
-                                width: stage2ActionRow.implicitWidth + 6
-                                radius: 14
-                                color: Theme.withAlpha(Theme.darker_background, 0.42)
-                                border.width: 1
-                                border.color: Theme.withAlpha(Theme.glassBorderColor, 0.18)
-
-                                Row {
-                                    id: stage2ActionRow
-
-                                    anchors.centerIn: parent
-                                    spacing: 1
-
-                                    GhostIconButton {
-                                        glyph: Icons.clearSweep
-                                        buttonSize: 24
-                                        glyphSize: 13
-                                        cornerRadius: 12
-                                        destructive: true
-                                        onClicked: {
-                                            if (root.clipboardService)
-                                                root.clipboardService.clearUnpinned();
+                                        anchors.fill: parent
+                                        verticalAlignment: TextInput.AlignVCenter
+                                        font.family: Fonts.uiFont
+                                        font.pixelSize: 12
+                                        color: Theme.bright_foreground
+                                        selectionColor: Theme.selection
+                                        selectedTextColor: Theme.bright_foreground
+                                        clip: true
+                                        onTextChanged: root.searchQuery = text
+                                        Keys.onReturnPressed: {
+                                            if (root.textItems && root.textItems.length > 0)
+                                                root.pasteCard(root.textItems[0].id);
 
                                         }
+                                        Keys.onEscapePressed: root.closeSearch()
                                     }
 
-                                    GhostIconButton {
-                                        glyph: Icons.chevronUp
-                                        buttonSize: 24
-                                        glyphSize: 15
-                                        cornerRadius: 12
-                                        onClicked: root.close()
-                                    }
+                                }
 
+                                GhostIconButton {
+                                    glyph: Icons.close
+                                    buttonSize: 22
+                                    glyphSize: 12
+                                    cornerRadius: 11
+                                    onClicked: root.closeSearch()
                                 }
 
                             }
