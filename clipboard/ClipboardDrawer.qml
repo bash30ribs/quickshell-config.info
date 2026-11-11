@@ -130,6 +130,11 @@ PanelWindow {
         root.clipboardService.copyItem(itemId);
     }
 
+    onFilterModeChanged: {
+        if (mainScroll)
+            mainScroll.contentY = 0;
+
+    }
     visible: root.isVisibleSurface
     color: "transparent"
     implicitWidth: Appearance.clipboardWidth
@@ -693,15 +698,28 @@ PanelWindow {
                         onWheel: function(event) {
                             var dx = Theme.wheelDeltaX(event);
                             var dy = Theme.wheelDeltaY(event);
-                            if (root.filterMode !== "image" && Math.abs(dx) > Math.abs(dy) && dx !== 0 && imageLayoutLoader.item) {
+                            if (dx === 0 && dy === 0) {
+                                event.accepted = false;
+                                return ;
+                            }
+                            if (root.filterMode !== "image" && imageLayoutLoader.item) {
                                 var p = mainWheelArea.mapToItem(imageLayoutLoader, event.x, event.y);
                                 if (p.y >= 0 && p.y <= imageLayoutLoader.height && p.x >= 0 && p.x <= imageLayoutLoader.width) {
                                     var strip = imageLayoutLoader.item;
                                     var maxX = Math.max(0, strip.contentWidth - strip.width);
                                     if (maxX > 0) {
-                                        strip.contentX = Math.max(0, Math.min(maxX, strip.contentX - (dx * 0.45)));
-                                        event.accepted = true;
-                                        return ;
+                                        var stripDelta = (Math.abs(dx) >= Math.abs(dy)) ? dx : dy;
+                                        var nextX = Math.max(0, Math.min(maxX, strip.contentX - (stripDelta * 0.55)));
+                                        if (Math.abs(nextX - strip.contentX) > 0.01) {
+                                            strip.contentX = nextX;
+                                            event.accepted = true;
+                                            return ;
+                                        }
+                                        // If horizontal gesture reached strip edge, absorb cleanly instead of closing drawer
+                                        if (Math.abs(dx) >= Math.abs(dy)) {
+                                            event.accepted = true;
+                                            return ;
+                                        }
                                     }
                                 }
                             }
@@ -710,16 +728,27 @@ PanelWindow {
                                 return ;
                             }
                             var maxY = Math.max(0, mainScroll.contentHeight - mainScroll.height);
-                            if (maxY <= 0 || (dy < 0 && mainScroll.contentY >= maxY - 1)) {
-                                if (dy < 0)
-                                    root.handleSwipeUpDelta(dy);
+                            if (maxY > 0)
+                                mainScroll.contentY = Math.max(0, Math.min(maxY, mainScroll.contentY - (dy * 0.5)));
 
-                                event.accepted = true;
-                                return ;
-                            }
-                            mainScroll.contentY = Math.max(0, Math.min(maxY, mainScroll.contentY - (dy * 0.45)));
                             event.accepted = true;
                         }
+                    }
+
+                    // Subtle vertical scroll thumb when content exceeds viewport
+                    Rectangle {
+                        readonly property real maxY: Math.max(0, mainScroll.contentHeight - mainScroll.height)
+                        readonly property real ratio: mainScroll.contentHeight > 0 ? Math.min(1, mainScroll.height / mainScroll.contentHeight) : 1
+
+                        anchors.right: parent.right
+                        anchors.rightMargin: -6
+                        width: 3
+                        radius: 1.5
+                        color: Theme.withAlpha(Theme.bright_foreground, 0.28)
+                        height: Math.max(24, mainScroll.height * ratio)
+                        y: maxY > 0 ? ((mainScroll.contentY / maxY) * Math.max(0, mainScroll.height - height)) : 0
+                        visible: maxY > 1
+                        z: 110
                     }
 
                     Flickable {
@@ -795,6 +824,37 @@ PanelWindow {
                                         color: Theme.withAlpha(Theme.muted, 0.85)
                                     }
 
+                                    Rectangle {
+                                        visible: root.filterMode !== "image" && root.imageItems.length > 4
+                                        height: 18
+                                        width: viewAllLbl.implicitWidth + 12
+                                        radius: 9
+                                        color: viewAllMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.2) : Theme.withAlpha(Theme.bright_foreground, 0.07)
+                                        border.width: 1
+                                        border.color: viewAllMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.45) : Theme.withAlpha(Theme.bright_foreground, 0.1)
+
+                                        Text {
+                                            id: viewAllLbl
+
+                                            anchors.centerIn: parent
+                                            text: "View all"
+                                            font.family: Fonts.uiFont
+                                            font.pixelSize: 10
+                                            font.weight: Font.Medium
+                                            color: viewAllMouse.containsMouse ? Theme.accent : Theme.foreground
+                                        }
+
+                                        MouseArea {
+                                            id: viewAllMouse
+
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: root.filterMode = "image"
+                                        }
+
+                                    }
+
                                 }
 
                                 Loader {
@@ -803,6 +863,35 @@ PanelWindow {
                                     Layout.fillWidth: true
                                     Layout.preferredHeight: (root.filterMode === "image") ? Math.max(114, Math.ceil(root.imageItems.length / 4) * 114) : Appearance.clipboardThumbHeight
                                     sourceComponent: (root.filterMode === "image") ? imageGridComp : imageStripComp
+                                }
+
+                                // Horizontal strip scroll progress bar when more screenshots exist off-screen
+                                Item {
+                                    id: stripProgressTrack
+
+                                    readonly property var stripItem: imageLayoutLoader.item
+                                    readonly property real maxX: (stripItem && root.filterMode !== "image") ? Math.max(0, stripItem.contentWidth - stripItem.width) : 0
+                                    readonly property real thumbRatio: (stripItem && stripItem.contentWidth > 0) ? Math.min(1, stripItem.width / stripItem.contentWidth) : 1
+
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: 3
+                                    visible: root.filterMode !== "image" && maxX > 1
+
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        radius: 1.5
+                                        color: Theme.withAlpha(Theme.bright_foreground, 0.07)
+
+                                        Rectangle {
+                                            height: parent.height
+                                            radius: 1.5
+                                            width: Math.max(28, parent.width * stripProgressTrack.thumbRatio)
+                                            x: stripProgressTrack.maxX > 0 ? ((stripProgressTrack.stripItem.contentX / stripProgressTrack.maxX) * Math.max(0, parent.width - width)) : 0
+                                            color: Theme.withAlpha(Theme.accent, 0.72)
+                                        }
+
+                                    }
+
                                 }
 
                             }
@@ -971,7 +1060,7 @@ PanelWindow {
             clip: true
             interactive: false
             cacheBuffer: 2400
-            snapMode: ListView.SnapToItem
+            snapMode: ListView.NoSnap
             model: root.imageItems
 
             delegate: ClipboardImageCard {
