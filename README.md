@@ -223,7 +223,7 @@ qs ipc call audit status                # Query daemon running state
 │   ├── OsdService.qml            # Volume & brightness rate-limiting service
 │   └── OsdModel.js               # OSD state mapping logic
 ├── clipboard/
-│   └── ClipboardDrawer.qml       # Pull-down liquid glass clipboard & screenshot drawer
+│   └── ClipboardDrawer.qml       # ClipBar: 2-stage pull-down liquid glass screenshot & text drawer
 ├── launcher/
 │   ├── AppLauncher.qml           # Spotlight-style 4-mode application launcher
 │   └── LauncherModel.js          # Desktop entry parsing & search index

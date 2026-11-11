@@ -11,6 +11,7 @@ import Quickshell.Wayland
 PanelWindow {
     id: root
 
+    readonly property string featureName: "clipbar"
     property ClipboardService clipboardService: null
     property bool isOpen: false
     property bool isVisibleSurface: false
@@ -24,6 +25,8 @@ PanelWindow {
     property real stageCooldownUntil: 0
     property real gestureUpAccum: 0
     property real stageDownAccum: 0
+    property int autoCloseMs: 5000
+    property point lastActivityPos: Qt.point(-1, -1)
     readonly property bool searchFocused: searchInput.activeFocus
     readonly property var imageItems: root.clipboardService ? root.clipboardService.filteredItems("image", "") : []
     readonly property var textItems: root.clipboardService ? root.clipboardService.filteredItems("text", root.searchQuery) : []
@@ -44,6 +47,13 @@ PanelWindow {
         return Math.max(220, Math.min(Appearance.clipboardHeight, Math.round(stage2Chrome + textListCol.implicitHeight + 6)));
     }
 
+    function touchActivity() {
+        if (!root.isOpen)
+            return ;
+
+        idleCloseTimer.restart();
+    }
+
     function open() {
         if (root.clipboardService)
             root.clipboardService.syncNow();
@@ -56,6 +66,7 @@ PanelWindow {
         searchInput.focus = false;
         root.gestureUpAccum = 0;
         root.stageDownAccum = 0;
+        root.lastActivityPos = Qt.point(-1, -1);
         if (imgStripList) {
             imgStripList.preservedX = 0;
             imgStripList.contentX = 0;
@@ -67,15 +78,17 @@ PanelWindow {
         root.isOpen = true;
         closeAnim.stop();
         openAnim.restart();
+        idleCloseTimer.restart();
     }
 
     function showTextStage() {
         if (!root.isOpen)
             root.open();
 
-        if (root.stage === 2)
+        if (root.stage === 2) {
+            root.touchActivity();
             return ;
-
+        }
         var now = Date.now();
         root.stage = 2;
         root.gestureUpAccum = 0;
@@ -86,11 +99,13 @@ PanelWindow {
             textScroll.contentY = 0;
 
         stage2FadeAnim.restart();
+        root.touchActivity();
     }
 
     function openSearch() {
         root.searchOpen = true;
         searchInput.forceActiveFocus();
+        root.touchActivity();
     }
 
     function closeSearch() {
@@ -98,12 +113,15 @@ PanelWindow {
         searchInput.focus = false;
         root.searchQuery = "";
         root.searchOpen = false;
+        root.touchActivity();
     }
 
     function close() {
         if (!root.isOpen && !root.isVisibleSurface)
             return ;
 
+        idleCloseTimer.stop();
+        root.lastActivityPos = Qt.point(-1, -1);
         root.gestureUpAccum = 0;
         root.stageDownAccum = 0;
         searchInput.focus = false;
@@ -161,6 +179,7 @@ PanelWindow {
                 root.gestureUpAccum = 0;
                 root.stageDownAccum += dy;
                 gestureDecayTimer.restart();
+                root.touchActivity();
                 if (root.stageDownAccum >= 8) {
                     root.stageDownAccum = 0;
                     root.showTextStage();
@@ -190,6 +209,7 @@ PanelWindow {
         if (!itemId || !root.clipboardService)
             return ;
 
+        root.touchActivity();
         root.clipboardService.copyItem(itemId);
     }
 
@@ -202,11 +222,24 @@ PanelWindow {
         root.clipboardService.annotateImage(filePath);
     }
 
+    function deleteCard(itemId) {
+        if (!itemId || !root.clipboardService)
+            return ;
+
+        root.touchActivity();
+        root.clipboardService.deleteItem(itemId);
+    }
+
+    onIsDraggingChanged: {
+        if (!root.isDragging && root.isOpen)
+            root.touchActivity();
+
+    }
     visible: root.isVisibleSurface
     color: "transparent"
     implicitWidth: Appearance.clipboardWidth
     implicitHeight: Appearance.clipboardHeight + 28
-    WlrLayershell.namespace: "quickshell-clipboard"
+    WlrLayershell.namespace: "quickshell-clipbar"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: (root.isOpen && root.stage === 2 && (root.searchOpen || root.searchFocused)) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
@@ -312,6 +345,54 @@ PanelWindow {
         target: Hyprland
     }
 
+    Timer {
+        id: idleCloseTimer
+
+        interval: root.autoCloseMs
+        repeat: false
+        onTriggered: {
+            if (!root.isOpen)
+                return ;
+
+            if (root.isDragging) {
+                idleCloseTimer.restart();
+                return ;
+            }
+            root.close();
+        }
+    }
+
+    IpcHandler {
+        function open() : string {
+            root.open();
+            return "opened";
+        }
+
+        function showText() : string {
+            root.showTextStage();
+            return "text";
+        }
+
+        function close() : string {
+            root.close();
+            return "closed";
+        }
+
+        function toggle() : string {
+            root.toggle();
+            return root.isOpen ? "opened" : "closed";
+        }
+
+        function refresh() : string {
+            if (root.clipboardService)
+                root.clipboardService.syncNow();
+
+            return "ok";
+        }
+
+        target: "clipbar"
+    }
+
     IpcHandler {
         function open() : string {
             root.open();
@@ -366,6 +447,21 @@ PanelWindow {
             transformOrigin: Item.Top
             opacity: Math.max(0, Math.min(1, root.animProgress * 3.5))
             scale: 0.97 + (0.03 * root.animProgress)
+
+            HoverHandler {
+                id: drawerActivityHover
+
+                onPointChanged: {
+                    if (!root.isOpen || !drawerActivityHover.hovered)
+                        return ;
+
+                    var p = drawerActivityHover.point.position;
+                    if (root.lastActivityPos.x < 0 || Math.abs(p.x - root.lastActivityPos.x) > 1.5 || Math.abs(p.y - root.lastActivityPos.y) > 1.5) {
+                        root.lastActivityPos = p;
+                        root.touchActivity();
+                    }
+                }
+            }
 
             // Seamless borderless liquid-glass wash (keeps composite alpha >= 0.20 across entire surface)
             Rectangle {
@@ -540,6 +636,7 @@ PanelWindow {
                                 if (Math.abs(dx) >= Math.abs(dy) * 0.65) {
                                     root.gestureUpAccum = 0;
                                     root.stageDownAccum = 0;
+                                    root.touchActivity();
                                     var maxX = Math.max(0, imgStripList.contentWidth - imgStripList.width);
                                     if (maxX > 0) {
                                         var nextX = Math.max(0, Math.min(maxX, imgStripList.contentX - (dx * 0.65)));
@@ -599,6 +696,9 @@ PanelWindow {
                                     }
                                     onEditRequested: function(path) {
                                         root.editCard(path);
+                                    }
+                                    onDeleteRequested: function(id) {
+                                        root.deleteCard(id);
                                     }
                                     onDragStateChanged: function(dragging) {
                                         root.isDragging = dragging;
@@ -789,7 +889,11 @@ PanelWindow {
                                         selectionColor: Theme.selection
                                         selectedTextColor: Theme.bright_foreground
                                         clip: true
-                                        onTextChanged: root.searchQuery = text
+                                        onTextChanged: {
+                                            root.searchQuery = text;
+                                            root.touchActivity();
+                                        }
+                                        Keys.onPressed: root.touchActivity()
                                         Keys.onReturnPressed: {
                                             if (root.textItems && root.textItems.length > 0)
                                                 root.pasteCard(root.textItems[0].id);
@@ -915,6 +1019,7 @@ PanelWindow {
                                 if (maxY > 0)
                                     textScroll.contentY = Math.max(0, Math.min(maxY, textScroll.contentY - (dy * 0.5)));
 
+                                root.touchActivity();
                                 event.accepted = true;
                             }
                         }
@@ -961,6 +1066,9 @@ PanelWindow {
                                         }
                                         onCopyRequested: function(id) {
                                             root.copyCard(id);
+                                        }
+                                        onDeleteRequested: function(id) {
+                                            root.deleteCard(id);
                                         }
                                         onDragStateChanged: function(dragging) {
                                             root.isDragging = dragging;

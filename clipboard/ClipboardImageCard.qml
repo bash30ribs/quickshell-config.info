@@ -17,6 +17,7 @@ Item {
     signal pasteRequested(string itemId)
     signal copyRequested(string itemId)
     signal editRequested(string filePath)
+    signal deleteRequested(string itemId)
     signal dragStateChanged(bool dragging)
     signal closeDrawerRequested()
 
@@ -219,11 +220,7 @@ Item {
                     cornerRadius: 11
                     destructive: true
                     darkSurface: true
-                    onClicked: {
-                        if (imgCard.clipboardService)
-                            imgCard.clipboardService.deleteItem(imgCard.modelData.id);
-
-                    }
+                    onClicked: imgCard.deleteRequested(imgCard.modelData.id)
                 }
 
             }

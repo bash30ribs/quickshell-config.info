@@ -43,6 +43,7 @@ Item {
 
     signal pasteRequested(string itemId)
     signal copyRequested(string itemId)
+    signal deleteRequested(string itemId)
     signal dragStateChanged(bool dragging)
     signal closeDrawerRequested()
 
@@ -356,11 +357,7 @@ Item {
                         glyphSize: 12
                         cornerRadius: 11
                         destructive: true
-                        onClicked: {
-                            if (rowRoot.clipboardService)
-                                rowRoot.clipboardService.deleteItem(rowRoot.modelData.id);
-
-                        }
+                        onClicked: rowRoot.deleteRequested(rowRoot.modelData.id)
                     }
 
                 }

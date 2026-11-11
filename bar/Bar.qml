@@ -348,7 +348,7 @@ PanelWindow {
                 audioWidget.toggle();
             else if (name === "bluetooth")
                 bluetoothWidget.toggle();
-            else if (name === "clipboard" && root.clipboardDrawer)
+            else if ((name === "clipbar" || name === "clipboard") && root.clipboardDrawer)
                 root.clipboardDrawer.toggle();
             return "ok";
         }
