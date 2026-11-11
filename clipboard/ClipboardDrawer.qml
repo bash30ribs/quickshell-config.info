@@ -15,54 +15,85 @@ PanelWindow {
     property bool isOpen: false
     property bool isVisibleSurface: false
     property bool isDragging: false
-    property bool stayPinnedOpen: false
-    property string filterMode: "all" // "all" | "image" | "text" | "pinned"
+    property int stage: 1 // 1 = Screenshots strip only, 2 = Copied Text + Search
+    property bool searchOpen: false
     property string searchQuery: ""
     property real animProgress: 0
     property real openedAtMs: 0
+    property real stageChangedAtMs: 0
+    property real stageCooldownUntil: 0
     property real gestureUpAccum: 0
+    property real stageDownAccum: 0
     readonly property bool searchFocused: searchInput.activeFocus
-    readonly property var filteredAll: root.clipboardService ? root.clipboardService.filteredItems(root.filterMode, root.searchQuery) : []
-    readonly property var imageItems: {
-        var list = root.filteredAll || [];
-        var out = [];
-        for (var i = 0; i < list.length; i++) {
-            if (list[i].type === "image")
-                out.push(list[i]);
-
-        }
-        return out;
-    }
-    readonly property var textItems: {
-        var list = root.filteredAll || [];
-        var out = [];
-        for (var i = 0; i < list.length; i++) {
-            if (list[i].type === "text")
-                out.push(list[i]);
-
-        }
-        return out;
-    }
-    readonly property int totalCount: root.filteredAll ? root.filteredAll.length : 0
+    readonly property var imageItems: root.clipboardService ? root.clipboardService.filteredItems("image", "") : []
+    readonly property var textItems: root.clipboardService ? root.clipboardService.filteredItems("text", root.searchQuery) : []
     readonly property real targetDrawerHeight: {
-        var chrome = (Appearance.clipboardPadding * 2) + 34 + 1 + 10 + 18 + 8;
-        if (root.totalCount === 0)
+        var topMargin = Appearance.clipboardPadding - 1;
+        var bottomMargin = 8;
+        if (root.stage === 1) {
+            var headerH = 26;
+            var bodyH = root.imageItems.length > 0 ? Appearance.clipboardThumbHeight : 104;
+            var trackH = root.imageItems.length > 4 ? 9 : 0;
+            var handleH = 14;
+            return Math.round(topMargin + headerH + 8 + 1 + 8 + bodyH + trackH + 8 + handleH + bottomMargin);
+        }
+        var stage2Chrome = topMargin + 32 + 8 + 1 + 8 + 8 + 14 + bottomMargin;
+        if (root.textItems.length === 0)
             return 220;
 
-        var bodyH = contentColumn.implicitHeight + 12;
-        return Math.max(220, Math.min(Appearance.clipboardHeight, Math.round(chrome + bodyH)));
+        return Math.max(220, Math.min(Appearance.clipboardHeight, Math.round(stage2Chrome + textListCol.implicitHeight + 6)));
     }
 
     function open() {
         if (root.clipboardService)
             root.clipboardService.syncNow();
 
+        var now = Date.now();
+        root.stage = 1;
+        root.searchOpen = false;
+        root.searchQuery = "";
+        searchInput.text = "";
+        searchInput.focus = false;
         root.gestureUpAccum = 0;
-        root.openedAtMs = Date.now();
+        root.stageDownAccum = 0;
+        root.openedAtMs = now;
+        root.stageChangedAtMs = now;
+        root.stageCooldownUntil = now + 340;
         root.isVisibleSurface = true;
         root.isOpen = true;
         closeAnim.stop();
         openAnim.restart();
+    }
+
+    function showTextStage() {
+        if (!root.isOpen)
+            root.open();
+
+        if (root.stage === 2)
+            return ;
+
+        var now = Date.now();
+        root.stage = 2;
+        root.gestureUpAccum = 0;
+        root.stageDownAccum = 0;
+        root.stageChangedAtMs = now;
+        root.stageCooldownUntil = now + 360;
+        if (textScroll)
+            textScroll.contentY = 0;
+
+        stage2FadeAnim.restart();
+    }
+
+    function openSearch() {
+        root.searchOpen = true;
+        searchInput.forceActiveFocus();
+    }
+
+    function closeSearch() {
+        searchInput.text = "";
+        searchInput.focus = false;
+        root.searchQuery = "";
+        root.searchOpen = false;
     }
 
     function close() {
@@ -70,6 +101,7 @@ PanelWindow {
             return ;
 
         root.gestureUpAccum = 0;
+        root.stageDownAccum = 0;
         searchInput.focus = false;
         root.isOpen = false;
         openAnim.stop();
@@ -87,10 +119,12 @@ PanelWindow {
         if (!root.isOpen)
             return ;
 
-        if (Date.now() - root.openedAtMs < 320)
+        var now = Date.now();
+        if (now - root.openedAtMs < 320 || now < root.stageCooldownUntil)
             return ;
 
         if (dy < 0) {
+            root.stageDownAccum = 0;
             root.gestureUpAccum += dy;
             gestureDecayTimer.restart();
             if (root.gestureUpAccum <= -10) {
@@ -102,14 +136,41 @@ PanelWindow {
         }
     }
 
-    function handleUpWheel(event) {
+    function handleStageWheel(event, allowAdvanceToStage2) {
+        var dx = Theme.wheelDeltaX(event);
         var dy = Theme.wheelDeltaY(event);
+        if (dx === 0 && dy === 0) {
+            event.accepted = false;
+            return ;
+        }
+        if (dy === 0 || Math.abs(dy) < Math.abs(dx) * 0.7) {
+            event.accepted = false;
+            return ;
+        }
+        var now = Date.now();
+        if (now < root.stageCooldownUntil) {
+            event.accepted = true;
+            return ;
+        }
+        if (dy > 0 && allowAdvanceToStage2 && root.stage === 1) {
+            if (Math.abs(dy) >= Math.abs(dx) * 1.25 && (now - root.stageChangedAtMs) >= 340) {
+                root.gestureUpAccum = 0;
+                root.stageDownAccum += dy;
+                gestureDecayTimer.restart();
+                if (root.stageDownAccum >= 8) {
+                    root.stageDownAccum = 0;
+                    root.showTextStage();
+                }
+            }
+            event.accepted = true;
+            return ;
+        }
         if (dy < 0) {
             event.accepted = true;
             root.handleSwipeUpDelta(dy);
-        } else {
-            event.accepted = false;
+            return ;
         }
+        event.accepted = false;
     }
 
     function pasteCard(itemId) {
@@ -117,9 +178,7 @@ PanelWindow {
             return ;
 
         searchInput.focus = false;
-        if (!root.stayPinnedOpen)
-            root.close();
-
+        root.close();
         root.clipboardService.pasteItem(itemId);
     }
 
@@ -130,18 +189,13 @@ PanelWindow {
         root.clipboardService.copyItem(itemId);
     }
 
-    onFilterModeChanged: {
-        if (mainScroll)
-            mainScroll.contentY = 0;
-
-    }
     visible: root.isVisibleSurface
     color: "transparent"
     implicitWidth: Appearance.clipboardWidth
     implicitHeight: Appearance.clipboardHeight + 28
     WlrLayershell.namespace: "quickshell-clipboard"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: (root.isOpen && root.searchFocused) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: (root.isOpen && root.stage === 2 && (root.searchOpen || root.searchFocused)) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
     screen: {
         if (!Quickshell.screens || Quickshell.screens.length === 0)
@@ -166,7 +220,7 @@ PanelWindow {
         top: Appearance.barHeight
     }
 
-    // Crisp, non-sluggish fluid slide-and-scale reveal from beneath the bar
+    // Crisp slide-and-scale reveal from beneath the top bar
     NumberAnimation {
         id: openAnim
 
@@ -188,10 +242,23 @@ PanelWindow {
         onFinished: {
             if (!root.isOpen) {
                 root.isVisibleSurface = false;
+                root.stage = 1;
+                root.searchOpen = false;
                 root.searchQuery = "";
                 searchInput.text = "";
             }
         }
+    }
+
+    NumberAnimation {
+        id: stage2FadeAnim
+
+        target: stage2Container
+        property: "opacity"
+        from: 0.25
+        to: 1
+        duration: 150
+        easing.type: Easing.OutCubic
     }
 
     Timer {
@@ -201,24 +268,30 @@ PanelWindow {
         repeat: false
         onTriggered: {
             root.gestureUpAccum = 0;
+            root.stageDownAccum = 0;
         }
     }
 
     Shortcut {
         sequence: "Escape"
-        enabled: root.isOpen && root.searchFocused
-        onActivated: root.close()
+        enabled: root.isOpen && (root.searchOpen || root.searchFocused)
+        onActivated: {
+            if (root.searchQuery.length > 0 || root.searchOpen)
+                root.closeSearch();
+            else
+                root.close();
+        }
     }
 
     Connections {
         function onFocusedWorkspaceChanged() {
-            if (root.isOpen && !root.stayPinnedOpen)
+            if (root.isOpen)
                 root.close();
 
         }
 
         function onRawEvent(event) {
-            if (event && event.name === "activewindowv2" && root.isOpen && !root.stayPinnedOpen && !root.isDragging && (Date.now() - root.openedAtMs > 280))
+            if (event && event.name === "activewindowv2" && root.isOpen && !root.isDragging && (Date.now() - root.openedAtMs > 280))
                 root.close();
 
         }
@@ -230,6 +303,11 @@ PanelWindow {
         function open() : string {
             root.open();
             return "opened";
+        }
+
+        function showText() : string {
+            root.showTextStage();
+            return "text";
         }
 
         function close() : string {
@@ -282,395 +360,296 @@ PanelWindow {
                 anchors.rightMargin: Appearance.clipboardPadding
                 anchors.topMargin: Appearance.clipboardPadding - 1
                 anchors.bottomMargin: 8
-                spacing: 10
+                spacing: 8
 
                 // ─────────────────────────────────────────────────────────────
-                // Unified Pill Header (Accent Filter Track · Search · Actions)
+                // STAGE 1: Screenshots Carousel Only
                 // ─────────────────────────────────────────────────────────────
-                Item {
+                ColumnLayout {
+                    id: stage1Container
+
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 34
+                    Layout.fillHeight: true
+                    spacing: 8
+                    visible: root.stage === 1
 
-                    MouseArea {
-                        anchors.fill: parent
-                        z: 100
-                        acceptedButtons: Qt.NoButton
-                        hoverEnabled: false
-                        scrollGestureEnabled: true
-                        onWheel: function(event) {
-                            root.handleUpWheel(event);
+                    // Minimal Stage 1 Header (Title + Count + Glide Hint + Capture/Close)
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 26
+
+                        MouseArea {
+                            anchors.fill: parent
+                            z: 100
+                            acceptedButtons: Qt.NoButton
+                            hoverEnabled: false
+                            scrollGestureEnabled: true
+                            onWheel: function(event) {
+                                root.handleStageWheel(event, true);
+                            }
                         }
-                    }
 
-                    RowLayout {
-                        anchors.fill: parent
-                        spacing: 10
-
-                        // Accent Pill Segmented Filter Switcher (Matches PowerMenu)
-                        Rectangle {
-                            id: filterTrack
-
-                            Layout.preferredHeight: 34
-                            Layout.preferredWidth: filterRow.implicitWidth + 6
-                            radius: 17
-                            color: Theme.withAlpha(Theme.darker_background, 0.46)
-                            border.width: 1
-                            border.color: Theme.withAlpha(Theme.glassBorderColor, 0.22)
+                        RowLayout {
+                            anchors.fill: parent
+                            spacing: 8
 
                             Rectangle {
-                                id: activeTabIndicator
-
-                                readonly property int activeIndex: {
-                                    if (root.filterMode === "image")
-                                        return 1;
-
-                                    if (root.filterMode === "text")
-                                        return 2;
-
-                                    if (root.filterMode === "pinned")
-                                        return 3;
-
-                                    return 0;
-                                }
-                                readonly property var activeItem: filterRepeater.itemAt(activeIndex)
-
-                                y: 3
-                                height: 28
-                                radius: 14
+                                width: 6
+                                height: 6
+                                radius: 3
                                 color: Theme.accent
-                                x: activeItem ? (activeItem.x + 3) : 3
-                                width: activeItem ? activeItem.width : 46
-
-                                Behavior on x {
-                                    NumberAnimation {
-                                        duration: 180
-                                        easing.type: Easing.OutCubic
-                                    }
-
-                                }
-
-                                Behavior on width {
-                                    NumberAnimation {
-                                        duration: 150
-                                        easing.type: Easing.OutCubic
-                                    }
-
-                                }
-
                             }
-
-                            Row {
-                                id: filterRow
-
-                                anchors.left: parent.left
-                                anchors.leftMargin: 3
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: 0
-
-                                Repeater {
-                                    id: filterRepeater
-
-                                    model: [{
-                                        "label": "All",
-                                        "modeValue": "all"
-                                    }, {
-                                        "label": "Images",
-                                        "modeValue": "image"
-                                    }, {
-                                        "label": "Text",
-                                        "modeValue": "text"
-                                    }, {
-                                        "label": "Pinned",
-                                        "modeValue": "pinned"
-                                    }]
-
-                                    delegate: Item {
-                                        required property var modelData
-                                        readonly property bool isCurrent: root.filterMode === modelData.modeValue
-
-                                        width: tabLbl.implicitWidth + 22
-                                        height: 28
-
-                                        Text {
-                                            id: tabLbl
-
-                                            anchors.centerIn: parent
-                                            text: parent.modelData.label
-                                            font.family: Fonts.uiFont
-                                            font.pixelSize: 11
-                                            font.weight: parent.isCurrent ? Font.Bold : Font.Medium
-                                            color: parent.isCurrent ? Theme.darker_background : (tMouse.containsMouse ? Theme.bright_foreground : Theme.foreground)
-
-                                            Behavior on color {
-                                                ColorAnimation {
-                                                    duration: 120
-                                                }
-
-                                            }
-
-                                        }
-
-                                        MouseArea {
-                                            id: tMouse
-
-                                            anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: root.filterMode = parent.modelData.modeValue
-                                        }
-
-                                    }
-
-                                }
-
-                            }
-
-                        }
-
-                        // Integrated Liquid Glass Search Capsule (Matches AppLauncher)
-                        Rectangle {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 34
-                            radius: 17
-                            color: Theme.withAlpha(Theme.darker_background, searchInput.activeFocus ? 0.54 : 0.38)
-                            border.width: 1
-                            border.color: searchInput.activeFocus ? Theme.withAlpha(Theme.accent, 0.58) : Theme.withAlpha(Theme.glassBorderColor, 0.2)
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 13
-                                anchors.rightMargin: 10
-                                spacing: 8
-
-                                Text {
-                                    text: Icons.search
-                                    font.family: Icons.effectiveFont(text)
-                                    font.pixelSize: 14
-                                    color: searchInput.activeFocus ? Theme.accent : Theme.muted
-
-                                    Behavior on color {
-                                        ColorAnimation {
-                                            duration: 130
-                                        }
-
-                                    }
-
-                                }
-
-                                Item {
-                                    Layout.fillWidth: true
-                                    Layout.fillHeight: true
-
-                                    Text {
-                                        anchors.fill: parent
-                                        verticalAlignment: Text.AlignVCenter
-                                        text: "Search clipboard..."
-                                        font.family: Fonts.uiFont
-                                        font.pixelSize: 12
-                                        color: Theme.withAlpha(Theme.foreground, 0.48)
-                                        visible: searchInput.text.length === 0
-                                    }
-
-                                    TextInput {
-                                        id: searchInput
-
-                                        anchors.fill: parent
-                                        verticalAlignment: TextInput.AlignVCenter
-                                        font.family: Fonts.uiFont
-                                        font.pixelSize: 12
-                                        color: Theme.bright_foreground
-                                        selectionColor: Theme.selection
-                                        selectedTextColor: Theme.bright_foreground
-                                        clip: true
-                                        onTextChanged: root.searchQuery = text
-                                        Keys.onReturnPressed: {
-                                            if (root.filteredAll && root.filteredAll.length > 0)
-                                                root.pasteCard(root.filteredAll[0].id);
-
-                                        }
-                                        Keys.onEscapePressed: root.close()
-                                    }
-
-                                }
-
-                                GhostIconButton {
-                                    visible: searchInput.text.length > 0
-                                    glyph: Icons.close
-                                    buttonSize: 22
-                                    glyphSize: 12
-                                    cornerRadius: 11
-                                    onClicked: {
-                                        searchInput.text = "";
-                                        searchInput.focus = false;
-                                    }
-                                }
-
-                            }
-
-                            Behavior on border.color {
-                                ColorAnimation {
-                                    duration: 130
-                                }
-
-                            }
-
-                        }
-
-                        // Action Pill Capsule
-                        Rectangle {
-                            Layout.preferredHeight: 34
-                            Layout.preferredWidth: actionRow.implicitWidth + 8
-                            radius: 17
-                            color: Theme.withAlpha(Theme.darker_background, 0.42)
-                            border.width: 1
-                            border.color: Theme.withAlpha(Theme.glassBorderColor, 0.18)
-
-                            Row {
-                                id: actionRow
-
-                                anchors.centerIn: parent
-                                spacing: 2
-
-                                GhostIconButton {
-                                    glyph: Icons.camera
-                                    buttonSize: 28
-                                    glyphSize: 14
-                                    cornerRadius: 14
-                                    onClicked: {
-                                        root.close();
-                                        if (root.clipboardService)
-                                            root.clipboardService.captureSnap("region");
-
-                                    }
-                                }
-
-                                GhostIconButton {
-                                    glyph: Icons.pin
-                                    buttonSize: 28
-                                    glyphSize: 14
-                                    cornerRadius: 14
-                                    active: root.stayPinnedOpen
-                                    onClicked: root.stayPinnedOpen = !root.stayPinnedOpen
-                                }
-
-                                GhostIconButton {
-                                    glyph: Icons.clearSweep
-                                    buttonSize: 28
-                                    glyphSize: 14
-                                    cornerRadius: 14
-                                    destructive: true
-                                    onClicked: {
-                                        if (root.clipboardService)
-                                            root.clipboardService.clearUnpinned();
-
-                                    }
-                                }
-
-                                GhostIconButton {
-                                    glyph: Icons.chevronUp
-                                    buttonSize: 28
-                                    glyphSize: 16
-                                    cornerRadius: 14
-                                    onClicked: root.close()
-                                }
-
-                            }
-
-                        }
-
-                    }
-
-                }
-
-                // Subtle Luminous Horizontal Divider
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 1
-
-                    gradient: Gradient {
-                        orientation: Gradient.Horizontal
-
-                        GradientStop {
-                            position: 0
-                            color: "transparent"
-                        }
-
-                        GradientStop {
-                            position: 0.15
-                            color: Theme.withAlpha(Theme.bright_foreground, 0.1)
-                        }
-
-                        GradientStop {
-                            position: 0.85
-                            color: Theme.withAlpha(Theme.bright_foreground, 0.1)
-                        }
-
-                        GradientStop {
-                            position: 1
-                            color: "transparent"
-                        }
-
-                    }
-
-                }
-
-                // ─────────────────────────────────────────────────────────────
-                // Empty State
-                // ─────────────────────────────────────────────────────────────
-                Item {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    visible: root.totalCount === 0
-
-                    MouseArea {
-                        anchors.fill: parent
-                        z: 100
-                        acceptedButtons: Qt.NoButton
-                        hoverEnabled: false
-                        scrollGestureEnabled: true
-                        onWheel: function(event) {
-                            root.handleUpWheel(event);
-                        }
-                    }
-
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: 8
-
-                        Rectangle {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            width: 42
-                            height: 42
-                            radius: 14
-                            color: Theme.withAlpha(Theme.accent, 0.12)
-                            border.width: 1
-                            border.color: Theme.withAlpha(Theme.accent, 0.25)
 
                             Text {
-                                anchors.centerIn: parent
-                                text: Icons.clipboard
-                                font.family: Icons.effectiveFont(text)
-                                font.pixelSize: 20
-                                color: Theme.accent
+                                text: "Screenshots"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: 12
+                                font.weight: Font.DemiBold
+                                color: Theme.bright_foreground
+                            }
+
+                            Rectangle {
+                                height: 18
+                                width: imgCountLbl.implicitWidth + 12
+                                radius: 9
+                                color: Theme.withAlpha(Theme.accent, 0.16)
+                                border.width: 1
+                                border.color: Theme.withAlpha(Theme.accent, 0.3)
+
+                                Text {
+                                    id: imgCountLbl
+
+                                    anchors.centerIn: parent
+                                    text: String(root.imageItems.length)
+                                    font.family: Fonts.monoFont
+                                    font.pixelSize: 10
+                                    font.weight: Font.DemiBold
+                                    color: Theme.accent
+                                }
+
+                            }
+
+                            Item {
+                                Layout.fillWidth: true
+                            }
+
+                            Text {
+                                text: "Scroll ↔ · Glide ↓ for text"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: 10
+                                color: Theme.withAlpha(Theme.muted, 0.8)
+                            }
+
+                            Rectangle {
+                                height: 26
+                                width: stage1ActionRow.implicitWidth + 6
+                                radius: 13
+                                color: Theme.withAlpha(Theme.darker_background, 0.42)
+                                border.width: 1
+                                border.color: Theme.withAlpha(Theme.glassBorderColor, 0.18)
+
+                                Row {
+                                    id: stage1ActionRow
+
+                                    anchors.centerIn: parent
+                                    spacing: 1
+
+                                    GhostIconButton {
+                                        glyph: Icons.camera
+                                        buttonSize: 22
+                                        glyphSize: 13
+                                        cornerRadius: 11
+                                        onClicked: {
+                                            root.close();
+                                            if (root.clipboardService)
+                                                root.clipboardService.captureSnap("region");
+
+                                        }
+                                    }
+
+                                    GhostIconButton {
+                                        glyph: Icons.chevronUp
+                                        buttonSize: 22
+                                        glyphSize: 14
+                                        cornerRadius: 11
+                                        onClicked: root.close()
+                                    }
+
+                                }
+
                             }
 
                         }
 
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: root.searchQuery.length > 0 ? "No matching entries" : "Clipboard is empty"
-                            font.family: Fonts.uiFont
-                            font.pixelSize: 13
-                            font.weight: Font.DemiBold
-                            color: Theme.bright_foreground
+                    }
+
+                    // Subtle Luminous Horizontal Divider
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 1
+
+                        gradient: Gradient {
+                            orientation: Gradient.Horizontal
+
+                            GradientStop {
+                                position: 0
+                                color: "transparent"
+                            }
+
+                            GradientStop {
+                                position: 0.15
+                                color: Theme.withAlpha(Theme.bright_foreground, 0.1)
+                            }
+
+                            GradientStop {
+                                position: 0.85
+                                color: Theme.withAlpha(Theme.bright_foreground, 0.1)
+                            }
+
+                            GradientStop {
+                                position: 1
+                                color: "transparent"
+                            }
+
                         }
 
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: root.searchQuery.length > 0 ? "Try another keyword or clear filters" : "Screenshots and copied clips appear right here"
-                            font.family: Fonts.uiFont
-                            font.pixelSize: 11
-                            color: Theme.muted
+                    }
+
+                    // Stage 1 Empty State
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 104
+                        visible: root.imageItems.length === 0
+
+                        MouseArea {
+                            anchors.fill: parent
+                            z: 100
+                            acceptedButtons: Qt.NoButton
+                            hoverEnabled: false
+                            scrollGestureEnabled: true
+                            onWheel: function(event) {
+                                root.handleStageWheel(event, true);
+                            }
+                        }
+
+                        Column {
+                            anchors.centerIn: parent
+                            spacing: 6
+
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "No screenshots yet"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: 12
+                                font.weight: Font.DemiBold
+                                color: Theme.bright_foreground
+                            }
+
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "Two-finger glide ↓ for copied text"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: 11
+                                color: Theme.muted
+                            }
+
+                        }
+
+                    }
+
+                    // Horizontal Screenshots Carousel + Gesture Router
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Appearance.clipboardThumbHeight
+                        visible: root.imageItems.length > 0
+
+                        MouseArea {
+                            id: stage1WheelArea
+
+                            anchors.fill: parent
+                            z: 100
+                            acceptedButtons: Qt.NoButton
+                            hoverEnabled: false
+                            scrollGestureEnabled: true
+                            onWheel: function(event) {
+                                var dx = Theme.wheelDeltaX(event);
+                                var dy = Theme.wheelDeltaY(event);
+                                if (dx === 0 && dy === 0) {
+                                    event.accepted = false;
+                                    return ;
+                                }
+                                // Prioritize horizontal panning across the screenshot strip
+                                if (Math.abs(dx) >= Math.abs(dy) * 0.65) {
+                                    root.gestureUpAccum = 0;
+                                    root.stageDownAccum = 0;
+                                    var maxX = Math.max(0, imgStripList.contentWidth - imgStripList.width);
+                                    if (maxX > 0)
+                                        imgStripList.contentX = Math.max(0, Math.min(maxX, imgStripList.contentX - (dx * 0.65)));
+
+                                    event.accepted = true;
+                                    return ;
+                                }
+                                // Vertical two-finger gesture: down -> Stage 2 Text, up -> Close
+                                root.handleStageWheel(event, true);
+                            }
+                        }
+
+                        ListView {
+                            id: imgStripList
+
+                            anchors.fill: parent
+                            orientation: ListView.Horizontal
+                            spacing: 10
+                            clip: true
+                            interactive: false
+                            cacheBuffer: 2400
+                            snapMode: ListView.NoSnap
+                            model: root.imageItems
+
+                            delegate: ClipboardImageCard {
+                                width: Math.floor((imgStripList.width - 30) / 4)
+                                height: Appearance.clipboardThumbHeight
+                                clipboardService: root.clipboardService
+                                onPasteRequested: function(id) {
+                                    root.pasteCard(id);
+                                }
+                                onCopyRequested: function(id) {
+                                    root.copyCard(id);
+                                }
+                                onDragStateChanged: function(dragging) {
+                                    root.isDragging = dragging;
+                                }
+                                onCloseDrawerRequested: root.close()
+                            }
+
+                        }
+
+                    }
+
+                    // Slim Horizontal Strip Progress Bar when more screenshots exist off-screen
+                    Item {
+                        id: stripProgressTrack
+
+                        readonly property real maxX: Math.max(0, imgStripList.contentWidth - imgStripList.width)
+                        readonly property real thumbRatio: imgStripList.contentWidth > 0 ? Math.min(1, imgStripList.width / imgStripList.contentWidth) : 1
+
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 3
+                        visible: root.imageItems.length > 4 && maxX > 1
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 1.5
+                            color: Theme.withAlpha(Theme.bright_foreground, 0.08)
+
+                            Rectangle {
+                                height: parent.height
+                                radius: 1.5
+                                width: Math.max(32, parent.width * stripProgressTrack.thumbRatio)
+                                x: stripProgressTrack.maxX > 0 ? ((imgStripList.contentX / stripProgressTrack.maxX) * Math.max(0, parent.width - width)) : 0
+                                color: Theme.withAlpha(Theme.accent, 0.78)
+                            }
+
                         }
 
                     }
@@ -678,300 +657,411 @@ PanelWindow {
                 }
 
                 // ─────────────────────────────────────────────────────────────
-                // Content Area (Screenshots Strip/Grid + Floating Pill History)
+                // STAGE 2: Copied Text History + Expandable Search Option
                 // ─────────────────────────────────────────────────────────────
-                Item {
-                    id: mainScrollWrap
+                ColumnLayout {
+                    id: stage2Container
 
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    visible: root.totalCount > 0
+                    spacing: 8
+                    visible: root.stage === 2
 
-                    MouseArea {
-                        id: mainWheelArea
+                    // Stage 2 Header (Title + Count + Search Button/Capsule + Clear/Close)
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 32
 
-                        anchors.fill: parent
-                        z: 100
-                        acceptedButtons: Qt.NoButton
-                        hoverEnabled: false
-                        scrollGestureEnabled: true
-                        onWheel: function(event) {
-                            var dx = Theme.wheelDeltaX(event);
-                            var dy = Theme.wheelDeltaY(event);
-                            if (dx === 0 && dy === 0) {
-                                event.accepted = false;
-                                return ;
+                        MouseArea {
+                            anchors.fill: parent
+                            z: 100
+                            acceptedButtons: Qt.NoButton
+                            hoverEnabled: false
+                            scrollGestureEnabled: true
+                            onWheel: function(event) {
+                                root.handleStageWheel(event, false);
                             }
-                            if (root.filterMode !== "image" && imageLayoutLoader.item) {
-                                var p = mainWheelArea.mapToItem(imageLayoutLoader, event.x, event.y);
-                                if (p.y >= 0 && p.y <= imageLayoutLoader.height && p.x >= 0 && p.x <= imageLayoutLoader.width) {
-                                    var strip = imageLayoutLoader.item;
-                                    var maxX = Math.max(0, strip.contentWidth - strip.width);
-                                    if (maxX > 0) {
-                                        var stripDelta = (Math.abs(dx) >= Math.abs(dy)) ? dx : dy;
-                                        var nextX = Math.max(0, Math.min(maxX, strip.contentX - (stripDelta * 0.55)));
-                                        if (Math.abs(nextX - strip.contentX) > 0.01) {
-                                            strip.contentX = nextX;
-                                            event.accepted = true;
-                                            return ;
-                                        }
-                                        // If horizontal gesture reached strip edge, absorb cleanly instead of closing drawer
-                                        if (Math.abs(dx) >= Math.abs(dy)) {
-                                            event.accepted = true;
-                                            return ;
-                                        }
-                                    }
-                                }
-                            }
-                            if (dy === 0 || Math.abs(dy) < Math.abs(dx) * 0.5) {
-                                event.accepted = false;
-                                return ;
-                            }
-                            var maxY = Math.max(0, mainScroll.contentHeight - mainScroll.height);
-                            if (maxY > 0)
-                                mainScroll.contentY = Math.max(0, Math.min(maxY, mainScroll.contentY - (dy * 0.5)));
-
-                            event.accepted = true;
                         }
-                    }
 
-                    // Subtle vertical scroll thumb when content exceeds viewport
-                    Rectangle {
-                        readonly property real maxY: Math.max(0, mainScroll.contentHeight - mainScroll.height)
-                        readonly property real ratio: mainScroll.contentHeight > 0 ? Math.min(1, mainScroll.height / mainScroll.contentHeight) : 1
+                        RowLayout {
+                            anchors.fill: parent
+                            spacing: 8
 
-                        anchors.right: parent.right
-                        anchors.rightMargin: -6
-                        width: 3
-                        radius: 1.5
-                        color: Theme.withAlpha(Theme.bright_foreground, 0.28)
-                        height: Math.max(24, mainScroll.height * ratio)
-                        y: maxY > 0 ? ((mainScroll.contentY / maxY) * Math.max(0, mainScroll.height - height)) : 0
-                        visible: maxY > 1
-                        z: 110
-                    }
-
-                    Flickable {
-                        id: mainScroll
-
-                        anchors.fill: parent
-                        clip: true
-                        contentWidth: width
-                        contentHeight: contentColumn.implicitHeight
-                        interactive: false
-                        boundsBehavior: Flickable.StopAtBounds
-
-                        ColumnLayout {
-                            id: contentColumn
-
-                            width: mainScroll.width
-                            spacing: 14
-
-                            // Section 1: Screenshots Gallery
-                            ColumnLayout {
-                                Layout.fillWidth: true
+                            // Left Title Cluster (visible when search capsule is collapsed)
+                            RowLayout {
                                 spacing: 8
-                                visible: root.imageItems.length > 0
+                                visible: !root.searchOpen
 
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 8
+                                Rectangle {
+                                    width: 6
+                                    height: 6
+                                    radius: 3
+                                    color: Theme.cyan
+                                }
 
-                                    Rectangle {
-                                        width: 6
-                                        height: 6
-                                        radius: 3
-                                        color: Theme.accent
-                                    }
+                                Text {
+                                    text: "Copied Text"
+                                    font.family: Fonts.uiFont
+                                    font.pixelSize: 12
+                                    font.weight: Font.DemiBold
+                                    color: Theme.bright_foreground
+                                }
+
+                                Rectangle {
+                                    height: 18
+                                    width: txtCountLbl.implicitWidth + 12
+                                    radius: 9
+                                    color: Theme.withAlpha(Theme.bright_foreground, 0.08)
+                                    border.width: 1
+                                    border.color: Theme.withAlpha(Theme.bright_foreground, 0.12)
 
                                     Text {
-                                        text: "Screenshots"
-                                        font.family: Fonts.uiFont
-                                        font.pixelSize: 11
+                                        id: txtCountLbl
+
+                                        anchors.centerIn: parent
+                                        text: String(root.textItems.length)
+                                        font.family: Fonts.monoFont
+                                        font.pixelSize: 10
                                         font.weight: Font.DemiBold
-                                        color: Theme.bright_foreground
+                                        color: Theme.foreground
                                     }
 
-                                    Rectangle {
-                                        height: 17
-                                        width: imgCountLbl.implicitWidth + 12
-                                        radius: 8
-                                        color: Theme.withAlpha(Theme.accent, 0.16)
-                                        border.width: 1
-                                        border.color: Theme.withAlpha(Theme.accent, 0.28)
+                                }
 
-                                        Text {
-                                            id: imgCountLbl
+                            }
 
-                                            anchors.centerIn: parent
-                                            text: String(root.imageItems.length)
-                                            font.family: Fonts.monoFont
-                                            font.pixelSize: 10
-                                            font.weight: Font.DemiBold
-                                            color: Theme.accent
-                                        }
+                            Item {
+                                Layout.fillWidth: true
+                                visible: !root.searchOpen
+                            }
 
+                            // Expandable Search Capsule (only shown when Search button is toggled)
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 32
+                                radius: 16
+                                visible: root.searchOpen
+                                color: Theme.withAlpha(Theme.darker_background, searchInput.activeFocus ? 0.56 : 0.4)
+                                border.width: 1
+                                border.color: searchInput.activeFocus ? Theme.withAlpha(Theme.accent, 0.6) : Theme.withAlpha(Theme.glassBorderColor, 0.22)
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 12
+                                    anchors.rightMargin: 8
+                                    spacing: 8
+
+                                    Text {
+                                        text: Icons.search
+                                        font.family: Icons.effectiveFont(text)
+                                        font.pixelSize: 14
+                                        color: searchInput.activeFocus ? Theme.accent : Theme.muted
                                     }
 
                                     Item {
                                         Layout.fillWidth: true
-                                    }
-
-                                    Text {
-                                        text: "Click to paste · Drag to drop"
-                                        font.family: Fonts.uiFont
-                                        font.pixelSize: 10
-                                        color: Theme.withAlpha(Theme.muted, 0.85)
-                                    }
-
-                                    Rectangle {
-                                        visible: root.filterMode !== "image" && root.imageItems.length > 4
-                                        height: 18
-                                        width: viewAllLbl.implicitWidth + 12
-                                        radius: 9
-                                        color: viewAllMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.2) : Theme.withAlpha(Theme.bright_foreground, 0.07)
-                                        border.width: 1
-                                        border.color: viewAllMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.45) : Theme.withAlpha(Theme.bright_foreground, 0.1)
+                                        Layout.fillHeight: true
 
                                         Text {
-                                            id: viewAllLbl
-
-                                            anchors.centerIn: parent
-                                            text: "View all"
+                                            anchors.fill: parent
+                                            verticalAlignment: Text.AlignVCenter
+                                            text: "Search copied text..."
                                             font.family: Fonts.uiFont
-                                            font.pixelSize: 10
-                                            font.weight: Font.Medium
-                                            color: viewAllMouse.containsMouse ? Theme.accent : Theme.foreground
+                                            font.pixelSize: 12
+                                            color: Theme.withAlpha(Theme.foreground, 0.48)
+                                            visible: searchInput.text.length === 0
                                         }
 
-                                        MouseArea {
-                                            id: viewAllMouse
+                                        TextInput {
+                                            id: searchInput
 
                                             anchors.fill: parent
-                                            hoverEnabled: true
-                                            cursorShape: Qt.PointingHandCursor
-                                            onClicked: root.filterMode = "image"
+                                            verticalAlignment: TextInput.AlignVCenter
+                                            font.family: Fonts.uiFont
+                                            font.pixelSize: 12
+                                            color: Theme.bright_foreground
+                                            selectionColor: Theme.selection
+                                            selectedTextColor: Theme.bright_foreground
+                                            clip: true
+                                            onTextChanged: root.searchQuery = text
+                                            Keys.onReturnPressed: {
+                                                if (root.textItems && root.textItems.length > 0)
+                                                    root.pasteCard(root.textItems[0].id);
+
+                                            }
+                                            Keys.onEscapePressed: root.closeSearch()
                                         }
 
                                     }
 
-                                }
-
-                                Loader {
-                                    id: imageLayoutLoader
-
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: (root.filterMode === "image") ? Math.max(114, Math.ceil(root.imageItems.length / 4) * 114) : Appearance.clipboardThumbHeight
-                                    sourceComponent: (root.filterMode === "image") ? imageGridComp : imageStripComp
-                                }
-
-                                // Horizontal strip scroll progress bar when more screenshots exist off-screen
-                                Item {
-                                    id: stripProgressTrack
-
-                                    readonly property var stripItem: imageLayoutLoader.item
-                                    readonly property real maxX: (stripItem && root.filterMode !== "image") ? Math.max(0, stripItem.contentWidth - stripItem.width) : 0
-                                    readonly property real thumbRatio: (stripItem && stripItem.contentWidth > 0) ? Math.min(1, stripItem.width / stripItem.contentWidth) : 1
-
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 3
-                                    visible: root.filterMode !== "image" && maxX > 1
-
-                                    Rectangle {
-                                        anchors.fill: parent
-                                        radius: 1.5
-                                        color: Theme.withAlpha(Theme.bright_foreground, 0.07)
-
-                                        Rectangle {
-                                            height: parent.height
-                                            radius: 1.5
-                                            width: Math.max(28, parent.width * stripProgressTrack.thumbRatio)
-                                            x: stripProgressTrack.maxX > 0 ? ((stripProgressTrack.stripItem.contentX / stripProgressTrack.maxX) * Math.max(0, parent.width - width)) : 0
-                                            color: Theme.withAlpha(Theme.accent, 0.72)
-                                        }
-
+                                    GhostIconButton {
+                                        glyph: Icons.close
+                                        buttonSize: 22
+                                        glyphSize: 12
+                                        cornerRadius: 11
+                                        onClicked: root.closeSearch()
                                     }
 
                                 }
 
                             }
 
-                            // Section 2: Floating Text & Snippet Pill Rows
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 8
-                                visible: root.textItems.length > 0
+                            // Stage 2 Search Button Pill (only exists in Text stage!)
+                            Rectangle {
+                                visible: !root.searchOpen
+                                height: 28
+                                width: searchBtnRow.implicitWidth + 18
+                                radius: 14
+                                color: searchBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.2) : Theme.withAlpha(Theme.darker_background, 0.44)
+                                border.width: 1
+                                border.color: searchBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.5) : Theme.withAlpha(Theme.glassBorderColor, 0.2)
 
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 8
+                                Row {
+                                    id: searchBtnRow
 
-                                    Rectangle {
-                                        width: 6
-                                        height: 6
-                                        radius: 3
-                                        color: Theme.cyan
+                                    anchors.centerIn: parent
+                                    spacing: 5
+
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: Icons.search
+                                        font.family: Icons.effectiveFont(text)
+                                        font.pixelSize: 13
+                                        color: searchBtnMouse.containsMouse ? Theme.accent : Theme.foreground
                                     }
 
                                     Text {
-                                        text: root.filterMode === "pinned" ? "Pinned Clips" : "Recent Clips"
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "Search"
                                         font.family: Fonts.uiFont
                                         font.pixelSize: 11
-                                        font.weight: Font.DemiBold
-                                        color: Theme.bright_foreground
-                                    }
-
-                                    Rectangle {
-                                        height: 17
-                                        width: txtCountLbl.implicitWidth + 12
-                                        radius: 8
-                                        color: Theme.withAlpha(Theme.bright_foreground, 0.08)
-                                        border.width: 1
-                                        border.color: Theme.withAlpha(Theme.bright_foreground, 0.1)
-
-                                        Text {
-                                            id: txtCountLbl
-
-                                            anchors.centerIn: parent
-                                            text: String(root.textItems.length)
-                                            font.family: Fonts.monoFont
-                                            font.pixelSize: 10
-                                            font.weight: Font.DemiBold
-                                            color: Theme.foreground
-                                        }
-
-                                    }
-
-                                    Item {
-                                        Layout.fillWidth: true
+                                        font.weight: Font.Medium
+                                        color: searchBtnMouse.containsMouse ? Theme.accent : Theme.foreground
                                     }
 
                                 }
 
-                                ColumnLayout {
-                                    id: textListCol
+                                MouseArea {
+                                    id: searchBtnMouse
 
-                                    Layout.fillWidth: true
-                                    spacing: 5
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.openSearch()
+                                }
 
-                                    Repeater {
-                                        model: root.textItems
+                                Behavior on color {
+                                    ColorAnimation {
+                                        duration: 120
+                                    }
 
-                                        delegate: ClipboardTextRow {
-                                            clipboardService: root.clipboardService
-                                            stayPinnedOpen: root.stayPinnedOpen
-                                            onPasteRequested: function(id) {
-                                                root.pasteCard(id);
-                                            }
-                                            onCopyRequested: function(id) {
-                                                root.copyCard(id);
-                                            }
-                                            onDragStateChanged: function(dragging) {
-                                                root.isDragging = dragging;
-                                            }
-                                            onCloseDrawerRequested: root.close()
+                                }
+
+                                Behavior on border.color {
+                                    ColorAnimation {
+                                        duration: 120
+                                    }
+
+                                }
+
+                            }
+
+                            // Stage 2 Clear + Close Action Pill
+                            Rectangle {
+                                height: 28
+                                width: stage2ActionRow.implicitWidth + 6
+                                radius: 14
+                                color: Theme.withAlpha(Theme.darker_background, 0.42)
+                                border.width: 1
+                                border.color: Theme.withAlpha(Theme.glassBorderColor, 0.18)
+
+                                Row {
+                                    id: stage2ActionRow
+
+                                    anchors.centerIn: parent
+                                    spacing: 1
+
+                                    GhostIconButton {
+                                        glyph: Icons.clearSweep
+                                        buttonSize: 24
+                                        glyphSize: 13
+                                        cornerRadius: 12
+                                        destructive: true
+                                        onClicked: {
+                                            if (root.clipboardService)
+                                                root.clipboardService.clearUnpinned();
+
                                         }
+                                    }
 
+                                    GhostIconButton {
+                                        glyph: Icons.chevronUp
+                                        buttonSize: 24
+                                        glyphSize: 15
+                                        cornerRadius: 12
+                                        onClicked: root.close()
+                                    }
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                    // Subtle Luminous Horizontal Divider
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 1
+
+                        gradient: Gradient {
+                            orientation: Gradient.Horizontal
+
+                            GradientStop {
+                                position: 0
+                                color: "transparent"
+                            }
+
+                            GradientStop {
+                                position: 0.15
+                                color: Theme.withAlpha(Theme.bright_foreground, 0.1)
+                            }
+
+                            GradientStop {
+                                position: 0.85
+                                color: Theme.withAlpha(Theme.bright_foreground, 0.1)
+                            }
+
+                            GradientStop {
+                                position: 1
+                                color: "transparent"
+                            }
+
+                        }
+
+                    }
+
+                    // Stage 2 Empty State
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        visible: root.textItems.length === 0
+
+                        MouseArea {
+                            anchors.fill: parent
+                            z: 100
+                            acceptedButtons: Qt.NoButton
+                            hoverEnabled: false
+                            scrollGestureEnabled: true
+                            onWheel: function(event) {
+                                root.handleStageWheel(event, false);
+                            }
+                        }
+
+                        Column {
+                            anchors.centerIn: parent
+                            spacing: 6
+
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: root.searchQuery.length > 0 ? "No matching clips" : "No copied text yet"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: 13
+                                font.weight: Font.DemiBold
+                                color: Theme.bright_foreground
+                            }
+
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: root.searchQuery.length > 0 ? "Try a different keyword" : "Copied text, links, code, and colors appear here"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: 11
+                                color: Theme.muted
+                            }
+
+                        }
+
+                    }
+
+                    // Stage 2 Scrollable Text History List
+                    Item {
+                        id: textScrollWrap
+
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        visible: root.textItems.length > 0
+
+                        MouseArea {
+                            id: textWheelArea
+
+                            anchors.fill: parent
+                            z: 100
+                            acceptedButtons: Qt.NoButton
+                            hoverEnabled: false
+                            scrollGestureEnabled: true
+                            onWheel: function(event) {
+                                var dx = Theme.wheelDeltaX(event);
+                                var dy = Theme.wheelDeltaY(event);
+                                if (dy === 0 || Math.abs(dy) < Math.abs(dx) * 0.5) {
+                                    event.accepted = false;
+                                    return ;
+                                }
+                                var maxY = Math.max(0, textScroll.contentHeight - textScroll.height);
+                                if (maxY > 0)
+                                    textScroll.contentY = Math.max(0, Math.min(maxY, textScroll.contentY - (dy * 0.5)));
+
+                                event.accepted = true;
+                            }
+                        }
+
+                        // Vertical scroll thumb when copied text list overflows
+                        Rectangle {
+                            readonly property real maxY: Math.max(0, textScroll.contentHeight - textScroll.height)
+                            readonly property real ratio: textScroll.contentHeight > 0 ? Math.min(1, textScroll.height / textScroll.contentHeight) : 1
+
+                            anchors.right: parent.right
+                            anchors.rightMargin: -6
+                            width: 3
+                            radius: 1.5
+                            color: Theme.withAlpha(Theme.bright_foreground, 0.28)
+                            height: Math.max(24, textScroll.height * ratio)
+                            y: maxY > 0 ? ((textScroll.contentY / maxY) * Math.max(0, textScroll.height - height)) : 0
+                            visible: maxY > 1
+                            z: 110
+                        }
+
+                        Flickable {
+                            id: textScroll
+
+                            anchors.fill: parent
+                            clip: true
+                            contentWidth: width
+                            contentHeight: textListCol.implicitHeight
+                            interactive: false
+                            boundsBehavior: Flickable.StopAtBounds
+
+                            ColumnLayout {
+                                id: textListCol
+
+                                width: textScroll.width
+                                spacing: 5
+
+                                Repeater {
+                                    model: root.textItems
+
+                                    delegate: ClipboardTextRow {
+                                        clipboardService: root.clipboardService
+                                        onPasteRequested: function(id) {
+                                            root.pasteCard(id);
+                                        }
+                                        onCopyRequested: function(id) {
+                                            root.copyCard(id);
+                                        }
+                                        onDragStateChanged: function(dragging) {
+                                            root.isDragging = dragging;
+                                        }
+                                        onCloseDrawerRequested: root.close()
                                     }
 
                                 }
@@ -989,7 +1079,7 @@ PanelWindow {
                 // ─────────────────────────────────────────────────────────────
                 Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 8
+                    Layout.preferredHeight: 14
 
                     Rectangle {
                         anchors.centerIn: parent
@@ -1024,7 +1114,7 @@ PanelWindow {
                         cursorShape: Qt.PointingHandCursor
                         onClicked: root.close()
                         onWheel: function(event) {
-                            root.handleUpWheel(event);
+                            root.handleStageWheel(event, true);
                         }
                     }
 
@@ -1036,91 +1126,8 @@ PanelWindow {
                 enabled: root.isOpen && !openAnim.running && !closeAnim.running
 
                 NumberAnimation {
-                    duration: 160
+                    duration: 165
                     easing.type: Easing.OutCubic
-                }
-
-            }
-
-        }
-
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // Screenshot Strip & Grid Containers
-    // ─────────────────────────────────────────────────────────────────────────
-    Component {
-        id: imageStripComp
-
-        ListView {
-            id: imgStripList
-
-            orientation: ListView.Horizontal
-            spacing: 10
-            clip: true
-            interactive: false
-            cacheBuffer: 2400
-            snapMode: ListView.NoSnap
-            model: root.imageItems
-
-            delegate: ClipboardImageCard {
-                width: Math.floor((imgStripList.width - 30) / 4)
-                height: Appearance.clipboardThumbHeight
-                clipboardService: root.clipboardService
-                stayPinnedOpen: root.stayPinnedOpen
-                onPasteRequested: function(id) {
-                    root.pasteCard(id);
-                }
-                onCopyRequested: function(id) {
-                    root.copyCard(id);
-                }
-                onDragStateChanged: function(dragging) {
-                    root.isDragging = dragging;
-                }
-                onCloseDrawerRequested: root.close()
-            }
-
-        }
-
-    }
-
-    Component {
-        id: imageGridComp
-
-        GridView {
-            id: imgGrid
-
-            cellWidth: Math.floor((width - 2) / 4)
-            cellHeight: 114
-            clip: true
-            interactive: false
-            cacheBuffer: 2400
-            model: root.imageItems
-
-            delegate: Item {
-                required property var modelData
-                required property int index
-
-                width: imgGrid.cellWidth
-                height: imgGrid.cellHeight
-
-                ClipboardImageCard {
-                    anchors.fill: parent
-                    anchors.margins: 4
-                    modelData: parent.modelData
-                    index: parent.index
-                    clipboardService: root.clipboardService
-                    stayPinnedOpen: root.stayPinnedOpen
-                    onPasteRequested: function(id) {
-                        root.pasteCard(id);
-                    }
-                    onCopyRequested: function(id) {
-                        root.copyCard(id);
-                    }
-                    onDragStateChanged: function(dragging) {
-                        root.isDragging = dragging;
-                    }
-                    onCloseDrawerRequested: root.close()
                 }
 
             }

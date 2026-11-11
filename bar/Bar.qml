@@ -66,11 +66,17 @@ PanelWindow {
         // gliding 2 fingers UP produces negative delta.y
         if (!root.clipboardDrawer.isOpen && root.glideAccum >= 4) {
             root.glideAccum = 0;
-            root.glideCooldownUntil = Date.now() + 340;
+            root.glideCooldownUntil = Date.now() + 380;
             root.clipboardDrawer.open();
+        } else if (root.clipboardDrawer.isOpen && root.clipboardDrawer.stage === 1 && root.glideAccum >= 8) {
+            if ((Date.now() - root.clipboardDrawer.stageChangedAtMs) >= 340) {
+                root.glideAccum = 0;
+                root.glideCooldownUntil = Date.now() + 380;
+                root.clipboardDrawer.showTextStage();
+            }
         } else if (root.clipboardDrawer.isOpen && root.glideAccum <= -4) {
             root.glideAccum = 0;
-            root.glideCooldownUntil = Date.now() + 340;
+            root.glideCooldownUntil = Date.now() + 380;
             root.clipboardDrawer.close();
         }
         event.accepted = true;

@@ -94,9 +94,6 @@ Item {
             if (rowHover.hovered)
                 return Theme.withAlpha(Theme.accent, 0.48);
 
-            if (rowRoot.modelData.pinned)
-                return Theme.withAlpha(Theme.accent, 0.28);
-
             return Qt.rgba(1, 1, 1, 0.075);
         }
 
@@ -122,11 +119,11 @@ Item {
         anchors.leftMargin: 5
         anchors.verticalCenter: parent.verticalCenter
         width: 3
-        height: rowHover.hovered ? 18 : (rowRoot.modelData.pinned ? 12 : 0)
+        height: rowHover.hovered ? 18 : 0
         radius: 1.5
         color: rowRoot.isCopiedNow ? Theme.green : Theme.accent
         visible: height > 0
-        opacity: rowHover.hovered ? 1 : 0.7
+        opacity: 1
 
         Behavior on height {
             NumberAnimation {
@@ -265,15 +262,6 @@ Item {
                 }
 
                 Text {
-                    visible: Boolean(rowRoot.modelData.pinned)
-                    text: Icons.pin
-                    font.family: Icons.effectiveFont(text)
-                    font.pixelSize: 11
-                    color: Theme.accent
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-
-                Text {
                     text: rowRoot.clipboardService ? rowRoot.clipboardService.formatRelativeTime(rowRoot.modelData.timestamp) : ""
                     font.family: Fonts.uiFont
                     font.pixelSize: 11
@@ -334,19 +322,6 @@ Item {
                         glyphSize: 12
                         cornerRadius: 11
                         onClicked: rowRoot.copyRequested(rowRoot.modelData.id)
-                    }
-
-                    GhostIconButton {
-                        glyph: Icons.pin
-                        buttonSize: 22
-                        glyphSize: 12
-                        cornerRadius: 11
-                        active: Boolean(rowRoot.modelData.pinned)
-                        onClicked: {
-                            if (rowRoot.clipboardService)
-                                rowRoot.clipboardService.togglePin(rowRoot.modelData.id);
-
-                        }
                     }
 
                     GhostIconButton {

@@ -117,9 +117,6 @@ Item {
                 if (imgCardHover.hovered)
                     return Theme.withAlpha(Theme.accent, 0.82);
 
-                if (imgCard.modelData.pinned)
-                    return Theme.withAlpha(Theme.accent, 0.52);
-
                 return Qt.rgba(1, 1, 1, 0.16);
             }
             z: 20
@@ -152,30 +149,6 @@ Item {
 
             TapHandler {
                 onTapped: imgCard.pasteRequested(imgCard.modelData.id)
-            }
-
-        }
-
-        // Quiet Pinned Pill at rest
-        Rectangle {
-            visible: Boolean(imgCard.modelData.pinned) && !imgCardHover.hovered
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.margins: 6
-            width: 20
-            height: 20
-            radius: 10
-            color: Qt.rgba(12, 14, 18, 0.68)
-            border.width: 1
-            border.color: Theme.withAlpha(Theme.accent, 0.48)
-            z: 10
-
-            Text {
-                anchors.centerIn: parent
-                text: Icons.pin
-                font.family: Icons.effectiveFont(text)
-                font.pixelSize: 10
-                color: Theme.accent
             }
 
         }
@@ -219,20 +192,6 @@ Item {
                     onClicked: {
                         if (imgCard.clipboardService)
                             imgCard.clipboardService.annotateImage(imgCard.modelData.path);
-
-                    }
-                }
-
-                GhostIconButton {
-                    glyph: Icons.pin
-                    buttonSize: 20
-                    glyphSize: 11
-                    cornerRadius: 10
-                    active: Boolean(imgCard.modelData.pinned)
-                    darkSurface: true
-                    onClicked: {
-                        if (imgCard.clipboardService)
-                            imgCard.clipboardService.togglePin(imgCard.modelData.id);
 
                     }
                 }
