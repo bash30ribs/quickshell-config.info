@@ -347,36 +347,35 @@ PanelWindow {
             radius: Appearance.clipboardRadius
             baseColor: Theme.barBackground
             accentTint: Theme.accent
-            clarity: 1.18
-            rimIllumination: 0.9
-            specularIntensity: 1
+            clarity: 1.25
+            rimIllumination: 0.55
+            specularIntensity: 0.88
             transformOrigin: Item.Top
             opacity: Math.max(0, Math.min(1, root.animProgress * 2.5))
             scale: 0.97 + (0.03 * root.animProgress)
 
-            // Additional liquid-glass refraction wash & inset bevel rim
+            // Seamless borderless liquid-glass wash (sits cleanly inside GlassPanel's single rim)
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
                 radius: Appearance.clipboardRadius - 1
-                border.width: 1
-                border.color: Qt.rgba(1, 1, 1, 0.12)
+                border.width: 0
                 z: -1
 
                 gradient: Gradient {
                     GradientStop {
                         position: 0
-                        color: Qt.rgba(1, 1, 1, 0.065)
+                        color: Qt.rgba(1, 1, 1, 0.055)
                     }
 
                     GradientStop {
-                        position: 0.35
-                        color: Qt.rgba(1, 1, 1, 0.015)
+                        position: 0.42
+                        color: "transparent"
                     }
 
                     GradientStop {
                         position: 1
-                        color: Theme.withAlpha(Theme.accent, 0.045)
+                        color: Theme.withAlpha(Theme.accent, 0.035)
                     }
 
                 }
