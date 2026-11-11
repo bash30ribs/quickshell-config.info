@@ -2,7 +2,6 @@ import "../components"
 import "../services"
 import "../theme"
 import QtQuick
-import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
@@ -45,6 +44,14 @@ PanelWindow {
         return out;
     }
     readonly property int totalCount: root.filteredAll ? root.filteredAll.length : 0
+    readonly property real targetDrawerHeight: {
+        var chrome = (Appearance.clipboardPadding * 2) + 34 + 1 + 10 + 18 + 8;
+        if (root.totalCount === 0)
+            return 220;
+
+        var bodyH = contentColumn.implicitHeight + 12;
+        return Math.max(220, Math.min(Appearance.clipboardHeight, Math.round(chrome + bodyH)));
+    }
 
     function open() {
         if (root.clipboardService)
@@ -55,7 +62,7 @@ PanelWindow {
         root.isVisibleSurface = true;
         root.isOpen = true;
         closeAnim.stop();
-        openSpring.restart();
+        openAnim.restart();
     }
 
     function close() {
@@ -65,7 +72,7 @@ PanelWindow {
         root.gestureUpAccum = 0;
         searchInput.focus = false;
         root.isOpen = false;
-        openSpring.stop();
+        openAnim.stop();
         closeAnim.restart();
     }
 
@@ -151,19 +158,18 @@ PanelWindow {
     }
 
     margins {
-        top: Appearance.barHeight + 4
+        top: Appearance.barHeight
     }
 
-    // Smooth critically-damped slide reveal from beneath the bar
-    SpringAnimation {
-        id: openSpring
+    // Crisp, non-sluggish fluid slide-and-scale reveal from beneath the bar
+    NumberAnimation {
+        id: openAnim
 
         target: root
         property: "animProgress"
         to: 1
-        spring: 9.2
-        damping: 0.72
-        epsilon: 0.002
+        duration: 145
+        easing.type: Easing.OutCubic
     }
 
     NumberAnimation {
@@ -172,8 +178,8 @@ PanelWindow {
         target: root
         property: "animProgress"
         to: 0
-        duration: 185
-        easing.type: Easing.InCubic
+        duration: 110
+        easing.type: Easing.OutQuad
         onFinished: {
             if (!root.isOpen) {
                 root.isVisibleSurface = false;
@@ -241,7 +247,7 @@ PanelWindow {
         target: "clipboard"
     }
 
-    // Clipped viewport so drawer slides out cleanly from beneath the bar
+    // Clipped viewport so drawer emerges cleanly from just beneath the bar
     Item {
         id: clipViewport
 
@@ -252,33 +258,33 @@ PanelWindow {
             id: drawerSurface
 
             width: Appearance.clipboardWidth
-            height: Appearance.clipboardHeight
+            height: root.targetDrawerHeight
             anchors.horizontalCenter: parent.horizontalCenter
-            y: Math.round((root.animProgress - 1) * (height + 16))
+            y: Math.round(6 - ((1 - root.animProgress) * 18))
             radius: Appearance.clipboardRadius
             baseColor: Theme.barBackground
             accentTint: Theme.accent
-            clarity: 0.72
-            rimIllumination: 0.34
-            specularIntensity: 0.42
+            clarity: 0.78
+            rimIllumination: 0.5
+            specularIntensity: 0.75
             transformOrigin: Item.Top
-            opacity: Math.max(0, Math.min(1, root.animProgress * 1.45))
-            scale: 0.96 + 0.04 * Math.min(1.02, root.animProgress)
+            opacity: Math.max(0, Math.min(1, root.animProgress * 2.5))
+            scale: 0.97 + (0.03 * root.animProgress)
 
             ColumnLayout {
                 anchors.fill: parent
                 anchors.leftMargin: Appearance.clipboardPadding
                 anchors.rightMargin: Appearance.clipboardPadding
-                anchors.topMargin: Appearance.clipboardPadding - 2
+                anchors.topMargin: Appearance.clipboardPadding - 1
                 anchors.bottomMargin: 8
                 spacing: 10
 
                 // ─────────────────────────────────────────────────────────────
-                // Unified Toolbar (Segmented Filters · Search · Ghost Actions)
+                // Unified Pill Header (Accent Filter Track · Search · Actions)
                 // ─────────────────────────────────────────────────────────────
                 Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 32
+                    Layout.preferredHeight: 34
 
                     MouseArea {
                         anchors.fill: parent
@@ -295,16 +301,16 @@ PanelWindow {
                         anchors.fill: parent
                         spacing: 10
 
-                        // Quiet Segmented Switcher
+                        // Accent Pill Segmented Filter Switcher (Matches PowerMenu)
                         Rectangle {
                             id: filterTrack
 
-                            Layout.preferredHeight: 30
+                            Layout.preferredHeight: 34
                             Layout.preferredWidth: filterRow.implicitWidth + 6
-                            radius: 8
-                            color: Theme.withAlpha(Theme.darker_background, 0.44)
+                            radius: 17
+                            color: Theme.withAlpha(Theme.darker_background, 0.46)
                             border.width: 1
-                            border.color: Theme.withAlpha(Theme.bright_foreground, 0.08)
+                            border.color: Theme.withAlpha(Theme.glassBorderColor, 0.22)
 
                             Rectangle {
                                 id: activeTabIndicator
@@ -324,13 +330,11 @@ PanelWindow {
                                 readonly property var activeItem: filterRepeater.itemAt(activeIndex)
 
                                 y: 3
-                                height: 24
-                                radius: 6
-                                color: Theme.withAlpha(Theme.lighter_background, 0.82)
-                                border.width: 1
-                                border.color: Theme.withAlpha(Theme.bright_foreground, 0.1)
+                                height: 28
+                                radius: 14
+                                color: Theme.accent
                                 x: activeItem ? (activeItem.x + 3) : 3
-                                width: activeItem ? activeItem.width : 44
+                                width: activeItem ? activeItem.width : 46
 
                                 Behavior on x {
                                     NumberAnimation {
@@ -380,7 +384,7 @@ PanelWindow {
                                         readonly property bool isCurrent: root.filterMode === modelData.modeValue
 
                                         width: tabLbl.implicitWidth + 22
-                                        height: 24
+                                        height: 28
 
                                         Text {
                                             id: tabLbl
@@ -389,8 +393,8 @@ PanelWindow {
                                             text: parent.modelData.label
                                             font.family: Fonts.uiFont
                                             font.pixelSize: 11
-                                            font.weight: parent.isCurrent ? Font.DemiBold : Font.Normal
-                                            color: parent.isCurrent ? Theme.bright_foreground : (tMouse.containsMouse ? Theme.foreground : Theme.muted)
+                                            font.weight: parent.isCurrent ? Font.Bold : Font.Medium
+                                            color: parent.isCurrent ? Theme.darker_background : (tMouse.containsMouse ? Theme.bright_foreground : Theme.foreground)
 
                                             Behavior on color {
                                                 ColorAnimation {
@@ -418,26 +422,34 @@ PanelWindow {
 
                         }
 
-                        // Integrated Search Field
+                        // Integrated Liquid Glass Search Capsule (Matches AppLauncher)
                         Rectangle {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: 30
-                            radius: 8
-                            color: Theme.withAlpha(Theme.darker_background, searchInput.activeFocus ? 0.52 : 0.34)
+                            Layout.preferredHeight: 34
+                            radius: 17
+                            color: Theme.withAlpha(Theme.darker_background, searchInput.activeFocus ? 0.54 : 0.38)
                             border.width: 1
-                            border.color: searchInput.activeFocus ? Theme.withAlpha(Theme.accent, 0.48) : Theme.withAlpha(Theme.bright_foreground, 0.07)
+                            border.color: searchInput.activeFocus ? Theme.withAlpha(Theme.accent, 0.58) : Theme.withAlpha(Theme.glassBorderColor, 0.2)
 
                             RowLayout {
                                 anchors.fill: parent
-                                anchors.leftMargin: 10
-                                anchors.rightMargin: 8
-                                spacing: 7
+                                anchors.leftMargin: 13
+                                anchors.rightMargin: 10
+                                spacing: 8
 
                                 Text {
                                     text: Icons.search
                                     font.family: Icons.effectiveFont(text)
-                                    font.pixelSize: 13
+                                    font.pixelSize: 14
                                     color: searchInput.activeFocus ? Theme.accent : Theme.muted
+
+                                    Behavior on color {
+                                        ColorAnimation {
+                                            duration: 130
+                                        }
+
+                                    }
+
                                 }
 
                                 Item {
@@ -450,7 +462,7 @@ PanelWindow {
                                         text: "Search clipboard..."
                                         font.family: Fonts.uiFont
                                         font.pixelSize: 12
-                                        color: Theme.withAlpha(Theme.foreground, 0.45)
+                                        color: Theme.withAlpha(Theme.foreground, 0.48)
                                         visible: searchInput.text.length === 0
                                     }
 
@@ -479,8 +491,9 @@ PanelWindow {
                                 GhostIconButton {
                                     visible: searchInput.text.length > 0
                                     glyph: Icons.close
-                                    buttonSize: 20
+                                    buttonSize: 22
                                     glyphSize: 12
+                                    cornerRadius: 11
                                     onClicked: {
                                         searchInput.text = "";
                                         searchInput.focus = false;
@@ -491,54 +504,71 @@ PanelWindow {
 
                             Behavior on border.color {
                                 ColorAnimation {
-                                    duration: 120
+                                    duration: 130
                                 }
 
                             }
 
                         }
 
-                        // Quiet Vertical Separator
+                        // Action Pill Capsule
                         Rectangle {
-                            Layout.preferredWidth: 1
-                            Layout.preferredHeight: 16
-                            color: Theme.withAlpha(Theme.bright_foreground, 0.1)
-                        }
+                            Layout.preferredHeight: 34
+                            Layout.preferredWidth: actionRow.implicitWidth + 8
+                            radius: 17
+                            color: Theme.withAlpha(Theme.darker_background, 0.42)
+                            border.width: 1
+                            border.color: Theme.withAlpha(Theme.glassBorderColor, 0.18)
 
-                        // Compact Borderless Ghost Actions
-                        Row {
-                            spacing: 2
+                            Row {
+                                id: actionRow
 
-                            GhostIconButton {
-                                glyph: Icons.camera
-                                onClicked: {
-                                    root.close();
-                                    if (root.clipboardService)
-                                        root.clipboardService.captureSnap("region");
+                                anchors.centerIn: parent
+                                spacing: 2
 
+                                GhostIconButton {
+                                    glyph: Icons.camera
+                                    buttonSize: 28
+                                    glyphSize: 14
+                                    cornerRadius: 14
+                                    onClicked: {
+                                        root.close();
+                                        if (root.clipboardService)
+                                            root.clipboardService.captureSnap("region");
+
+                                    }
                                 }
-                            }
 
-                            GhostIconButton {
-                                glyph: Icons.pin
-                                active: root.stayPinnedOpen
-                                onClicked: root.stayPinnedOpen = !root.stayPinnedOpen
-                            }
-
-                            GhostIconButton {
-                                glyph: Icons.clearSweep
-                                destructive: true
-                                onClicked: {
-                                    if (root.clipboardService)
-                                        root.clipboardService.clearUnpinned();
-
+                                GhostIconButton {
+                                    glyph: Icons.pin
+                                    buttonSize: 28
+                                    glyphSize: 14
+                                    cornerRadius: 14
+                                    active: root.stayPinnedOpen
+                                    onClicked: root.stayPinnedOpen = !root.stayPinnedOpen
                                 }
-                            }
 
-                            GhostIconButton {
-                                glyph: Icons.chevronUp
-                                glyphSize: 16
-                                onClicked: root.close()
+                                GhostIconButton {
+                                    glyph: Icons.clearSweep
+                                    buttonSize: 28
+                                    glyphSize: 14
+                                    cornerRadius: 14
+                                    destructive: true
+                                    onClicked: {
+                                        if (root.clipboardService)
+                                            root.clipboardService.clearUnpinned();
+
+                                    }
+                                }
+
+                                GhostIconButton {
+                                    glyph: Icons.chevronUp
+                                    buttonSize: 28
+                                    glyphSize: 16
+                                    cornerRadius: 14
+                                    onClicked: root.close()
+                                }
+
                             }
 
                         }
@@ -547,11 +577,36 @@ PanelWindow {
 
                 }
 
-                // Hairline Divider
+                // Subtle Luminous Horizontal Divider
                 Rectangle {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 1
-                    color: Theme.withAlpha(Theme.bright_foreground, 0.07)
+
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+
+                        GradientStop {
+                            position: 0
+                            color: "transparent"
+                        }
+
+                        GradientStop {
+                            position: 0.15
+                            color: Theme.withAlpha(Theme.bright_foreground, 0.1)
+                        }
+
+                        GradientStop {
+                            position: 0.85
+                            color: Theme.withAlpha(Theme.bright_foreground, 0.1)
+                        }
+
+                        GradientStop {
+                            position: 1
+                            color: "transparent"
+                        }
+
+                    }
+
                 }
 
                 // ─────────────────────────────────────────────────────────────
@@ -575,14 +630,25 @@ PanelWindow {
 
                     Column {
                         anchors.centerIn: parent
-                        spacing: 6
+                        spacing: 8
 
-                        Text {
+                        Rectangle {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: Icons.clipboard
-                            font.family: Icons.effectiveFont(text)
-                            font.pixelSize: 26
-                            color: Theme.withAlpha(Theme.muted, 0.65)
+                            width: 42
+                            height: 42
+                            radius: 14
+                            color: Theme.withAlpha(Theme.accent, 0.12)
+                            border.width: 1
+                            border.color: Theme.withAlpha(Theme.accent, 0.25)
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: Icons.clipboard
+                                font.family: Icons.effectiveFont(text)
+                                font.pixelSize: 20
+                                color: Theme.accent
+                            }
+
                         }
 
                         Text {
@@ -590,13 +656,13 @@ PanelWindow {
                             text: root.searchQuery.length > 0 ? "No matching entries" : "Clipboard is empty"
                             font.family: Fonts.uiFont
                             font.pixelSize: 13
-                            font.weight: Font.Medium
-                            color: Theme.withAlpha(Theme.bright_foreground, 0.82)
+                            font.weight: Font.DemiBold
+                            color: Theme.bright_foreground
                         }
 
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: root.searchQuery.length > 0 ? "Try another keyword or clear filters" : "Copied text and screenshots appear here"
+                            text: root.searchQuery.length > 0 ? "Try another keyword or clear filters" : "Screenshots and copied clips appear right here"
                             font.family: Fonts.uiFont
                             font.pixelSize: 11
                             color: Theme.muted
@@ -607,7 +673,7 @@ PanelWindow {
                 }
 
                 // ─────────────────────────────────────────────────────────────
-                // Content Area (Screenshots Strip/Grid + Clean History List)
+                // Content Area (Screenshots Strip/Grid + Floating Pill History)
                 // ─────────────────────────────────────────────────────────────
                 Item {
                     id: mainScrollWrap
@@ -672,21 +738,50 @@ PanelWindow {
                             width: mainScroll.width
                             spacing: 14
 
-                            // Section 1: Screenshots
+                            // Section 1: Screenshots Gallery
                             ColumnLayout {
                                 Layout.fillWidth: true
-                                spacing: 7
+                                spacing: 8
                                 visible: root.imageItems.length > 0
 
                                 RowLayout {
                                     Layout.fillWidth: true
+                                    spacing: 8
+
+                                    Rectangle {
+                                        width: 6
+                                        height: 6
+                                        radius: 3
+                                        color: Theme.accent
+                                    }
 
                                     Text {
                                         text: "Screenshots"
                                         font.family: Fonts.uiFont
                                         font.pixelSize: 11
                                         font.weight: Font.DemiBold
-                                        color: Theme.withAlpha(Theme.bright_foreground, 0.68)
+                                        color: Theme.bright_foreground
+                                    }
+
+                                    Rectangle {
+                                        height: 17
+                                        width: imgCountLbl.implicitWidth + 12
+                                        radius: 8
+                                        color: Theme.withAlpha(Theme.accent, 0.16)
+                                        border.width: 1
+                                        border.color: Theme.withAlpha(Theme.accent, 0.28)
+
+                                        Text {
+                                            id: imgCountLbl
+
+                                            anchors.centerIn: parent
+                                            text: String(root.imageItems.length)
+                                            font.family: Fonts.monoFont
+                                            font.pixelSize: 10
+                                            font.weight: Font.DemiBold
+                                            color: Theme.accent
+                                        }
+
                                     }
 
                                     Item {
@@ -694,10 +789,10 @@ PanelWindow {
                                     }
 
                                     Text {
-                                        text: String(root.imageItems.length)
+                                        text: "Click to paste · Drag to drop"
                                         font.family: Fonts.uiFont
-                                        font.pixelSize: 11
-                                        color: Theme.muted
+                                        font.pixelSize: 10
+                                        color: Theme.withAlpha(Theme.muted, 0.85)
                                     }
 
                                 }
@@ -706,301 +801,86 @@ PanelWindow {
                                     id: imageLayoutLoader
 
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: (root.filterMode === "image") ? Math.max(118, Math.ceil(root.imageItems.length / 4) * 118) : Appearance.clipboardThumbHeight
+                                    Layout.preferredHeight: (root.filterMode === "image") ? Math.max(114, Math.ceil(root.imageItems.length / 4) * 114) : Appearance.clipboardThumbHeight
                                     sourceComponent: (root.filterMode === "image") ? imageGridComp : imageStripComp
                                 }
 
                             }
 
-                            // Section 2: Text & Snippet History (Clean Hairline List)
+                            // Section 2: Floating Text & Snippet Pill Rows
                             ColumnLayout {
                                 Layout.fillWidth: true
-                                spacing: 7
+                                spacing: 8
                                 visible: root.textItems.length > 0
 
                                 RowLayout {
                                     Layout.fillWidth: true
+                                    spacing: 8
+
+                                    Rectangle {
+                                        width: 6
+                                        height: 6
+                                        radius: 3
+                                        color: Theme.cyan
+                                    }
 
                                     Text {
-                                        text: root.filterMode === "pinned" ? "Pinned" : "History"
+                                        text: root.filterMode === "pinned" ? "Pinned Clips" : "Recent Clips"
                                         font.family: Fonts.uiFont
                                         font.pixelSize: 11
                                         font.weight: Font.DemiBold
-                                        color: Theme.withAlpha(Theme.bright_foreground, 0.68)
+                                        color: Theme.bright_foreground
+                                    }
+
+                                    Rectangle {
+                                        height: 17
+                                        width: txtCountLbl.implicitWidth + 12
+                                        radius: 8
+                                        color: Theme.withAlpha(Theme.bright_foreground, 0.08)
+                                        border.width: 1
+                                        border.color: Theme.withAlpha(Theme.bright_foreground, 0.1)
+
+                                        Text {
+                                            id: txtCountLbl
+
+                                            anchors.centerIn: parent
+                                            text: String(root.textItems.length)
+                                            font.family: Fonts.monoFont
+                                            font.pixelSize: 10
+                                            font.weight: Font.DemiBold
+                                            color: Theme.foreground
+                                        }
+
                                     }
 
                                     Item {
                                         Layout.fillWidth: true
                                     }
 
-                                    Text {
-                                        text: String(root.textItems.length)
-                                        font.family: Fonts.uiFont
-                                        font.pixelSize: 11
-                                        color: Theme.muted
-                                    }
-
                                 }
 
-                                Rectangle {
+                                ColumnLayout {
+                                    id: textListCol
+
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: textListCol.implicitHeight
-                                    radius: 10
-                                    color: Theme.withAlpha(Theme.darker_background, 0.34)
-                                    border.width: 1
-                                    border.color: Theme.withAlpha(Theme.bright_foreground, 0.08)
-                                    clip: true
+                                    spacing: 5
 
-                                    ColumnLayout {
-                                        id: textListCol
+                                    Repeater {
+                                        model: root.textItems
 
-                                        width: parent.width
-                                        spacing: 0
-
-                                        Repeater {
-                                            model: root.textItems
-
-                                            delegate: Item {
-                                                id: rowRoot
-
-                                                required property var modelData
-                                                required property int index
-                                                readonly property bool showDivider: index < (root.textItems.length - 1)
-                                                readonly property bool isCopiedNow: root.clipboardService && root.clipboardService.copiedFeedbackId === modelData.id
-
-                                                Layout.fillWidth: true
-                                                Layout.preferredHeight: Math.max(42, Math.min(62, textPreviewLabel.implicitHeight + 18))
-
-                                                Item {
-                                                    id: textDragPayload
-
-                                                    Drag.active: textDragHandler.active
-                                                    Drag.dragType: Drag.Automatic
-                                                    Drag.supportedActions: Qt.CopyAction
-                                                    Drag.hotSpot: Qt.point(24, 16)
-                                                    Drag.mimeData: {
-                                                        "text/plain": rowRoot.modelData.text || ""
-                                                    }
-                                                    Drag.onDragStarted: root.isDragging = true
-                                                    Drag.onDragFinished: function(dropAction) {
-                                                        root.isDragging = false;
-                                                        if (dropAction !== Qt.IgnoreAction && !root.stayPinnedOpen)
-                                                            root.close();
-
-                                                    }
-                                                }
-
-                                                Rectangle {
-                                                    anchors.fill: parent
-                                                    color: {
-                                                        if (rowRoot.isCopiedNow)
-                                                            return Theme.withAlpha(Theme.green, 0.12);
-
-                                                        if (textDragHandler.active)
-                                                            return Theme.withAlpha(Theme.accent, 0.14);
-
-                                                        if (rowHover.hovered)
-                                                            return Theme.withAlpha(Theme.bright_foreground, 0.055);
-
-                                                        return "transparent";
-                                                    }
-
-                                                    Behavior on color {
-                                                        ColorAnimation {
-                                                            duration: 100
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                                // Interaction Hitbox Behind Right-Aligned Action Icons
-                                                Item {
-                                                    anchors.fill: parent
-
-                                                    HoverHandler {
-                                                        id: rowHover
-                                                    }
-
-                                                    DragHandler {
-                                                        id: textDragHandler
-
-                                                        target: null
-                                                        dragThreshold: 8
-                                                    }
-
-                                                    TapHandler {
-                                                        onTapped: root.pasteCard(rowRoot.modelData.id)
-                                                    }
-
-                                                }
-
-                                                RowLayout {
-                                                    anchors.fill: parent
-                                                    anchors.leftMargin: 12
-                                                    anchors.rightMargin: 10
-                                                    spacing: 10
-
-                                                    // Type Indicator / Color Swatch Dot
-                                                    Item {
-                                                        Layout.preferredWidth: 16
-                                                        Layout.preferredHeight: 16
-                                                        Layout.alignment: Qt.AlignVCenter
-
-                                                        Rectangle {
-                                                            visible: Boolean(rowRoot.modelData.isColor)
-                                                            anchors.centerIn: parent
-                                                            width: 14
-                                                            height: 14
-                                                            radius: 7
-                                                            color: rowRoot.modelData.colorHex || "transparent"
-                                                            border.width: 1
-                                                            border.color: Theme.withAlpha(Theme.bright_foreground, 0.28)
-                                                        }
-
-                                                        Text {
-                                                            visible: !rowRoot.modelData.isColor
-                                                            anchors.centerIn: parent
-                                                            text: rowRoot.modelData.isUrl ? Icons.linkIcon : (rowRoot.modelData.isCode ? Icons.codeIcon : Icons.textDoc)
-                                                            font.family: Icons.effectiveFont(text)
-                                                            font.pixelSize: 14
-                                                            color: rowHover.hovered ? Theme.accent : Theme.muted
-                                                        }
-
-                                                    }
-
-                                                    // Snippet Content
-                                                    Text {
-                                                        id: textPreviewLabel
-
-                                                        Layout.fillWidth: true
-                                                        text: rowRoot.modelData.preview || rowRoot.modelData.text || ""
-                                                        font.family: (rowRoot.modelData.isCode || rowRoot.modelData.isColor) ? Fonts.monoFont : Fonts.uiFont
-                                                        font.pixelSize: 12
-                                                        color: Theme.bright_foreground
-                                                        elide: Text.ElideRight
-                                                        maximumLineCount: 2
-                                                        wrapMode: Text.WrapAnywhere
-                                                    }
-
-                                                    // Right-Aligned Quiet Metadata OR Hover Action Cluster
-                                                    Item {
-                                                        Layout.preferredWidth: Math.max(metaCluster.implicitWidth, hoverActionRow.implicitWidth)
-                                                        Layout.preferredHeight: 24
-                                                        Layout.alignment: Qt.AlignVCenter
-                                                        z: 10
-
-                                                        // Rest State: Multi-line pill, pin mark, relative time
-                                                        Row {
-                                                            id: metaCluster
-
-                                                            anchors.right: parent.right
-                                                            anchors.verticalCenter: parent.verticalCenter
-                                                            spacing: 7
-                                                            visible: !rowHover.hovered && !rowRoot.isCopiedNow
-
-                                                            Text {
-                                                                visible: (rowRoot.modelData.lineCount || 1) > 1
-                                                                text: rowRoot.modelData.lineCount + "L"
-                                                                font.family: Fonts.monoFont
-                                                                font.pixelSize: 10
-                                                                color: Theme.withAlpha(Theme.muted, 0.85)
-                                                                anchors.verticalCenter: parent.verticalCenter
-                                                            }
-
-                                                            Text {
-                                                                visible: Boolean(rowRoot.modelData.pinned)
-                                                                text: Icons.pin
-                                                                font.family: Icons.effectiveFont(text)
-                                                                font.pixelSize: 11
-                                                                color: Theme.accent
-                                                                anchors.verticalCenter: parent.verticalCenter
-                                                            }
-
-                                                            Text {
-                                                                text: root.clipboardService ? root.clipboardService.formatRelativeTime(rowRoot.modelData.timestamp) : ""
-                                                                font.family: Fonts.uiFont
-                                                                font.pixelSize: 11
-                                                                color: Theme.muted
-                                                                anchors.verticalCenter: parent.verticalCenter
-                                                            }
-
-                                                        }
-
-                                                        // Copied State
-                                                        Text {
-                                                            anchors.right: parent.right
-                                                            anchors.verticalCenter: parent.verticalCenter
-                                                            visible: rowRoot.isCopiedNow
-                                                            text: "Copied"
-                                                            font.family: Fonts.uiFont
-                                                            font.pixelSize: 11
-                                                            font.weight: Font.DemiBold
-                                                            color: Theme.green
-                                                        }
-
-                                                        // Hover State: Quiet Borderless Actions
-                                                        Row {
-                                                            id: hoverActionRow
-
-                                                            anchors.right: parent.right
-                                                            anchors.verticalCenter: parent.verticalCenter
-                                                            spacing: 2
-                                                            visible: rowHover.hovered && !rowRoot.isCopiedNow
-
-                                                            GhostIconButton {
-                                                                glyph: Icons.copy
-                                                                buttonSize: 24
-                                                                glyphSize: 13
-                                                                cornerRadius: 6
-                                                                onClicked: root.copyCard(rowRoot.modelData.id)
-                                                            }
-
-                                                            GhostIconButton {
-                                                                glyph: Icons.pin
-                                                                buttonSize: 24
-                                                                glyphSize: 13
-                                                                cornerRadius: 6
-                                                                active: Boolean(rowRoot.modelData.pinned)
-                                                                onClicked: {
-                                                                    if (root.clipboardService)
-                                                                        root.clipboardService.togglePin(rowRoot.modelData.id);
-
-                                                                }
-                                                            }
-
-                                                            GhostIconButton {
-                                                                glyph: Icons.trash
-                                                                buttonSize: 24
-                                                                glyphSize: 13
-                                                                cornerRadius: 6
-                                                                destructive: true
-                                                                onClicked: {
-                                                                    if (root.clipboardService)
-                                                                        root.clipboardService.deleteItem(rowRoot.modelData.id);
-
-                                                                }
-                                                            }
-
-                                                        }
-
-                                                    }
-
-                                                }
-
-                                                // Hairline Row Divider
-                                                Rectangle {
-                                                    visible: rowRoot.showDivider
-                                                    anchors.left: parent.left
-                                                    anchors.right: parent.right
-                                                    anchors.leftMargin: 38
-                                                    anchors.bottom: parent.bottom
-                                                    height: 1
-                                                    color: Theme.withAlpha(Theme.bright_foreground, 0.055)
-                                                }
-
+                                        delegate: ClipboardTextRow {
+                                            clipboardService: root.clipboardService
+                                            stayPinnedOpen: root.stayPinnedOpen
+                                            onPasteRequested: function(id) {
+                                                root.pasteCard(id);
                                             }
-
+                                            onCopyRequested: function(id) {
+                                                root.copyCard(id);
+                                            }
+                                            onDragStateChanged: function(dragging) {
+                                                root.isDragging = dragging;
+                                            }
+                                            onCloseDrawerRequested: root.close()
                                         }
 
                                     }
@@ -1016,7 +896,7 @@ PanelWindow {
                 }
 
                 // ─────────────────────────────────────────────────────────────
-                // Minimal Bottom Handle (Swipe up or click to collapse)
+                // Tactile Pill Handle (Two-finger swipe up or click to close)
                 // ─────────────────────────────────────────────────────────────
                 Item {
                     Layout.fillWidth: true
@@ -1024,14 +904,14 @@ PanelWindow {
 
                     Rectangle {
                         anchors.centerIn: parent
-                        width: grabMouse.containsMouse ? 40 : 30
+                        width: grabMouse.containsMouse ? 52 : 34
                         height: 3
-                        radius: 1.5
-                        color: grabMouse.containsMouse ? Theme.withAlpha(Theme.bright_foreground, 0.6) : Theme.withAlpha(Theme.bright_foreground, 0.2)
+                        radius: 2
+                        color: grabMouse.containsMouse ? Theme.accent : Theme.withAlpha(Theme.bright_foreground, 0.24)
 
                         Behavior on width {
                             NumberAnimation {
-                                duration: 140
+                                duration: 150
                                 easing.type: Easing.OutCubic
                             }
 
@@ -1063,6 +943,16 @@ PanelWindow {
 
             }
 
+            Behavior on height {
+                enabled: root.isOpen && !openAnim.running && !closeAnim.running
+
+                NumberAnimation {
+                    duration: 160
+                    easing.type: Easing.OutCubic
+                }
+
+            }
+
         }
 
     }
@@ -1084,9 +974,21 @@ PanelWindow {
             snapMode: ListView.SnapToItem
             model: root.imageItems
 
-            delegate: ImageCardDelegate {
+            delegate: ClipboardImageCard {
                 width: Math.floor((imgStripList.width - 30) / 4)
                 height: Appearance.clipboardThumbHeight
+                clipboardService: root.clipboardService
+                stayPinnedOpen: root.stayPinnedOpen
+                onPasteRequested: function(id) {
+                    root.pasteCard(id);
+                }
+                onCopyRequested: function(id) {
+                    root.copyCard(id);
+                }
+                onDragStateChanged: function(dragging) {
+                    root.isDragging = dragging;
+                }
+                onCloseDrawerRequested: root.close()
             }
 
         }
@@ -1100,7 +1002,7 @@ PanelWindow {
             id: imgGrid
 
             cellWidth: Math.floor((width - 2) / 4)
-            cellHeight: 116
+            cellHeight: 114
             clip: true
             interactive: false
             cacheBuffer: 2400
@@ -1113,11 +1015,23 @@ PanelWindow {
                 width: imgGrid.cellWidth
                 height: imgGrid.cellHeight
 
-                ImageCardDelegate {
+                ClipboardImageCard {
                     anchors.fill: parent
                     anchors.margins: 4
                     modelData: parent.modelData
                     index: parent.index
+                    clipboardService: root.clipboardService
+                    stayPinnedOpen: root.stayPinnedOpen
+                    onPasteRequested: function(id) {
+                        root.pasteCard(id);
+                    }
+                    onCopyRequested: function(id) {
+                        root.copyCard(id);
+                    }
+                    onDragStateChanged: function(dragging) {
+                        root.isDragging = dragging;
+                    }
+                    onCloseDrawerRequested: root.close()
                 }
 
             }
@@ -1126,313 +1040,8 @@ PanelWindow {
 
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // Gallery-Grade Image Thumbnail Delegate (Clean at Rest · HUD on Hover)
-    // ─────────────────────────────────────────────────────────────────────────
-    component ImageCardDelegate: Item {
-        id: imgCard
-
-        required property var modelData
-        required property int index
-        readonly property bool isCopiedNow: root.clipboardService && root.clipboardService.copiedFeedbackId === modelData.id
-
-        Item {
-            id: imgDragPayload
-
-            Drag.active: imgDragHandler.active
-            Drag.dragType: Drag.Automatic
-            Drag.supportedActions: Qt.CopyAction
-            Drag.hotSpot: Qt.point(80, 50)
-            Drag.imageSource: imgCard.modelData.thumbPath ? ("file://" + imgCard.modelData.thumbPath) : (imgCard.modelData.path ? ("file://" + imgCard.modelData.path) : "")
-            Drag.imageSourceSize: Qt.size(160, 100)
-            Drag.mimeData: {
-                "text/uri-list": "file://" + (imgCard.modelData.path || "") + "\r\n",
-                "text/plain": imgCard.modelData.path || ""
-            }
-            Drag.onDragStarted: root.isDragging = true
-            Drag.onDragFinished: function(dropAction) {
-                root.isDragging = false;
-                if (dropAction !== Qt.IgnoreAction && !root.stayPinnedOpen)
-                    root.close();
-
-            }
-        }
-
-        Rectangle {
-            id: imgCardFrame
-
-            anchors.fill: parent
-            radius: 10
-            color: Theme.withAlpha(Theme.darker_background, 0.72)
-            clip: true
-            scale: imgDragHandler.active ? 0.96 : (imgCardHover.hovered ? 1.015 : 1)
-
-            Rectangle {
-                id: thumbMask
-
-                anchors.fill: parent
-                radius: 10
-                color: "black"
-                layer.enabled: true
-                visible: false
-            }
-
-            Image {
-                anchors.fill: parent
-                source: imgCard.modelData.thumbPath ? ("file://" + imgCard.modelData.thumbPath) : (imgCard.modelData.path ? ("file://" + imgCard.modelData.path) : "")
-                fillMode: Image.PreserveAspectCrop
-                asynchronous: true
-                cache: true
-                smooth: true
-                mipmap: true
-                sourceSize: Qt.size(340, 220)
-                layer.enabled: true
-
-                layer.effect: MultiEffect {
-                    maskEnabled: true
-                    maskSource: thumbMask
-                }
-
-            }
-
-            // Crisp Topmost Rounded Hairline Frame
-            Rectangle {
-                anchors.fill: parent
-                radius: 10
-                color: "transparent"
-                border.width: 1
-                border.color: imgCard.isCopiedNow ? Theme.green : (imgCardHover.hovered ? Theme.withAlpha(Theme.accent, 0.7) : (imgCard.modelData.pinned ? Theme.withAlpha(Theme.accent, 0.4) : Theme.withAlpha(Theme.bright_foreground, 0.1)))
-                z: 20
-
-                Behavior on border.color {
-                    ColorAnimation {
-                        duration: 120
-                    }
-
-                }
-
-            }
-
-            // Body Interaction Layer (Hover, Wayland DnD, Click-to-Paste)
-            Item {
-                anchors.fill: parent
-
-                HoverHandler {
-                    id: imgCardHover
-                }
-
-                DragHandler {
-                    id: imgDragHandler
-
-                    target: null
-                    dragThreshold: 8
-                }
-
-                TapHandler {
-                    onTapped: root.pasteCard(imgCard.modelData.id)
-                }
-
-            }
-
-            // Quiet Pinned Marker (Visible at rest ONLY if pinned)
-            Rectangle {
-                visible: Boolean(imgCard.modelData.pinned) && !imgCardHover.hovered
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.margins: 6
-                width: 18
-                height: 18
-                radius: 9
-                color: Qt.rgba(0, 0, 0, 0.56)
-
-                Text {
-                    anchors.centerIn: parent
-                    text: Icons.pin
-                    font.family: Icons.effectiveFont(text)
-                    font.pixelSize: 10
-                    color: Theme.accent
-                }
-
-            }
-
-            // Hover-Only Top-Right Frosted Floating Action Bar
-            Rectangle {
-                anchors.top: parent.top
-                anchors.right: parent.right
-                anchors.margins: 6
-                height: 24
-                width: imgActionRow.implicitWidth + 6
-                radius: 12
-                color: Qt.rgba(16, 18, 22, 0.78)
-                border.width: 1
-                border.color: Theme.withAlpha(Theme.bright_foreground, 0.14)
-                opacity: imgCardHover.hovered ? 1 : 0
-                visible: opacity > 0.01
-                z: 10
-
-                Row {
-                    id: imgActionRow
-
-                    anchors.centerIn: parent
-                    spacing: 1
-
-                    GhostIconButton {
-                        glyph: Icons.copy
-                        buttonSize: 20
-                        glyphSize: 11
-                        cornerRadius: 10
-                        darkSurface: true
-                        onClicked: root.copyCard(imgCard.modelData.id)
-                    }
-
-                    GhostIconButton {
-                        glyph: Icons.editBrush
-                        buttonSize: 20
-                        glyphSize: 11
-                        cornerRadius: 10
-                        darkSurface: true
-                        onClicked: {
-                            if (root.clipboardService)
-                                root.clipboardService.annotateImage(imgCard.modelData.path);
-
-                        }
-                    }
-
-                    GhostIconButton {
-                        glyph: Icons.pin
-                        buttonSize: 20
-                        glyphSize: 11
-                        cornerRadius: 10
-                        active: Boolean(imgCard.modelData.pinned)
-                        darkSurface: true
-                        onClicked: {
-                            if (root.clipboardService)
-                                root.clipboardService.togglePin(imgCard.modelData.id);
-
-                        }
-                    }
-
-                    GhostIconButton {
-                        glyph: Icons.trash
-                        buttonSize: 20
-                        glyphSize: 11
-                        cornerRadius: 10
-                        destructive: true
-                        darkSurface: true
-                        onClicked: {
-                            if (root.clipboardService)
-                                root.clipboardService.deleteItem(imgCard.modelData.id);
-
-                        }
-                    }
-
-                }
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: 120
-                    }
-
-                }
-
-            }
-
-            // Hover-Only Subtle Bottom Scrim & Technical Caption
-            Rectangle {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                height: 28
-                opacity: imgCardHover.hovered ? 1 : 0
-                visible: opacity > 0.01
-
-                Text {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    anchors.leftMargin: 7
-                    anchors.rightMargin: 7
-                    anchors.bottomMargin: 5
-                    text: {
-                        var parts = [];
-                        if (imgCard.modelData.width > 0)
-                            parts.push(imgCard.modelData.width + "×" + imgCard.modelData.height);
-
-                        if (root.clipboardService) {
-                            var tm = root.clipboardService.formatRelativeTime(imgCard.modelData.timestamp);
-                            var sz = root.clipboardService.formatSize(imgCard.modelData.sizeBytes);
-                            if (tm)
-                                parts.push(tm);
-
-                            if (sz)
-                                parts.push(sz);
-
-                        }
-                        return parts.join(" · ");
-                    }
-                    font.family: Fonts.uiFont
-                    font.pixelSize: 10
-                    color: Theme.withAlpha(Theme.bright_foreground, 0.9)
-                    elide: Text.ElideRight
-                }
-
-                gradient: Gradient {
-                    GradientStop {
-                        position: 0
-                        color: "transparent"
-                    }
-
-                    GradientStop {
-                        position: 1
-                        color: Qt.rgba(0, 0, 0, 0.72)
-                    }
-
-                }
-
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: 120
-                    }
-
-                }
-
-            }
-
-            // Restrained Copied Toast
-            Rectangle {
-                anchors.centerIn: parent
-                height: 24
-                width: copiedLabel.implicitWidth + 18
-                radius: 12
-                color: Qt.rgba(16, 20, 20, 0.86)
-                border.width: 1
-                border.color: Theme.withAlpha(Theme.green, 0.7)
-                visible: imgCard.isCopiedNow
-                z: 15
-
-                Text {
-                    id: copiedLabel
-
-                    anchors.centerIn: parent
-                    text: "Copied"
-                    font.family: Fonts.uiFont
-                    font.pixelSize: 11
-                    font.weight: Font.DemiBold
-                    color: Theme.green
-                }
-
-            }
-
-            Behavior on scale {
-                NumberAnimation {
-                    duration: 130
-                    easing.type: Easing.OutCubic
-                }
-
-            }
-
-        }
-
+    mask: Region {
+        item: drawerSurface
     }
 
 }

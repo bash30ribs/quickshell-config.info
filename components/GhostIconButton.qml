@@ -18,6 +18,7 @@ Item {
     height: root.buttonSize
     implicitWidth: root.buttonSize
     implicitHeight: root.buttonSize
+    scale: mouseArea.pressed ? 0.92 : (mouseArea.containsMouse ? 1.06 : 1)
 
     Rectangle {
         anchors.fill: parent
@@ -64,6 +65,15 @@ Item {
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
         onClicked: root.clicked()
+    }
+
+    Behavior on scale {
+        NumberAnimation {
+            duration: mouseArea.pressed ? 70 : 160
+            easing.type: mouseArea.pressed ? Easing.OutQuad : Easing.OutBack
+            easing.overshoot: mouseArea.pressed ? 1 : 1.25
+        }
+
     }
 
 }

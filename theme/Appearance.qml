@@ -203,12 +203,12 @@ QtObject {
     // =========================================================================
     // Clipboard Drawer (Bar Pull-Down Shade)
     // =========================================================================
-    property int clipboardWidth: 760
-    property int clipboardHeight: 452
-    property int clipboardRadius: 16
+    property int clipboardWidth: 740
+    property int clipboardHeight: 492
+    property int clipboardRadius: 20
     property int clipboardPadding: 14
-    property int clipboardThumbWidth: 172
-    property int clipboardThumbHeight: 106
+    property int clipboardThumbWidth: 168
+    property int clipboardThumbHeight: 98
     // =========================================================================
     // Opacity & Transparency Tokens
     // =========================================================================
