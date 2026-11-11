@@ -12,6 +12,7 @@ Item {
     required property var clipboardService
     property bool stayPinnedOpen: false
     readonly property bool isCopiedNow: clipboardService && clipboardService.copiedFeedbackId === modelData.id
+    readonly property bool isHovered: rowHover.hovered || pillMouse.containsMouse || copyBtn.isHovered || deleteBtn.isHovered || copyBtn.isPressed || deleteBtn.isPressed
     readonly property string badgeTag: {
         if (modelData.isColor)
             return "HEX";
@@ -47,7 +48,13 @@ Item {
 
     Layout.fillWidth: true
     Layout.preferredHeight: Math.max(38, Math.min(54, textPreviewLabel.implicitHeight + 16))
-    scale: textDragHandler.active ? 0.985 : (rowHover.hovered ? 1.006 : 1)
+    scale: textDragHandler.active ? 0.985 : (rowRoot.isHovered ? 1.006 : 1)
+
+    HoverHandler {
+        id: rowHover
+
+        cursorShape: Qt.PointingHandCursor
+    }
 
     Item {
         id: textDragPayload
@@ -81,7 +88,7 @@ Item {
             if (textDragHandler.active)
                 return Theme.withAlpha(Theme.accent, 0.2);
 
-            if (rowHover.hovered)
+            if (rowRoot.isHovered)
                 return Theme.withAlpha(Theme.accent, 0.14);
 
             return Qt.rgba(1, 1, 1, 0.055);
@@ -91,7 +98,7 @@ Item {
             if (rowRoot.isCopiedNow)
                 return Theme.withAlpha(Theme.green, 0.58);
 
-            if (rowHover.hovered)
+            if (rowRoot.isHovered)
                 return Theme.withAlpha(Theme.accent, 0.5);
 
             return Qt.rgba(1, 1, 1, 0.11);
@@ -106,7 +113,7 @@ Item {
             anchors.leftMargin: 10
             anchors.rightMargin: 10
             height: 1
-            color: Qt.rgba(1, 1, 1, rowHover.hovered ? 0.12 : 0.05)
+            color: Qt.rgba(1, 1, 1, rowRoot.isHovered ? 0.12 : 0.05)
         }
 
         Behavior on color {
@@ -131,7 +138,7 @@ Item {
         anchors.leftMargin: 5
         anchors.verticalCenter: parent.verticalCenter
         width: 3
-        height: rowHover.hovered ? 18 : 0
+        height: rowRoot.isHovered ? 18 : 0
         radius: 1.5
         color: rowRoot.isCopiedNow ? Theme.green : Theme.accent
         visible: height > 0
@@ -150,12 +157,6 @@ Item {
     // Interaction Hitbox Behind Right Action Icons
     Item {
         anchors.fill: parent
-
-        HoverHandler {
-            id: rowHover
-
-            cursorShape: Qt.PointingHandCursor
-        }
 
         DragHandler {
             id: textDragHandler
@@ -192,10 +193,10 @@ Item {
                 if (rowRoot.modelData.isCode)
                     return Theme.withAlpha(Theme.magenta, 0.14);
 
-                return Theme.withAlpha(Theme.bright_foreground, rowHover.hovered ? 0.11 : 0.06);
+                return Theme.withAlpha(Theme.bright_foreground, rowRoot.isHovered ? 0.11 : 0.06);
             }
             border.width: 1
-            border.color: rowHover.hovered ? Theme.withAlpha(rowRoot.tagColor, 0.32) : Theme.withAlpha(Theme.bright_foreground, 0.06)
+            border.color: rowRoot.isHovered ? Theme.withAlpha(rowRoot.tagColor, 0.32) : Theme.withAlpha(Theme.bright_foreground, 0.06)
 
             Rectangle {
                 visible: Boolean(rowRoot.modelData.isColor)
@@ -214,7 +215,7 @@ Item {
                 text: rowRoot.modelData.isUrl ? Icons.linkIcon : (rowRoot.modelData.isCode ? Icons.codeIcon : Icons.textDoc)
                 font.family: Icons.effectiveFont(text)
                 font.pixelSize: 13
-                color: rowRoot.modelData.isUrl ? Theme.cyan : (rowRoot.modelData.isCode ? Theme.magenta : (rowHover.hovered ? Theme.accent : Theme.muted))
+                color: rowRoot.modelData.isUrl ? Theme.cyan : (rowRoot.modelData.isCode ? Theme.magenta : (rowRoot.isHovered ? Theme.accent : Theme.muted))
             }
 
         }
@@ -227,8 +228,8 @@ Item {
             text: rowRoot.modelData.preview || rowRoot.modelData.text || ""
             font.family: (rowRoot.modelData.isCode || rowRoot.modelData.isColor) ? Fonts.monoFont : Fonts.uiFont
             font.pixelSize: 12
-            font.weight: rowHover.hovered ? Font.Medium : Font.Normal
-            color: rowHover.hovered ? Theme.bright_foreground : Theme.withAlpha(Theme.bright_foreground, 0.9)
+            font.weight: rowRoot.isHovered ? Font.Medium : Font.Normal
+            color: rowRoot.isHovered ? Theme.bright_foreground : Theme.withAlpha(Theme.bright_foreground, 0.9)
             elide: Text.ElideRight
             maximumLineCount: 2
             wrapMode: Text.WrapAnywhere
@@ -248,7 +249,7 @@ Item {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 7
-                visible: !rowHover.hovered && !rowRoot.isCopiedNow
+                visible: !rowRoot.isHovered && !rowRoot.isCopiedNow
 
                 Rectangle {
                     visible: rowRoot.badgeTag.length > 0
@@ -314,13 +315,22 @@ Item {
 
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                visible: rowHover.hovered && !rowRoot.isCopiedNow
+                visible: rowRoot.isHovered && !rowRoot.isCopiedNow
                 height: 26
                 width: actionButtonsRow.implicitWidth + 8
                 radius: 13
-                color: Theme.withAlpha(Theme.darker_background, 0.62)
+                color: Theme.withAlpha(Theme.darker_background, 0.72)
                 border.width: 1
-                border.color: Theme.withAlpha(Theme.bright_foreground, 0.1)
+                border.color: Qt.rgba(1, 1, 1, 0.14)
+
+                MouseArea {
+                    id: pillMouse
+
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    preventStealing: true
+                    acceptedButtons: Qt.LeftButton
+                }
 
                 Row {
                     id: actionButtonsRow
@@ -329,6 +339,8 @@ Item {
                     spacing: 1
 
                     GhostIconButton {
+                        id: copyBtn
+
                         glyph: Icons.copy
                         buttonSize: 22
                         glyphSize: 12
@@ -337,6 +349,8 @@ Item {
                     }
 
                     GhostIconButton {
+                        id: deleteBtn
+
                         glyph: Icons.trash
                         buttonSize: 22
                         glyphSize: 12

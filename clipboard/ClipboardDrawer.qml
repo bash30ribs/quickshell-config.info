@@ -32,7 +32,7 @@ PanelWindow {
         var bottomMargin = 8;
         if (root.stage === 1) {
             var headerH = 26;
-            var bodyH = root.imageItems.length > 0 ? Appearance.clipboardThumbHeight : 104;
+            var bodyH = root.imageItems.length > 0 ? (Appearance.clipboardThumbHeight + 8) : 104;
             var trackH = root.imageItems.length > 4 ? 11 : 0;
             var handleH = 14;
             return Math.round(topMargin + headerH + 8 + 1 + 8 + bodyH + trackH + 8 + handleH + bottomMargin);
@@ -56,6 +56,10 @@ PanelWindow {
         searchInput.focus = false;
         root.gestureUpAccum = 0;
         root.stageDownAccum = 0;
+        if (imgStripList) {
+            imgStripList.preservedX = 0;
+            imgStripList.contentX = 0;
+        }
         root.openedAtMs = now;
         root.stageChangedAtMs = now;
         root.stageCooldownUntil = now + 340;
@@ -187,6 +191,15 @@ PanelWindow {
             return ;
 
         root.clipboardService.copyItem(itemId);
+    }
+
+    function editCard(filePath) {
+        if (!filePath || !root.clipboardService)
+            return ;
+
+        searchInput.focus = false;
+        root.close();
+        root.clipboardService.annotateImage(filePath);
     }
 
     visible: root.isVisibleSurface
@@ -505,7 +518,7 @@ PanelWindow {
                     // Horizontal Screenshots Carousel + Gesture Router
                     Item {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: Appearance.clipboardThumbHeight
+                        Layout.preferredHeight: Appearance.clipboardThumbHeight + 8
                         visible: root.imageItems.length > 0
 
                         MouseArea {
@@ -528,9 +541,11 @@ PanelWindow {
                                     root.gestureUpAccum = 0;
                                     root.stageDownAccum = 0;
                                     var maxX = Math.max(0, imgStripList.contentWidth - imgStripList.width);
-                                    if (maxX > 0)
-                                        imgStripList.contentX = Math.max(0, Math.min(maxX, imgStripList.contentX - (dx * 0.65)));
-
+                                    if (maxX > 0) {
+                                        var nextX = Math.max(0, Math.min(maxX, imgStripList.contentX - (dx * 0.65)));
+                                        imgStripList.contentX = nextX;
+                                        imgStripList.preservedX = nextX;
+                                    }
                                     event.accepted = true;
                                     return ;
                                 }
@@ -542,6 +557,8 @@ PanelWindow {
                         ListView {
                             id: imgStripList
 
+                            property real preservedX: 0
+
                             anchors.fill: parent
                             orientation: ListView.Horizontal
                             spacing: 10
@@ -550,21 +567,45 @@ PanelWindow {
                             cacheBuffer: 2400
                             snapMode: ListView.NoSnap
                             model: root.imageItems
+                            onModelChanged: {
+                                Qt.callLater(function() {
+                                    if (!imgStripList || imgStripList.count <= 0)
+                                        return ;
 
-                            delegate: ClipboardImageCard {
+                                    var maxX = Math.max(0, imgStripList.contentWidth - imgStripList.width);
+                                    imgStripList.contentX = Math.max(0, Math.min(maxX, imgStripList.preservedX));
+                                });
+                            }
+
+                            delegate: Item {
+                                required property var modelData
+                                required property int index
+
                                 width: Math.floor((imgStripList.width - 30) / 4)
-                                height: Appearance.clipboardThumbHeight
-                                clipboardService: root.clipboardService
-                                onPasteRequested: function(id) {
-                                    root.pasteCard(id);
+                                height: imgStripList.height
+
+                                ClipboardImageCard {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: parent.width
+                                    height: Appearance.clipboardThumbHeight
+                                    modelData: parent.modelData
+                                    index: parent.index
+                                    clipboardService: root.clipboardService
+                                    onPasteRequested: function(id) {
+                                        root.pasteCard(id);
+                                    }
+                                    onCopyRequested: function(id) {
+                                        root.copyCard(id);
+                                    }
+                                    onEditRequested: function(path) {
+                                        root.editCard(path);
+                                    }
+                                    onDragStateChanged: function(dragging) {
+                                        root.isDragging = dragging;
+                                    }
+                                    onCloseDrawerRequested: root.close()
                                 }
-                                onCopyRequested: function(id) {
-                                    root.copyCard(id);
-                                }
-                                onDragStateChanged: function(dragging) {
-                                    root.isDragging = dragging;
-                                }
-                                onCloseDrawerRequested: root.close()
+
                             }
 
                         }

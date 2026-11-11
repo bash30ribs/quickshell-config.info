@@ -14,34 +14,8 @@ QtObject {
     readonly property string stateDir: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/qdeck/clipboard"
     readonly property string historyPath: root.stateDir + "/history.json"
     property Timer copiedTimer
-
-    copiedTimer: Timer {
-        interval: 1400
-        repeat: false
-        onTriggered: {
-            root.copiedFeedbackId = "";
-        }
-    }
-
     property FileView historyFile
-
-    historyFile: FileView {
-        path: root.historyPath
-        watchChanges: true
-        printErrors: false
-        onLoaded: {
-            root.parseHistory(text());
-        }
-    }
-
     property Process syncProc
-
-    syncProc: Process {
-        command: ["python3", root.scriptPath, "sync"]
-        onExited: function() {
-            root.historyFile.reload();
-        }
-    }
 
     function parseHistory(raw) {
         var str = String(raw || "").trim();
@@ -140,6 +114,29 @@ QtObject {
         if (!itemId)
             return ;
 
+        var list = root.items || [];
+        var next = [];
+        var imgs = 0;
+        var txts = 0;
+        var pins = 0;
+        for (var i = 0; i < list.length; i++) {
+            var it = list[i];
+            if (!it || it.id === itemId)
+                continue;
+
+            next.push(it);
+            if (it.type === "image")
+                imgs++;
+            else
+                txts++;
+            if (it.pinned)
+                pins++;
+
+        }
+        root.imageCount = imgs;
+        root.textCount = txts;
+        root.pinnedCount = pins;
+        root.items = next;
         Quickshell.execDetached(["python3", root.scriptPath, "delete", itemId]);
     }
 
@@ -200,4 +197,29 @@ QtObject {
         Quickshell.execDetached(["python3", root.scriptPath, "daemon"]);
         syncNow();
     }
+
+    copiedTimer: Timer {
+        interval: 1400
+        repeat: false
+        onTriggered: {
+            root.copiedFeedbackId = "";
+        }
+    }
+
+    historyFile: FileView {
+        path: root.historyPath
+        watchChanges: true
+        printErrors: false
+        onLoaded: {
+            root.parseHistory(text());
+        }
+    }
+
+    syncProc: Process {
+        command: ["python3", root.scriptPath, "sync"]
+        onExited: function() {
+            root.historyFile.reload();
+        }
+    }
+
 }

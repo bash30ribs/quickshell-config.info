@@ -11,6 +11,8 @@ Item {
     property bool active: false
     property bool destructive: false
     property bool darkSurface: false
+    readonly property bool isHovered: mouseArea.containsMouse
+    readonly property bool isPressed: mouseArea.pressed
 
     signal clicked()
 
@@ -63,6 +65,7 @@ Item {
 
         anchors.fill: parent
         hoverEnabled: true
+        preventStealing: true
         cursorShape: Qt.PointingHandCursor
         onClicked: root.clicked()
     }

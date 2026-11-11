@@ -12,13 +12,21 @@ Item {
     required property var clipboardService
     property bool stayPinnedOpen: false
     readonly property bool isCopiedNow: clipboardService && clipboardService.copiedFeedbackId === modelData.id
+    readonly property bool isHovered: imgCardHover.hovered || pillMouse.containsMouse || copyBtn.isHovered || editBtn.isHovered || deleteBtn.isHovered || copyBtn.isPressed || editBtn.isPressed || deleteBtn.isPressed
 
     signal pasteRequested(string itemId)
     signal copyRequested(string itemId)
+    signal editRequested(string filePath)
     signal dragStateChanged(bool dragging)
     signal closeDrawerRequested()
 
-    scale: imgDragHandler.active ? 0.965 : (imgCardHover.hovered ? 1.025 : 1)
+    scale: imgDragHandler.active ? 0.965 : (imgCard.isHovered ? 1.025 : 1)
+
+    HoverHandler {
+        id: imgCardHover
+
+        cursorShape: Qt.PointingHandCursor
+    }
 
     Item {
         id: imgDragPayload
@@ -109,12 +117,12 @@ Item {
             anchors.fill: parent
             radius: 12
             color: "transparent"
-            border.width: imgCardHover.hovered || imgCard.isCopiedNow ? 1.5 : 1
+            border.width: imgCard.isHovered || imgCard.isCopiedNow ? 1.5 : 1
             border.color: {
                 if (imgCard.isCopiedNow)
                     return Theme.green;
 
-                if (imgCardHover.hovered)
+                if (imgCard.isHovered)
                     return Theme.withAlpha(Theme.accent, 0.82);
 
                 return Qt.rgba(1, 1, 1, 0.18);
@@ -130,15 +138,10 @@ Item {
 
         }
 
-        // Body Interaction Layer (Hover, Wayland DnD, Click-to-Paste)
+        // Body Interaction Layer (Wayland DnD, Click-to-Paste)
         Item {
             anchors.fill: parent
-
-            HoverHandler {
-                id: imgCardHover
-
-                cursorShape: Qt.PointingHandCursor
-            }
+            z: 10
 
             DragHandler {
                 id: imgDragHandler
@@ -153,20 +156,31 @@ Item {
 
         }
 
-        // Hover Top-Right Frosted Floating Action Pill
+        // Hover Top-Right Frosted Floating Action Pill (isolated from body tap/drag)
         Rectangle {
+            id: imgActionPill
+
             anchors.top: parent.top
             anchors.right: parent.right
             anchors.margins: 6
-            height: 24
+            height: 26
             width: imgActionRow.implicitWidth + 6
-            radius: 12
-            color: Qt.rgba(14, 16, 20, 0.8)
+            radius: 13
+            color: Qt.rgba(14, 16, 20, 0.84)
             border.width: 1
-            border.color: Theme.withAlpha(Theme.bright_foreground, 0.16)
-            opacity: imgCardHover.hovered ? 1 : 0
+            border.color: Qt.rgba(1, 1, 1, 0.2)
+            opacity: imgCard.isHovered ? 1 : 0
             visible: opacity > 0.01
-            z: 12
+            z: 25
+
+            MouseArea {
+                id: pillMouse
+
+                anchors.fill: parent
+                hoverEnabled: true
+                preventStealing: true
+                acceptedButtons: Qt.LeftButton
+            }
 
             Row {
                 id: imgActionRow
@@ -175,32 +189,34 @@ Item {
                 spacing: 1
 
                 GhostIconButton {
+                    id: copyBtn
+
                     glyph: Icons.copy
-                    buttonSize: 20
-                    glyphSize: 11
-                    cornerRadius: 10
+                    buttonSize: 22
+                    glyphSize: 12
+                    cornerRadius: 11
                     darkSurface: true
                     onClicked: imgCard.copyRequested(imgCard.modelData.id)
                 }
 
                 GhostIconButton {
-                    glyph: Icons.editBrush
-                    buttonSize: 20
-                    glyphSize: 11
-                    cornerRadius: 10
-                    darkSurface: true
-                    onClicked: {
-                        if (imgCard.clipboardService)
-                            imgCard.clipboardService.annotateImage(imgCard.modelData.path);
+                    id: editBtn
 
-                    }
+                    glyph: Icons.editBrush
+                    buttonSize: 22
+                    glyphSize: 12
+                    cornerRadius: 11
+                    darkSurface: true
+                    onClicked: imgCard.editRequested(imgCard.modelData.path)
                 }
 
                 GhostIconButton {
+                    id: deleteBtn
+
                     glyph: Icons.trash
-                    buttonSize: 20
-                    glyphSize: 11
-                    cornerRadius: 10
+                    buttonSize: 22
+                    glyphSize: 12
+                    cornerRadius: 11
                     destructive: true
                     darkSurface: true
                     onClicked: {
@@ -227,7 +243,7 @@ Item {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             height: 30
-            opacity: imgCardHover.hovered ? 1 : 0
+            opacity: imgCard.isHovered ? 1 : 0
             visible: opacity > 0.01
             z: 10
 

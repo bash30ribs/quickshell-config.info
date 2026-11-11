@@ -28,6 +28,8 @@ IMAGES_DIR = os.path.join(STATE_DIR, "images")
 HISTORY_FILE = os.path.join(STATE_DIR, "history.json")
 LOCK_FILE = os.path.join(STATE_DIR, "history.lock")
 PID_FILE = os.path.join(STATE_DIR, "daemon.pid")
+DISMISSED_FILE = os.path.join(STATE_DIR, "dismissed.json")
+SELF_COPY_FILE = os.path.join(STATE_DIR, "self_copy.json")
 
 THUMB_DIR = os.path.join(
     os.environ.get("XDG_CACHE_HOME", os.path.join(HOME, ".cache")),
@@ -107,6 +109,48 @@ def read_history_unlocked():
     except Exception:
         pass
     return []
+
+
+def read_dismissed_unlocked():
+    if not os.path.isfile(DISMISSED_FILE):
+        return set()
+    try:
+        with open(DISMISSED_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, list):
+            return {str(x) for x in data if x}
+    except Exception:
+        pass
+    return set()
+
+
+def write_dismissed_unlocked(ids_iterable):
+    ensure_dirs()
+    keep = list(dict.fromkeys(str(x) for x in ids_iterable if x))[-200:]
+    with open(DISMISSED_FILE, "w", encoding="utf-8") as f:
+        json.dump(keep, f)
+
+
+def mark_self_copy_unlocked(item_id):
+    ensure_dirs()
+    payload = {"id": item_id, "until": time.time() + 2.5}
+    with open(SELF_COPY_FILE, "w", encoding="utf-8") as f:
+        json.dump(payload, f)
+
+
+def is_recent_self_copy_unlocked(item_id):
+    if not os.path.isfile(SELF_COPY_FILE):
+        return False
+    try:
+        with open(SELF_COPY_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return (
+            isinstance(data, dict)
+            and data.get("id") == item_id
+            and float(data.get("until", 0)) >= time.time()
+        )
+    except Exception:
+        return False
 
 
 def write_history_unlocked(items):
@@ -209,12 +253,21 @@ def upsert_image(raw_bytes, preferred_path=None, ts=None, source="clipboard"):
     now = ts if ts is not None else time.time()
 
     with history_lock():
+        dismissed = read_dismissed_unlocked()
+        if source == "screenshot" and item_id in dismissed:
+            return False
+        if source == "clipboard" and ts is None and is_recent_self_copy_unlocked(item_id):
+            return True
+        if source == "clipboard" and item_id in dismissed:
+            dismissed.discard(item_id)
+            write_dismissed_unlocked(dismissed)
+
         items = read_history_unlocked()
         for it in items:
             if it.get("id") == item_id:
                 existing_path = it.get("path", "")
                 if existing_path and os.path.isfile(existing_path):
-                    # Preserve user explicit recency without dropping pin
+                    # Preserve explicit timestamp unless clipboard capture is newer
                     if ts is None or now > it.get("timestamp", 0):
                         it["timestamp"] = now
                     if preferred_path and os.path.isfile(preferred_path):
@@ -280,6 +333,8 @@ def upsert_text(text, ts=None):
     )
 
     with history_lock():
+        if ts is None and is_recent_self_copy_unlocked(item_id):
+            return True
         items = read_history_unlocked()
         for it in items:
             if it.get("id") == item_id:
@@ -409,16 +464,17 @@ def sync_screenshots(limit=12):
                 continue
 
 
-def copy_item(item_id):
+def copy_item(item_id, promote=False):
     with history_lock():
         items = read_history_unlocked()
         target = next((it for it in items if it.get("id") == item_id), None)
         if not target:
             return False
 
-        # Promote timestamp smoothly when copied again
-        target["timestamp"] = time.time()
-        write_history_unlocked(items)
+        mark_self_copy_unlocked(item_id)
+        if promote:
+            target["timestamp"] = time.time()
+            write_history_unlocked(items)
 
     # IMPORTANT: wl-copy forks into background and inherits pipes unless detached to DEVNULL
     if target.get("type") == "image":
@@ -511,6 +567,10 @@ def toggle_pin(item_id):
 
 def delete_item(item_id):
     with history_lock():
+        dismissed = read_dismissed_unlocked()
+        dismissed.add(item_id)
+        write_dismissed_unlocked(dismissed)
+
         items = read_history_unlocked()
         new_items = [it for it in items if it.get("id") != item_id]
         if len(new_items) != len(items):
