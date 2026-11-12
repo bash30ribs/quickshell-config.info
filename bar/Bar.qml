@@ -506,7 +506,7 @@ PanelWindow {
                 }
 
                 Behavior on x {
-                    enabled: !root.isEdgeTransitioning
+                    enabled: !root.isEdgeTransitioning && !root.isCompact && !root.isWide
 
                     NumberAnimation {
                         duration: 160
@@ -516,7 +516,7 @@ PanelWindow {
                 }
 
                 Behavior on y {
-                    enabled: !root.isEdgeTransitioning
+                    enabled: !root.isEdgeTransitioning && !root.isCompact && !root.isWide
 
                     NumberAnimation {
                         duration: 160
@@ -536,7 +536,7 @@ PanelWindow {
                 powerService: root.powerService
 
                 Behavior on x {
-                    enabled: !root.isEdgeTransitioning
+                    enabled: !root.isEdgeTransitioning && !root.isCompact && !root.isWide
 
                     NumberAnimation {
                         duration: 160
@@ -546,7 +546,7 @@ PanelWindow {
                 }
 
                 Behavior on y {
-                    enabled: !root.isEdgeTransitioning
+                    enabled: !root.isEdgeTransitioning && !root.isCompact && !root.isWide
 
                     NumberAnimation {
                         duration: 160
@@ -603,7 +603,7 @@ PanelWindow {
                 }
 
                 Behavior on x {
-                    enabled: !root.isEdgeTransitioning
+                    enabled: !root.isEdgeTransitioning && !root.isCompact && !root.isWide
 
                     NumberAnimation {
                         duration: 160
@@ -613,7 +613,7 @@ PanelWindow {
                 }
 
                 Behavior on y {
-                    enabled: !root.isEdgeTransitioning
+                    enabled: !root.isEdgeTransitioning && !root.isCompact && !root.isWide
 
                     NumberAnimation {
                         duration: 160
