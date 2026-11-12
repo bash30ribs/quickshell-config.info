@@ -14,11 +14,12 @@ Rectangle {
     property int customPadding: Appearance.buttonPadding
     property int iconSize: Icons.sizeNormal
     property int textSize: Fonts.sizeRegular
+    property bool vertical: Appearance.barIsVertical
 
     signal clicked()
 
-    implicitWidth: Math.max(Appearance.barButtonHeight, contentRow.implicitWidth + (customPadding * 2))
-    implicitHeight: Appearance.barButtonHeight
+    implicitWidth: root.vertical ? Math.max(Appearance.barButtonHeight, Appearance.barThickness - 6) : Math.max(Appearance.barButtonHeight, contentGrid.implicitWidth + (customPadding * 2))
+    implicitHeight: root.vertical ? Math.max(Appearance.barButtonHeight, contentGrid.implicitHeight + (root.text.length > 0 ? 8 : 6)) : Appearance.barButtonHeight
     width: implicitWidth
     height: implicitHeight
     radius: Appearance.buttonRadius > 0 ? Appearance.buttonRadius : 6
@@ -38,11 +39,15 @@ Rectangle {
     border.width: 0
     border.color: "transparent"
 
-    Row {
-        id: contentRow
+    Grid {
+        id: contentGrid
 
         anchors.centerIn: parent
-        spacing: Appearance.spacingMedium - 2 // 6px
+        columns: root.vertical ? 1 : 2
+        columnSpacing: Appearance.spacingMedium - 2 // 6px
+        rowSpacing: 1
+        horizontalItemAlignment: Grid.AlignHCenter
+        verticalItemAlignment: Grid.AlignVCenter
 
         Text {
             visible: root.icon.length > 0
@@ -60,7 +65,6 @@ Rectangle {
             }
             style: Text.Raised
             styleColor: Qt.rgba(0, 0, 0, 0.65)
-            anchors.verticalCenter: parent.verticalCenter
 
             Behavior on color {
                 ColorAnimation {
@@ -75,12 +79,12 @@ Rectangle {
             visible: root.text.length > 0
             text: root.text
             font.family: Fonts.uiFont
-            font.pixelSize: root.textSize
+            font.pixelSize: (root.vertical && root.icon.length > 0) ? Math.max(9, Fonts.scale(9)) : root.textSize
             font.bold: root.active
+            horizontalAlignment: Text.AlignHCenter
             color: root.active ? Theme.accent : Theme.bright_foreground
             style: Text.Raised
             styleColor: Qt.rgba(0, 0, 0, 0.65)
-            anchors.verticalCenter: parent.verticalCenter
 
             Behavior on color {
                 ColorAnimation {

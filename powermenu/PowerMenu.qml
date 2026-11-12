@@ -666,7 +666,7 @@ PanelWindow {
 
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 32
+        anchors.bottomMargin: (Appearance.barVisible && Appearance.barIsBottom) ? (Appearance.barHeight + 14) : 32
         width: root.targetWidth
         height: root.targetHeight
         radius: 20

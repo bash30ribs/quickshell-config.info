@@ -55,6 +55,12 @@ Item {
         return days[d.getDay()] + " " + formatTime(d);
     }
 
+    function formatVerticalTime(d) {
+        var h = String(d.getHours()).padStart(2, "0");
+        var m = String(d.getMinutes()).padStart(2, "0");
+        return h + "\n" + m;
+    }
+
     implicitWidth: clockButton.implicitWidth
     implicitHeight: clockButton.implicitHeight
     width: implicitWidth
@@ -77,9 +83,10 @@ Item {
         id: clockButton
 
         icon: ""
-        text: root.formatDayTime(root.now)
+        text: Appearance.barIsVertical ? root.formatVerticalTime(root.now) : root.formatDayTime(root.now)
         active: clockPopup.open
-        customPadding: 10
+        customPadding: Appearance.barIsVertical ? 4 : 10
+        textSize: Appearance.barIsVertical ? Math.max(10, Fonts.scale(11)) : Fonts.sizeRegular
         onClicked: {
             clockPopup.toggle();
             if (clockPopup.open)

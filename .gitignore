@@ -1,6 +1,7 @@
 # ── Runtime State & Overrides ────────────────────────────────────────────────
 bar-style
 bar-visibility
+bar-edge
 dns-provider
 text-size
 wallpaper-palette.json

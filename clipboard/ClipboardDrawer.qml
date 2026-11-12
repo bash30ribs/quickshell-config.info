@@ -137,7 +137,7 @@ PanelWindow {
             root.open();
     }
 
-    function handleSwipeUpDelta(dy) {
+    function handleSwipeOutwardDelta(negDelta) {
         if (!root.isOpen)
             return ;
 
@@ -145,15 +145,15 @@ PanelWindow {
         if (now - root.openedAtMs < 320 || now < root.stageCooldownUntil)
             return ;
 
-        if (dy < 0) {
+        if (negDelta < 0) {
             root.stageDownAccum = 0;
-            root.gestureUpAccum += dy;
+            root.gestureUpAccum += negDelta;
             gestureDecayTimer.restart();
             if (root.gestureUpAccum <= -10) {
                 root.gestureUpAccum = 0;
                 root.close();
             }
-        } else if (dy > 6) {
+        } else if (negDelta > 6) {
             root.gestureUpAccum = 0;
         }
     }
@@ -165,7 +165,9 @@ PanelWindow {
             event.accepted = false;
             return ;
         }
-        if (dy === 0 || Math.abs(dy) < Math.abs(dx) * 0.7) {
+        var inwardDelta = Appearance.barIsTop ? dy : (Appearance.barIsBottom ? -dy : (Appearance.barIsLeft ? dx : -dx));
+        var crossDelta = Appearance.barIsVertical ? dy : dx;
+        if (inwardDelta === 0 || Math.abs(inwardDelta) < Math.abs(crossDelta) * 0.7) {
             event.accepted = false;
             return ;
         }
@@ -174,10 +176,10 @@ PanelWindow {
             event.accepted = true;
             return ;
         }
-        if (dy > 0 && allowAdvanceToStage2 && root.stage === 1) {
-            if (Math.abs(dy) >= Math.abs(dx) * 1.25 && (now - root.stageChangedAtMs) >= 340) {
+        if (inwardDelta > 0 && allowAdvanceToStage2 && root.stage === 1) {
+            if (Math.abs(inwardDelta) >= Math.abs(crossDelta) * 1.25 && (now - root.stageChangedAtMs) >= 340) {
                 root.gestureUpAccum = 0;
-                root.stageDownAccum += dy;
+                root.stageDownAccum += inwardDelta;
                 gestureDecayTimer.restart();
                 root.touchActivity();
                 if (root.stageDownAccum >= 8) {
@@ -188,9 +190,9 @@ PanelWindow {
             event.accepted = true;
             return ;
         }
-        if (dy < 0) {
+        if (inwardDelta < 0) {
             event.accepted = true;
-            root.handleSwipeUpDelta(dy);
+            root.handleSwipeOutwardDelta(inwardDelta);
             return ;
         }
         event.accepted = false;
@@ -237,8 +239,8 @@ PanelWindow {
     }
     visible: root.isVisibleSurface
     color: "transparent"
-    implicitWidth: Appearance.clipboardWidth
-    implicitHeight: Appearance.clipboardHeight + 28
+    implicitWidth: Appearance.barIsVertical ? (Appearance.clipboardWidth + 28) : Appearance.clipboardWidth
+    implicitHeight: Appearance.barIsVertical ? Appearance.clipboardHeight : (Appearance.clipboardHeight + 28)
     WlrLayershell.namespace: "quickshell-clipbar"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: (root.isOpen && root.stage === 2 && (root.searchOpen || root.searchFocused)) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
@@ -259,11 +261,17 @@ PanelWindow {
     }
 
     anchors {
-        top: true
+        top: Appearance.barIsTop
+        bottom: Appearance.barIsBottom
+        left: Appearance.barIsLeft
+        right: Appearance.barIsRight
     }
 
     margins {
-        top: Appearance.barHeight
+        top: Appearance.barIsTop ? Appearance.barHeight : 0
+        bottom: Appearance.barIsBottom ? Appearance.barHeight : 0
+        left: Appearance.barIsLeft ? Appearance.barThickness : 0
+        right: Appearance.barIsRight ? Appearance.barThickness : 0
     }
 
     // Crisp slide-and-scale reveal from beneath the top bar
@@ -436,15 +444,15 @@ PanelWindow {
 
             width: Appearance.clipboardWidth
             height: root.targetDrawerHeight
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: Math.round(6 - ((1 - root.animProgress) * 18))
+            x: Appearance.barIsVertical ? (Appearance.barIsRight ? Math.round(clipViewport.width - width - 6 + ((1 - root.animProgress) * 18)) : Math.round(6 - ((1 - root.animProgress) * 18))) : Math.round((clipViewport.width - width) / 2)
+            y: Appearance.barIsVertical ? Math.round((clipViewport.height - height) / 2) : (Appearance.barIsBottom ? Math.round(clipViewport.height - height - 6 + ((1 - root.animProgress) * 18)) : Math.round(6 - ((1 - root.animProgress) * 18)))
             radius: Appearance.clipboardRadius
             baseColor: Theme.barBackground
             accentTint: Theme.accent
             clarity: 0.8
             rimIllumination: 0.72
             specularIntensity: 0.9
-            transformOrigin: Item.Top
+            transformOrigin: Appearance.barIsBottom ? Item.Bottom : (Appearance.barIsLeft ? Item.Left : (Appearance.barIsRight ? Item.Right : Item.Top))
             opacity: Math.max(0, Math.min(1, root.animProgress * 3.5))
             scale: 0.97 + (0.03 * root.animProgress)
 

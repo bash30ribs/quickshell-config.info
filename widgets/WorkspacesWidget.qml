@@ -7,9 +7,13 @@ Item {
     id: root
 
     required property WorkspacesService service
+    readonly property bool isVertical: Appearance.barIsVertical
+    readonly property int capsuleThickness: Appearance.barButtonHeight - (Appearance.workspacesPaddingVertical * 2)
 
-    implicitHeight: Appearance.barButtonHeight
-    implicitWidth: wsRow.implicitWidth + (Appearance.workspacesPaddingHorizontal * 2)
+    implicitHeight: root.isVertical ? (wsRow.implicitHeight + (Appearance.workspacesPaddingHorizontal * 2)) : Appearance.barButtonHeight
+    implicitWidth: root.isVertical ? Math.max(Appearance.barButtonHeight, Appearance.barThickness - 6) : (wsRow.implicitWidth + (Appearance.workspacesPaddingHorizontal * 2))
+    width: implicitWidth
+    height: implicitHeight
 
     WheelHandler {
         onWheel: (event) => {
@@ -20,12 +24,15 @@ Item {
         }
     }
 
-    Row {
+    Grid {
         id: wsRow
 
         anchors.centerIn: parent
-        spacing: Appearance.workspacesSpacing
-        height: parent.height - (Appearance.workspacesPaddingVertical * 2)
+        columns: root.isVertical ? 1 : 24
+        columnSpacing: Appearance.workspacesSpacing
+        rowSpacing: Appearance.workspacesSpacing
+        horizontalItemAlignment: Grid.AlignHCenter
+        verticalItemAlignment: Grid.AlignVCenter
 
         Repeater {
             model: root.service.workspaceIds
@@ -47,9 +54,9 @@ Item {
                 }
                 readonly property bool hasCustomInactiveIcon: resolvedInactiveIcon.length > 0
 
-                height: parent.height
-                width: isActive ? Appearance.workspacesActiveCapsuleWidth : Appearance.workspacesCapsuleWidth
-                radius: height / 2
+                height: root.isVertical ? (isActive ? Math.max(24, Appearance.workspacesActiveCapsuleWidth - 10) : Math.max(16, Appearance.workspacesCapsuleWidth - 4)) : root.capsuleThickness
+                width: root.isVertical ? root.capsuleThickness : (isActive ? Appearance.workspacesActiveCapsuleWidth : Appearance.workspacesCapsuleWidth)
+                radius: Math.min(width, height) / 2
                 antialiasing: true
                 color: {
                     if (isActive)
@@ -136,6 +143,14 @@ Item {
                 }
 
                 Behavior on width {
+                    NumberAnimation {
+                        duration: Appearance.animDurationNormal
+                        easing.type: Easing.OutCubic
+                    }
+
+                }
+
+                Behavior on height {
                     NumberAnimation {
                         duration: Appearance.animDurationNormal
                         easing.type: Easing.OutCubic

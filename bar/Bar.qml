@@ -26,12 +26,51 @@ PanelWindow {
     property FileView barStyleFile
     // Configuration file watcher for bar visibility
     property FileView barVisibilityFile
+    // Configuration file watcher for bar screen edge (top, bottom, left, right)
+    property FileView barEdgeFile
     readonly property bool isCompact: barMode === "compact"
     readonly property bool isWide: barMode === "wide"
     readonly property bool isIslands: barMode === "islands"
     readonly property bool isFloating: barMode === "floating"
     readonly property bool hasSideAnchors: isFloating || isIslands
-    readonly property real totalContentWidth: leftSection.width + clockWidget.width + rightSection.width + (Appearance.barSectionSpacing * 4)
+    readonly property bool isVertical: Appearance.barIsVertical
+    readonly property bool isHorizontal: !root.isVertical
+    readonly property real screenWidth: root.screen ? root.screen.width : 1920
+    readonly property real screenHeight: root.screen ? root.screen.height : 1200
+    readonly property real totalContentWidth: root.isVertical ? (leftSection.height + clockWidget.height + rightSection.height + (Appearance.barSectionSpacing * 4)) : (leftSection.width + clockWidget.width + rightSection.width + (Appearance.barSectionSpacing * 4))
+
+    function normalizeEdge(rawEdge) {
+        var e = String(rawEdge || "").trim().toLowerCase();
+        if (e === "up" || e === "top")
+            return "top";
+
+        if (e === "down" || e === "bottom")
+            return "bottom";
+
+        if (e === "left")
+            return "left";
+
+        if (e === "right")
+            return "right";
+
+        return "";
+    }
+
+    function applyEdge(rawEdge, persist) {
+        var normalized = root.normalizeEdge(rawEdge);
+        if (!normalized)
+            return "";
+
+        if (root.clipboardDrawer && root.clipboardDrawer.isOpen)
+            root.clipboardDrawer.close();
+
+        Appearance.barEdge = normalized;
+        if (persist) {
+            var cmd = "mkdir -p \"$HOME/.config/quickshell\" && printf '%s\\n' \"" + normalized + "\" > \"$HOME/.config/quickshell/bar-edge\"";
+            Quickshell.execDetached(["sh", "-c", cmd]);
+        }
+        return normalized;
+    }
 
     function handleBarWheel(event) {
         if (!root.clipboardDrawer) {
@@ -40,30 +79,32 @@ PanelWindow {
         }
         var dy = Theme.wheelDeltaY(event);
         var dx = Theme.wheelDeltaX(event);
-        if (dy === 0 || Math.abs(dy) < Math.abs(dx) * 0.5) {
+        // Natural scroll inward axis relative to docked edge:
+        // top: dy > 0, bottom: dy < 0, left: dx > 0, right: dx < 0
+        var inwardDelta = Appearance.barIsTop ? dy : (Appearance.barIsBottom ? -dy : (Appearance.barIsLeft ? dx : -dx));
+        var crossDelta = root.isVertical ? dy : dx;
+        if (inwardDelta === 0 || Math.abs(inwardDelta) < Math.abs(crossDelta) * 0.5) {
             event.accepted = false;
             return ;
         }
-        if (!root.clipboardDrawer.isOpen && dy < 0) {
+        if (!root.clipboardDrawer.isOpen && inwardDelta < 0) {
             // Eat tiny initial contact jitter over WorkspacesWidget; allow deliberate scroll-through
-            event.accepted = Math.abs(dy) < 12;
+            event.accepted = Math.abs(inwardDelta) < 12;
             return ;
         }
         if (Date.now() < root.glideCooldownUntil) {
             event.accepted = true;
             return ;
         }
-        if (root.clipboardDrawer.isOpen && dy < 0 && (Date.now() - root.clipboardDrawer.openedAtMs) < 320) {
+        if (root.clipboardDrawer.isOpen && inwardDelta < 0 && (Date.now() - root.clipboardDrawer.openedAtMs) < 320) {
             event.accepted = true;
             return ;
         }
-        if ((dy > 0 && root.glideAccum < 0) || (dy < 0 && root.glideAccum > 0))
+        if ((inwardDelta > 0 && root.glideAccum < 0) || (inwardDelta < 0 && root.glideAccum > 0))
             root.glideAccum = 0;
 
-        root.glideAccum += dy;
+        root.glideAccum += inwardDelta;
         glideResetTimer.restart();
-        // Natural scroll: gliding 2 fingers DOWN produces positive delta.y;
-        // gliding 2 fingers UP produces negative delta.y
         if (!root.clipboardDrawer.isOpen && root.glideAccum >= 4) {
             root.glideAccum = 0;
             root.glideCooldownUntil = Date.now() + 380;
@@ -83,52 +124,55 @@ PanelWindow {
     }
 
     visible: Appearance.barVisible
-    implicitHeight: Appearance.barHeight
-    implicitWidth: root.isCompact ? Math.round(root.totalContentWidth + (Appearance.barMarginHorizontal * 2)) : (root.isWide ? Math.round((root.screen ? root.screen.width : 1920) * 0.72) : (root.screen ? root.screen.width - (Appearance.barMarginHorizontal * 2) : 1896))
+    implicitHeight: root.isHorizontal ? Appearance.barHeight : (root.isCompact ? Math.round(root.totalContentWidth + (Appearance.barMarginHorizontal * 2)) : (root.isWide ? Math.round(root.screenHeight * 0.72) : Math.round(root.screenHeight - (Appearance.barMarginHorizontal * 2))))
+    implicitWidth: root.isVertical ? Appearance.barThickness : (root.isCompact ? Math.round(root.totalContentWidth + (Appearance.barMarginHorizontal * 2)) : (root.isWide ? Math.round(root.screenWidth * 0.72) : Math.round(root.screenWidth - (Appearance.barMarginHorizontal * 2))))
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "quickshell-bar"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Auto
 
-    // Panel anchors: top attached, sides attached only in full-width modes
+    // Panel anchors adapt cleanly across top, bottom, left, and right screen edges
     anchors {
-        top: true
-        left: root.hasSideAnchors
-        right: root.hasSideAnchors
+        top: root.isHorizontal ? Appearance.barIsTop : root.hasSideAnchors
+        bottom: root.isHorizontal ? Appearance.barIsBottom : root.hasSideAnchors
+        left: root.isVertical ? Appearance.barIsLeft : root.hasSideAnchors
+        right: root.isVertical ? Appearance.barIsRight : root.hasSideAnchors
     }
 
-    // Outer screen margins for floating appearance
+    // Outer screen margins for floating appearance (docked edge sits flush at 0)
     margins {
-        left: Appearance.barMarginHorizontal
-        right: Appearance.barMarginHorizontal
-        top: 0
-        bottom: 0
+        left: (root.isVertical && Appearance.barIsLeft) ? 0 : Appearance.barMarginHorizontal
+        right: (root.isVertical && Appearance.barIsRight) ? 0 : Appearance.barMarginHorizontal
+        top: (root.isHorizontal && Appearance.barIsTop) ? 0 : Appearance.barMarginHorizontal
+        bottom: (root.isHorizontal && Appearance.barIsBottom) ? 0 : Appearance.barMarginHorizontal
     }
 
     // Unified background surface with Mornye Liquid Glass material (floating, wide, compact modes)
     GlassPanel {
         id: barBackground
 
+        readonly property int cornerRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
+
         visible: !root.isIslands
         anchors.fill: parent
-        topLeftRadius: 0
-        topRightRadius: 0
-        bottomLeftRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
-        bottomRightRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
+        topLeftRadius: (Appearance.barIsTop || Appearance.barIsLeft) ? 0 : cornerRadius
+        topRightRadius: (Appearance.barIsTop || Appearance.barIsRight) ? 0 : cornerRadius
+        bottomLeftRadius: (Appearance.barIsBottom || Appearance.barIsLeft) ? 0 : cornerRadius
+        bottomRightRadius: (Appearance.barIsBottom || Appearance.barIsRight) ? 0 : cornerRadius
         baseColor: Theme.barBackground
         accentTint: Theme.accent
     }
 
-    // Left island capsule (islands mode)
+    // Left/Top island capsule (islands mode)
     GlassPanel {
         id: leftIslandBg
 
         visible: root.isIslands
-        x: leftSection.x - 6
-        y: Math.round((parent.height - height) / 2)
-        width: leftSection.width + 12
-        height: Appearance.barButtonHeight + 4
+        x: root.isVertical ? 0 : (leftSection.x - 6)
+        y: root.isVertical ? (leftSection.y - 6) : Math.round((parent.height - height) / 2)
+        width: root.isVertical ? barContainer.width : (leftSection.width + 12)
+        height: root.isVertical ? (leftSection.height + 12) : (Appearance.barButtonHeight + 4)
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
         baseColor: Theme.barBackground
         accentTint: Theme.accent
@@ -139,24 +183,24 @@ PanelWindow {
         id: centerIslandBg
 
         visible: root.isIslands
-        x: clockWidget.x - 8
-        y: Math.round((parent.height - height) / 2)
-        width: clockWidget.width + 16
-        height: Appearance.barButtonHeight + 4
+        x: root.isVertical ? 0 : (clockWidget.x - 8)
+        y: root.isVertical ? (clockWidget.y - 8) : Math.round((parent.height - height) / 2)
+        width: root.isVertical ? barContainer.width : (clockWidget.width + 16)
+        height: root.isVertical ? (clockWidget.height + 16) : (Appearance.barButtonHeight + 4)
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
         baseColor: Theme.barBackground
         accentTint: Theme.accent
     }
 
-    // Right island capsule (islands mode)
+    // Right/Bottom island capsule (islands mode)
     GlassPanel {
         id: rightIslandBg
 
         visible: root.isIslands
-        x: rightSection.x - 6
-        y: Math.round((parent.height - height) / 2)
-        width: rightSection.width + 12
-        height: Appearance.barButtonHeight + 4
+        x: root.isVertical ? 0 : (rightSection.x - 6)
+        y: root.isVertical ? (rightSection.y - 6) : Math.round((parent.height - height) / 2)
+        width: root.isVertical ? barContainer.width : (rightSection.width + 12)
+        height: root.isVertical ? (rightSection.height + 12) : (Appearance.barButtonHeight + 4)
         radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
         baseColor: Theme.barBackground
         accentTint: Theme.accent
@@ -205,15 +249,17 @@ PanelWindow {
                 minimumPointCount: 2
                 maximumPointCount: 2
                 target: null
-                xAxis.enabled: false
+                xAxis.enabled: root.isVertical
+                yAxis.enabled: root.isHorizontal
                 onTranslationChanged: {
                     if (!root.clipboardDrawer || Date.now() < root.glideCooldownUntil)
                         return ;
 
-                    if (!root.clipboardDrawer.isOpen && translation.y >= 16) {
+                    var inward = Appearance.barIsTop ? translation.y : (Appearance.barIsBottom ? -translation.y : (Appearance.barIsLeft ? translation.x : -translation.x));
+                    if (!root.clipboardDrawer.isOpen && inward >= 16) {
                         root.glideCooldownUntil = Date.now() + 280;
                         root.clipboardDrawer.open();
-                    } else if (root.clipboardDrawer.isOpen && translation.y <= -16) {
+                    } else if (root.clipboardDrawer.isOpen && inward <= -16) {
                         root.glideCooldownUntil = Date.now() + 280;
                         root.clipboardDrawer.close();
                     }
@@ -222,14 +268,15 @@ PanelWindow {
 
         }
 
-        // Subtle pull-down indicator along bottom center of bar
+        // Subtle pull-inward indicator along inner edge of bar
         Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 1
-            height: 2
+            readonly property real activeLen: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? 32 : (barHover.hovered ? 24 : 12)
+
+            x: root.isVertical ? (Appearance.barIsLeft ? (parent.width - 3) : 1) : Math.round((parent.width - activeLen) / 2)
+            y: root.isHorizontal ? (Appearance.barIsTop ? (parent.height - 3) : 1) : Math.round((parent.height - activeLen) / 2)
+            width: root.isVertical ? 2 : activeLen
+            height: root.isVertical ? activeLen : 2
             radius: 1
-            width: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? 32 : (barHover.hovered ? 24 : 12)
             color: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? Theme.accent : Theme.withAlpha(Theme.bright_foreground, 0.55)
             opacity: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? 0.8 : (barHover.hovered ? 0.5 : 0)
             visible: !root.isIslands
@@ -250,6 +297,14 @@ PanelWindow {
 
             }
 
+            Behavior on height {
+                NumberAnimation {
+                    duration: 180
+                    easing.type: Easing.OutCubic
+                }
+
+            }
+
             Behavior on color {
                 ColorAnimation {
                     duration: 160
@@ -259,15 +314,19 @@ PanelWindow {
 
         }
 
-        // Left section: workspace switcher and media pill
-        Row {
+        // Left / Top section: workspace switcher and media pill
+        Grid {
             id: leftSection
 
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: Appearance.barSectionSpacing
+            columns: root.isVertical ? 1 : 4
+            columnSpacing: Appearance.barSectionSpacing
+            rowSpacing: Appearance.barSectionSpacing
+            horizontalItemAlignment: Grid.AlignHCenter
+            verticalItemAlignment: Grid.AlignVCenter
             width: implicitWidth
             height: implicitHeight
-            x: root.isCompact ? Math.round((barContainer.width - root.totalContentWidth) / 2) : Appearance.barMarginHorizontal
+            x: root.isVertical ? Math.round((barContainer.width - width) / 2) : (root.isCompact ? Math.round((barContainer.width - root.totalContentWidth) / 2) : Appearance.barMarginHorizontal)
+            y: root.isVertical ? (root.isCompact ? Math.round((barContainer.height - root.totalContentWidth) / 2) : Appearance.barMarginHorizontal) : Math.round((barContainer.height - height) / 2)
 
             WorkspacesWidget {
                 service: root.workspacesService
@@ -283,20 +342,24 @@ PanelWindow {
         ClockWidget {
             id: clockWidget
 
-            anchors.verticalCenter: parent.verticalCenter
-            x: root.isCompact ? (leftSection.x + leftSection.width + (Appearance.barSectionSpacing * 2)) : Math.round((barContainer.width - width) / 2)
+            x: root.isVertical ? Math.round((barContainer.width - width) / 2) : (root.isCompact ? (leftSection.x + leftSection.width + (Appearance.barSectionSpacing * 2)) : Math.round((barContainer.width - width) / 2))
+            y: root.isVertical ? (root.isCompact ? (leftSection.y + leftSection.height + (Appearance.barSectionSpacing * 2)) : Math.round((barContainer.height - height) / 2)) : Math.round((barContainer.height - height) / 2)
             powerService: root.powerService
         }
 
-        // Right section: hardware and status controls
-        Row {
+        // Right / Bottom section: hardware and status controls
+        Grid {
             id: rightSection
 
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: Appearance.barSpacing
+            columns: root.isVertical ? 1 : 8
+            columnSpacing: Appearance.barSpacing
+            rowSpacing: Appearance.barSpacing
+            horizontalItemAlignment: Grid.AlignHCenter
+            verticalItemAlignment: Grid.AlignVCenter
             width: implicitWidth
             height: implicitHeight
-            x: root.isCompact ? (clockWidget.x + clockWidget.width + (Appearance.barSectionSpacing * 2)) : Math.round(barContainer.width - width - Appearance.barMarginHorizontal)
+            x: root.isVertical ? Math.round((barContainer.width - width) / 2) : (root.isCompact ? (clockWidget.x + clockWidget.width + (Appearance.barSectionSpacing * 2)) : Math.round(barContainer.width - width - Appearance.barMarginHorizontal))
+            y: root.isVertical ? (root.isCompact ? (clockWidget.y + clockWidget.height + (Appearance.barSectionSpacing * 2)) : Math.round(barContainer.height - height - Appearance.barMarginHorizontal)) : Math.round((barContainer.height - height) / 2)
 
             BluetoothWidget {
                 id: bluetoothWidget
@@ -333,7 +396,7 @@ PanelWindow {
 
     }
 
-    // IPC handler for external popup toggles and bar mode control
+    // IPC handler for external popup toggles and bar mode/edge control
     IpcHandler {
         function toggle(name: string) : string {
             if (name === "clock")
@@ -363,6 +426,18 @@ PanelWindow {
 
         function getMode() : string {
             return root.barMode;
+        }
+
+        function setEdge(newEdge: string) : string {
+            var applied = root.applyEdge(newEdge, true);
+            if (applied)
+                return "ok: " + applied;
+
+            return "error: unknown edge";
+        }
+
+        function getEdge() : string {
+            return Appearance.barEdge;
         }
 
         function toggleBar() : string {
@@ -410,6 +485,19 @@ PanelWindow {
                 Appearance.barVisible = false;
             else if (raw === "visible" || raw === "true" || raw === "show" || raw === "on")
                 Appearance.barVisible = true;
+        }
+    }
+
+    barEdgeFile: FileView {
+        path: Quickshell.env("HOME") + "/.config/quickshell/bar-edge"
+        watchChanges: true
+        printErrors: false
+        onLoaded: {
+            var normalized = root.normalizeEdge(text());
+            if (normalized)
+                root.applyEdge(normalized, false);
+            else
+                root.applyEdge("top", false);
         }
     }
 

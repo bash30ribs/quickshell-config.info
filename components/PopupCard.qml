@@ -1,9 +1,9 @@
+import "../theme"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Wayland
 import Quickshell.Hyprland
-import "../theme"
+import Quickshell.Wayland
 
 PanelWindow {
     id: root
@@ -17,58 +17,71 @@ PanelWindow {
     property bool showDefaultHeader: true
     property double lastClearedTime: 0
     property int keyboardFocus: WlrKeyboardFocus.None
-
     property bool _animatingClose: false
     readonly property bool isCardActive: root.open && !root._animatingClose
+    default property alias content: bodyContainer.data
+    // Calculate card position relative to anchorItem across all 4 bar edges
+    readonly property point popupPos: {
+        var _ = root.open;
+        var _e = Appearance.barEdge;
+        return Appearance.computeBarPopupPos(root.anchorItem, root.contentWidth, root.contentHeight, Appearance.popupMargin, root.width, root.height);
+    }
+    readonly property real cardX: popupPos.x
+    readonly property real cardY: popupPos.y
 
     function toggle() {
         if (Date.now() - root.lastClearedTime < 250) {
-            root.closeAnimated()
-            return
+            root.closeAnimated();
+            return ;
         }
         if (root.open) {
-            root.closeAnimated()
+            root.closeAnimated();
         } else {
-            root._animatingClose = false
-            root.open = true
+            root._animatingClose = false;
+            root.open = true;
         }
     }
 
     function closeAnimated() {
-        if (!root.open || root._animatingClose) return
-        root._animatingClose = true
-        closeTimer.start()
-    }
+        if (!root.open || root._animatingClose)
+            return ;
 
-    Timer {
-        id: closeTimer
-        interval: 130
-        repeat: false
-        onTriggered: {
-            root._animatingClose = false
-            root.open = false
-        }
+        root._animatingClose = true;
+        closeTimer.start();
     }
-
-    default property alias content: bodyContainer.data
 
     visible: root.open
-    anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
-
     screen: (root.anchorItem && root.anchorItem.QsWindow && root.anchorItem.QsWindow.window) ? root.anchorItem.QsWindow.window.screen : null
-
     WlrLayershell.namespace: "quickshell-surface"
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.keyboardFocus: root.open ? root.keyboardFocus : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
 
+    Timer {
+        id: closeTimer
+
+        interval: 130
+        repeat: false
+        onTriggered: {
+            root._animatingClose = false;
+            root.open = false;
+        }
+    }
+
+    anchors {
+        top: true
+        bottom: true
+        left: true
+        right: true
+    }
+
     HyprlandFocusGrab {
         active: false
         windows: [root]
         onCleared: {
-            root.lastClearedTime = Date.now()
-            root.closeAnimated()
+            root.lastClearedTime = Date.now();
+            root.closeAnimated();
         }
     }
 
@@ -76,8 +89,8 @@ PanelWindow {
     MouseArea {
         anchors.fill: parent
         onClicked: {
-            root.lastClearedTime = Date.now()
-            root.closeAnimated()
+            root.lastClearedTime = Date.now();
+            root.closeAnimated();
         }
     }
 
@@ -86,52 +99,9 @@ PanelWindow {
         enabled: root.open
         sequence: "Escape"
         onActivated: {
-            root.lastClearedTime = Date.now()
-            root.closeAnimated()
+            root.lastClearedTime = Date.now();
+            root.closeAnimated();
         }
-    }
-
-    // Calculate card position relative to anchorItem across different bar modes
-    readonly property real cardX: {
-        var _ = root.open // reactively recompute whenever popup opens
-        if (!root.anchorItem) return Appearance.popupMargin
-
-        var win = (root.anchorItem.QsWindow && root.anchorItem.QsWindow.window) ? root.anchorItem.QsWindow.window : null
-        var screenW = (win && win.screen) ? win.screen.width : root.width
-
-        // Compute bar window X position on screen
-        var barScreenX = 0
-        if (win) {
-            if (win.anchors && win.anchors.left) {
-                barScreenX = (win.margins && win.margins.left) ? win.margins.left : 0
-            } else {
-                // Compositor horizontally centers unanchored windows (compact & wide modes)
-                barScreenX = Math.round((screenW - win.width) / 2)
-            }
-        }
-
-        var pt = root.anchorItem.mapToItem(null, 0, 0)
-        var itemCenterScreenX = barScreenX + pt.x + (root.anchorItem.width / 2)
-        var desiredX = itemCenterScreenX - (root.contentWidth / 2)
-
-        var margin = Appearance.popupMargin
-        var maxRight = screenW - root.contentWidth - margin
-        return Math.max(margin, Math.min(desiredX, maxRight))
-    }
-
-    readonly property real cardY: {
-        var _ = root.open // reactively recompute whenever popup opens
-        if (!root.anchorItem) return Appearance.barHeight + 6
-
-        var win = (root.anchorItem.QsWindow && root.anchorItem.QsWindow.window) ? root.anchorItem.QsWindow.window : null
-        var barScreenY = 0
-        if (win && win.margins && win.margins.top) {
-            barScreenY = win.margins.top
-        }
-
-        var pt = root.anchorItem.mapToItem(null, 0, 0)
-        var itemBottomScreenY = barScreenY + pt.y + root.anchorItem.height
-        return Math.max(Appearance.barHeight + 6, itemBottomScreenY + 6)
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -140,47 +110,31 @@ PanelWindow {
     // ─────────────────────────────────────────────────────────────────────────
     GlassPanel {
         id: cardRect
-        x: Math.round(root.cardX)
-        y: Math.round(root.cardY) + (root.isCardActive ? 0 : -12)
+
+        readonly property real slideOffset: root.isCardActive ? 0 : 12
+
+        x: Math.round(root.cardX) + (Appearance.barIsLeft ? -slideOffset : (Appearance.barIsRight ? slideOffset : 0))
+        y: Math.round(root.cardY) + (Appearance.barIsBottom ? slideOffset : (Appearance.barIsTop ? -slideOffset : 0))
         width: root.contentWidth
         height: root.contentHeight
         radius: Appearance.popupRadius > 0 ? Appearance.popupRadius : 14
-
-        opacity: root.isCardActive ? 1.0 : 0.0
-        scale: root.isCardActive ? 1.0 : 0.85
-        transformOrigin: Item.Top
-
-        Behavior on y {
-            NumberAnimation {
-                duration: root.isCardActive ? 190 : 120
-                easing.type: root.isCardActive ? Easing.OutBack : Easing.InCubic
-                easing.overshoot: 1.15
-            }
-        }
-        Behavior on opacity {
-            NumberAnimation {
-                duration: root.isCardActive ? 160 : 110
-                easing.type: root.isCardActive ? Easing.OutQuad : Easing.InQuad
-            }
-        }
-        Behavior on scale {
-            NumberAnimation {
-                duration: root.isCardActive ? 190 : 120
-                easing.type: root.isCardActive ? Easing.OutBack : Easing.InCubic
-                easing.overshoot: root.isCardActive ? 1.32 : 1.0
-            }
-        }
+        opacity: root.isCardActive ? 1 : 0
+        scale: root.isCardActive ? 1 : 0.85
+        transformOrigin: Appearance.barIsBottom ? Item.Bottom : (Appearance.barIsLeft ? Item.Left : (Appearance.barIsRight ? Item.Right : Item.Top))
 
         // Prevent clicks inside the card from closing the popup
         MouseArea {
             anchors.fill: parent
             propagateComposedEvents: true
-            onClicked: function(mouse) { mouse.accepted = false }
+            onClicked: function(mouse) {
+                mouse.accepted = false;
+            }
         }
 
         // Card Header (Optional, default true)
         Item {
             id: headerRect
+
             visible: root.showDefaultHeader
             anchors.top: parent.top
             anchors.left: parent.left
@@ -219,17 +173,57 @@ PanelWindow {
                     color: Theme.foreground
                     anchors.verticalCenter: parent.verticalCenter
                 }
+
             }
+
         }
 
         // Body Content Container
         Item {
             id: bodyContainer
+
             anchors.top: root.showDefaultHeader ? headerRect.bottom : parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             anchors.margins: root.showDefaultHeader ? Appearance.paddingMedium : Appearance.popupPadding
         }
+
+        Behavior on x {
+            NumberAnimation {
+                duration: root.isCardActive ? 190 : 120
+                easing.type: root.isCardActive ? Easing.OutBack : Easing.InCubic
+                easing.overshoot: 1.15
+            }
+
+        }
+
+        Behavior on y {
+            NumberAnimation {
+                duration: root.isCardActive ? 190 : 120
+                easing.type: root.isCardActive ? Easing.OutBack : Easing.InCubic
+                easing.overshoot: 1.15
+            }
+
+        }
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: root.isCardActive ? 160 : 110
+                easing.type: root.isCardActive ? Easing.OutQuad : Easing.InQuad
+            }
+
+        }
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: root.isCardActive ? 190 : 120
+                easing.type: root.isCardActive ? Easing.OutBack : Easing.InCubic
+                easing.overshoot: root.isCardActive ? 1.32 : 1
+            }
+
+        }
+
     }
+
 }

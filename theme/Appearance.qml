@@ -9,12 +9,21 @@ QtObject {
 
     // Bar dimensions and layout
     property int barHeight: Math.max(26, Math.round(Fonts.baseTextSize * 2.5))
+    property int barVerticalWidth: Math.max(40, Math.round(Fonts.baseTextSize * 3.5))
     property int barRadius: 16
     property int barMarginHorizontal: 12
     property int barSpacing: 4
     property int barSectionSpacing: 8
     property int barButtonHeight: barHeight - 4
     property bool barVisible: true
+    property string barEdge: "top" // "top" | "bottom" | "left" | "right"
+    readonly property bool barIsVertical: root.barEdge === "left" || root.barEdge === "right"
+    readonly property bool barIsHorizontal: !root.barIsVertical
+    readonly property bool barIsTop: root.barEdge === "top"
+    readonly property bool barIsBottom: root.barEdge === "bottom"
+    readonly property bool barIsLeft: root.barEdge === "left"
+    readonly property bool barIsRight: root.barEdge === "right"
+    readonly property int barThickness: root.barIsVertical ? root.barVerticalWidth : root.barHeight
     // =========================================================================
     // Apple macOS Liquid Glass Optical Settings (qt-liquid-glass Specification)
     // =========================================================================
@@ -155,7 +164,7 @@ QtObject {
     // =========================================================================
     property int osdHeight: 48
     property int osdRadius: 24
-    property int osdBottomMargin: 64
+    property int osdBottomMargin: (root.barVisible && root.barIsBottom) ? (root.barHeight + 24) : 64
     property int osdSpacing: 14
     property int osdTrackWidth: 140
     property int osdTrackHeight: 6
@@ -166,7 +175,7 @@ QtObject {
     property int notificationWidth: 380
     property int notificationRadius: root.radiusLarge
     property int notificationRightMargin: 16
-    property int notificationTopMargin: (root.barVisible ? root.barHeight : 0) + 12
+    property int notificationTopMargin: (root.barVisible && root.barIsTop ? root.barHeight : 0) + 12
     property int notificationSpacing: 8
     property int notificationUrgencyStripWidth: 4
     // =========================================================================
@@ -226,4 +235,70 @@ QtObject {
     property int animDurationMedium: 200
     property int animDurationSlow: 250
     property int animDurationSpring: 320
+
+    function computeBarScreenOrigin(anchorItem, fallbackW, fallbackH) {
+        if (!anchorItem)
+            return Qt.point(0, 0);
+
+        var win = (anchorItem.QsWindow && anchorItem.QsWindow.window) ? anchorItem.QsWindow.window : null;
+        if (!win)
+            return Qt.point(0, 0);
+
+        var screenW = win.screen ? win.screen.width : fallbackW;
+        var screenH = win.screen ? win.screen.height : fallbackH;
+        var bx = 0;
+        var by = 0;
+        if (win.anchors && win.anchors.left && win.anchors.right)
+            bx = (win.margins && win.margins.left) ? win.margins.left : 0;
+        else if (win.anchors && win.anchors.left)
+            bx = (win.margins && win.margins.left) ? win.margins.left : 0;
+        else if (win.anchors && win.anchors.right)
+            bx = screenW - win.width - ((win.margins && win.margins.right) ? win.margins.right : 0);
+        else
+            bx = Math.round((screenW - win.width) / 2);
+        if (win.anchors && win.anchors.top && win.anchors.bottom)
+            by = (win.margins && win.margins.top) ? win.margins.top : 0;
+        else if (win.anchors && win.anchors.top)
+            by = (win.margins && win.margins.top) ? win.margins.top : 0;
+        else if (win.anchors && win.anchors.bottom)
+            by = screenH - win.height - ((win.margins && win.margins.bottom) ? win.margins.bottom : 0);
+        else
+            by = Math.round((screenH - win.height) / 2);
+        return Qt.point(bx, by);
+    }
+
+    function computeBarPopupPos(anchorItem, contentW, contentH, margin, fallbackW, fallbackH) {
+        var gap = 6;
+        if (!anchorItem)
+            return Qt.point(margin, root.barHeight + gap);
+
+        var win = (anchorItem.QsWindow && anchorItem.QsWindow.window) ? anchorItem.QsWindow.window : null;
+        var screenW = (win && win.screen) ? win.screen.width : fallbackW;
+        var screenH = (win && win.screen) ? win.screen.height : fallbackH;
+        var origin = root.computeBarScreenOrigin(anchorItem, fallbackW, fallbackH);
+        var pt = anchorItem.mapToItem(null, 0, 0);
+        var px = margin;
+        var py = root.barHeight + gap;
+        if (root.barIsLeft) {
+            var barRight = origin.x + (win ? win.width : root.barThickness);
+            px = Math.min(screenW - contentW - margin, barRight + gap);
+            var cyL = origin.y + pt.y + (anchorItem.height / 2);
+            py = Math.max(margin, Math.min(cyL - (contentH / 2), screenH - contentH - margin));
+        } else if (root.barIsRight) {
+            px = Math.max(margin, origin.x - contentW - gap);
+            var cyR = origin.y + pt.y + (anchorItem.height / 2);
+            py = Math.max(margin, Math.min(cyR - (contentH / 2), screenH - contentH - margin));
+        } else if (root.barIsBottom) {
+            var cxB = origin.x + pt.x + (anchorItem.width / 2);
+            px = Math.max(margin, Math.min(cxB - (contentW / 2), screenW - contentW - margin));
+            py = Math.max(margin, origin.y - contentH - gap);
+        } else {
+            var cxT = origin.x + pt.x + (anchorItem.width / 2);
+            px = Math.max(margin, Math.min(cxT - (contentW / 2), screenW - contentW - margin));
+            var barBottom = origin.y + (win ? win.height : root.barHeight);
+            py = Math.max(root.barHeight + gap, barBottom + gap);
+        }
+        return Qt.point(px, py);
+    }
+
 }

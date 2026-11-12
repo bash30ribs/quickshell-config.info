@@ -148,38 +148,13 @@ PanelWindow {
     property real dragProgress: 0
     // Bouncy morph transition (State A -> State B)
     property real animProgress: 0
-    readonly property real cardX: {
+    readonly property point popupPos: {
         var _ = root.open;
-        if (!root.anchorItem)
-            return 10;
-
-        var win = (root.anchorItem.QsWindow && root.anchorItem.QsWindow.window) ? root.anchorItem.QsWindow.window : null;
-        var screenW = (win && win.screen) ? win.screen.width : root.width;
-        var barScreenX = 0;
-        if (win) {
-            if (win.anchors && win.anchors.left)
-                barScreenX = (win.margins && win.margins.left) ? win.margins.left : 0;
-            else
-                barScreenX = Math.round((screenW - win.width) / 2);
-        }
-        var pt = root.anchorItem.mapToItem(null, 0, 0);
-        var margin = 10;
-        var itemScreenX = barScreenX + pt.x;
-        return Math.max(margin, Math.min(itemScreenX, screenW - root.contentWidth - margin));
+        var _e = Appearance.barEdge;
+        return Appearance.computeBarPopupPos(root.anchorItem, root.contentWidth, root.contentHeight, 10, root.width, root.height);
     }
-    readonly property real cardY: {
-        var _ = root.open;
-        if (!root.anchorItem)
-            return Theme.barHeight + 6;
-
-        var win = (root.anchorItem.QsWindow && root.anchorItem.QsWindow.window) ? root.anchorItem.QsWindow.window : null;
-        var barScreenY = 0;
-        if (win && win.margins && win.margins.top)
-            barScreenY = win.margins.top;
-
-        var pt = root.anchorItem.mapToItem(null, 0, 0);
-        return Math.max(Theme.barHeight + 6, barScreenY + pt.y + root.anchorItem.height + 6);
-    }
+    readonly property real cardX: popupPos.x
+    readonly property real cardY: popupPos.y
 
     function toggle() {
         if (Date.now() - root.lastClearedTime < 250) {
@@ -292,7 +267,7 @@ PanelWindow {
         height: root.contentHeight
         radius: Appearance.mediaIslandRadius
         baseColor: Theme.barBackground
-        transformOrigin: Item.TopLeft
+        transformOrigin: Appearance.barIsBottom ? Item.BottomLeft : (Appearance.barIsRight ? Item.TopRight : Item.TopLeft)
         scale: 0.32 + 0.68 * root.animProgress
         opacity: Math.min(1, root.animProgress * 1.8)
 
