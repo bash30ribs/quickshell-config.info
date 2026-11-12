@@ -61,12 +61,22 @@ PanelWindow {
     Timer {
         id: closeTimer
 
-        interval: 130
+        interval: 105
         repeat: false
         onTriggered: {
             root._animatingClose = false;
             root.open = false;
         }
+    }
+
+    Connections {
+        function onCloseBarPopups() {
+            if (root.open)
+                root.closeAnimated();
+
+        }
+
+        target: Appearance
     }
 
     anchors {
@@ -111,15 +121,15 @@ PanelWindow {
     GlassPanel {
         id: cardRect
 
-        readonly property real slideOffset: root.isCardActive ? 0 : 12
+        readonly property real slideOffset: root.isCardActive ? 0 : 16
 
-        x: Math.round(root.cardX) + (Appearance.barIsLeft ? -slideOffset : (Appearance.barIsRight ? slideOffset : 0))
-        y: Math.round(root.cardY) + (Appearance.barIsBottom ? slideOffset : (Appearance.barIsTop ? -slideOffset : 0))
+        x: Math.round(root.cardX)
+        y: Math.round(root.cardY)
         width: root.contentWidth
         height: root.contentHeight
         radius: Appearance.popupRadius > 0 ? Appearance.popupRadius : 14
         opacity: root.isCardActive ? 1 : 0
-        scale: root.isCardActive ? 1 : 0.85
+        scale: root.isCardActive ? 1 : 0.9
         transformOrigin: Appearance.barIsBottom ? Item.Bottom : (Appearance.barIsLeft ? Item.Left : (Appearance.barIsRight ? Item.Right : Item.Top))
 
         // Prevent clicks inside the card from closing the popup
@@ -189,37 +199,41 @@ PanelWindow {
             anchors.margins: root.showDefaultHeader ? Appearance.paddingMedium : Appearance.popupPadding
         }
 
-        Behavior on x {
-            NumberAnimation {
-                duration: root.isCardActive ? 190 : 120
-                easing.type: root.isCardActive ? Easing.OutBack : Easing.InCubic
-                easing.overshoot: 1.15
+        transform: Translate {
+            x: Appearance.barIsLeft ? -cardRect.slideOffset : (Appearance.barIsRight ? cardRect.slideOffset : 0)
+            y: Appearance.barIsTop ? -cardRect.slideOffset : (Appearance.barIsBottom ? cardRect.slideOffset : 0)
+
+            Behavior on x {
+                NumberAnimation {
+                    duration: root.isCardActive ? 160 : 100
+                    easing.type: root.isCardActive ? Easing.OutQuart : Easing.InCubic
+                }
+
             }
 
-        }
+            Behavior on y {
+                NumberAnimation {
+                    duration: root.isCardActive ? 160 : 100
+                    easing.type: root.isCardActive ? Easing.OutQuart : Easing.InCubic
+                }
 
-        Behavior on y {
-            NumberAnimation {
-                duration: root.isCardActive ? 190 : 120
-                easing.type: root.isCardActive ? Easing.OutBack : Easing.InCubic
-                easing.overshoot: 1.15
             }
 
         }
 
         Behavior on opacity {
             NumberAnimation {
-                duration: root.isCardActive ? 160 : 110
-                easing.type: root.isCardActive ? Easing.OutQuad : Easing.InQuad
+                duration: root.isCardActive ? 130 : 95
+                easing.type: root.isCardActive ? Easing.OutQuad : Easing.InCubic
             }
 
         }
 
         Behavior on scale {
             NumberAnimation {
-                duration: root.isCardActive ? 190 : 120
+                duration: root.isCardActive ? 165 : 100
                 easing.type: root.isCardActive ? Easing.OutBack : Easing.InCubic
-                easing.overshoot: root.isCardActive ? 1.32 : 1
+                easing.overshoot: root.isCardActive ? 1.16 : 1
             }
 
         }

@@ -9,24 +9,20 @@ Item {
     id: root
 
     property MediaController controller
-
-    controller: MediaController {
-        id: defaultCtrl
-    }
-
     property AudioService audioService: null
     property alias popup: mediaPopup
     readonly property bool hasMedia: controller ? controller.hasMedia : false
     readonly property string trackTitle: root.controller ? (root.controller.title || root.controller.artist || "Music") : ""
     readonly property bool isVertical: Appearance.barIsVertical
 
-    implicitHeight: root.isVertical ? (hasMedia ? 64 : 0) : Appearance.mediaPillHeight
+    implicitHeight: root.isVertical ? (hasMedia ? 54 : 0) : Appearance.mediaPillHeight
     implicitWidth: root.isVertical ? (hasMedia ? Math.max(Appearance.mediaPillHeight, Appearance.barThickness - 8) : 0) : (hasMedia ? Math.min(220, Math.max(130, titleMeasure.implicitWidth + 82)) : 0)
     height: implicitHeight
     width: implicitWidth
     visible: (width > 0 && height > 0) || opacity > 0
     opacity: hasMedia ? 1 : 0
     scale: hasMedia ? 1 : 0.85
+
     // Hidden text measuring component for fluid pill expansion
     Text {
         id: titleMeasure
@@ -59,12 +55,8 @@ Item {
 
             width: 18
             height: 18
-            anchors.left: root.isVertical ? undefined : parent.left
-            anchors.leftMargin: root.isVertical ? 0 : 6
-            anchors.top: root.isVertical ? parent.top : undefined
-            anchors.topMargin: root.isVertical ? 8 : 0
-            anchors.verticalCenter: root.isVertical ? undefined : parent.verticalCenter
-            anchors.horizontalCenter: root.isVertical ? parent.horizontalCenter : undefined
+            x: root.isVertical ? Math.round((parent.width - width) / 2) : 6
+            y: root.isVertical ? 6 : Math.round((parent.height - height) / 2)
 
             Rectangle {
                 id: miniArtBg
@@ -131,12 +123,8 @@ Item {
         Row {
             id: visualizerRow
 
-            anchors.right: root.isVertical ? undefined : parent.right
-            anchors.rightMargin: root.isVertical ? 0 : 8
-            anchors.verticalCenter: root.isVertical ? undefined : parent.verticalCenter
-            anchors.bottom: root.isVertical ? parent.bottom : undefined
-            anchors.bottomMargin: root.isVertical ? 8 : 0
-            anchors.horizontalCenter: root.isVertical ? parent.horizontalCenter : undefined
+            x: root.isVertical ? Math.round((parent.width - width) / 2) : Math.round(parent.width - width - 8)
+            y: root.isVertical ? Math.round(parent.height - height - 6) : Math.round((parent.height - height) / 2)
             spacing: root.isVertical ? 2 : 2.5
             height: 16
 
@@ -429,10 +417,8 @@ Item {
             id: titleText
 
             visible: !root.isVertical
-            anchors.left: miniArtBox.right
-            anchors.leftMargin: 7
-            anchors.right: visualizerRow.left
-            anchors.rightMargin: 7
+            x: miniArtBox.x + miniArtBox.width + 7
+            width: Math.max(0, visualizerRow.x - x - 7)
             anchors.verticalCenter: parent.verticalCenter
             text: root.trackTitle
             font.family: Fonts.uiFont
@@ -517,17 +503,25 @@ Item {
         audioService: root.audioService
     }
 
+    controller: MediaController {
+        id: defaultCtrl
+    }
+
     Behavior on implicitWidth {
+        enabled: !Appearance.barTransitioning
+
         NumberAnimation {
-            duration: 250
+            duration: 220
             easing.type: Easing.OutCubic
         }
 
     }
 
     Behavior on implicitHeight {
+        enabled: !Appearance.barTransitioning
+
         NumberAnimation {
-            duration: 250
+            duration: 220
             easing.type: Easing.OutCubic
         }
 

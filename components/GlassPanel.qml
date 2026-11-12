@@ -16,6 +16,8 @@ Item {
     //       "clear"   (High-clarity crystal refraction),
     //       "flat"    (High-performance solid fallback)
     property string mode: Appearance.glassMode || "liquid"
+    // Screen-facing / crest light edge ("top", "bottom", "left", "right")
+    property string lightEdge: "top"
     // Geometry & Squircles
     property int radius: Appearance.popupRadius > 0 ? Appearance.popupRadius : 14
     property int topLeftRadius: -1
@@ -26,7 +28,8 @@ Item {
     readonly property int effectiveTopRightRadius: topRightRadius >= 0 ? topRightRadius : radius
     readonly property int effectiveBottomLeftRadius: bottomLeftRadius >= 0 ? bottomLeftRadius : radius
     readonly property int effectiveBottomRightRadius: bottomRightRadius >= 0 ? bottomRightRadius : radius
-    readonly property bool isPill: root.effectiveTopLeftRadius >= (root.height * 0.42)
+    readonly property bool isPill: (root.lightEdge === "left" || root.lightEdge === "right") ? (Math.max(root.effectiveTopLeftRadius, root.effectiveTopRightRadius, root.effectiveBottomLeftRadius, root.effectiveBottomRightRadius) >= (root.width * 0.42)) : (root.effectiveTopLeftRadius >= (root.height * 0.42))
+    readonly property bool isHorizontalLight: root.lightEdge === "top" || root.lightEdge === "bottom"
     // Optical Parameters (exposed for live tuning)
     property real clarity: Appearance.glassClarity !== undefined ? Appearance.glassClarity : 0.75
     property real rimIllumination: Appearance.glassRimIllumination !== undefined ? Appearance.glassRimIllumination : 0.5
@@ -163,38 +166,41 @@ Item {
             }
 
             // ─────────────────────────────────────────────────────────────────
-            // Curved Top Specular Diffuse Sheen (follows corner curvature seamlessly)
+            // Curved Edge Specular Diffuse Sheen (follows active lightEdge)
             // ─────────────────────────────────────────────────────────────────
             Rectangle {
                 id: specularSheen
 
+                readonly property real bandSize: root.isHorizontalLight ? Math.max(10, Math.min(26, parent.height * 0.26)) : Math.max(8, Math.min(18, parent.width * 0.32))
+                readonly property bool reverseStops: root.lightEdge === "bottom" || root.lightEdge === "right"
+
                 visible: !root.isPill && (root.mode === "liquid" || root.mode === "clear")
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.margins: 1
-                anchors.bottomMargin: 0
+                x: root.isHorizontalLight ? 1 : (root.lightEdge === "left" ? 1 : Math.max(1, parent.width - 1 - bandSize))
+                y: root.isHorizontalLight ? (root.lightEdge === "top" ? 1 : Math.max(1, parent.height - 1 - bandSize)) : 1
+                width: root.isHorizontalLight ? Math.max(0, parent.width - 2) : bandSize
+                height: root.isHorizontalLight ? bandSize : Math.max(0, parent.height - 2)
                 topLeftRadius: Math.max(0, root.effectiveTopLeftRadius - 1)
                 topRightRadius: Math.max(0, root.effectiveTopRightRadius - 1)
-                bottomLeftRadius: 0
-                bottomRightRadius: 0
-                height: Math.max(10, Math.min(26, parent.height * 0.26))
+                bottomLeftRadius: Math.max(0, root.effectiveBottomLeftRadius - 1)
+                bottomRightRadius: Math.max(0, root.effectiveBottomRightRadius - 1)
                 antialiasing: true
 
                 gradient: Gradient {
+                    orientation: root.isHorizontalLight ? Gradient.Vertical : Gradient.Horizontal
+
                     GradientStop {
                         position: 0
-                        color: Qt.rgba(1, 1, 1, 0.045 * root.specularIntensity)
+                        color: specularSheen.reverseStops ? "transparent" : Qt.rgba(1, 1, 1, 0.045 * root.specularIntensity)
                     }
 
                     GradientStop {
-                        position: 0.45
+                        position: 0.48
                         color: Qt.rgba(1, 1, 1, 0.015 * root.specularIntensity)
                     }
 
                     GradientStop {
                         position: 1
-                        color: "transparent"
+                        color: specularSheen.reverseStops ? Qt.rgba(1, 1, 1, 0.045 * root.specularIntensity) : "transparent"
                     }
 
                 }
@@ -202,23 +208,23 @@ Item {
             }
 
             // ─────────────────────────────────────────────────────────────────
-            // Feathered Top Rim Catch (merges invisibly into corner arcs)
+            // Feathered Edge Rim Catch (merges invisibly into corner arcs)
             // ─────────────────────────────────────────────────────────────────
             Rectangle {
                 id: illuminatedTopEdge
 
+                readonly property real insetA: root.isHorizontalLight ? Math.max(2, Math.round((root.lightEdge === "top" ? root.effectiveTopLeftRadius : root.effectiveBottomLeftRadius) * 0.4)) : Math.max(2, Math.round((root.lightEdge === "left" ? root.effectiveTopLeftRadius : root.effectiveTopRightRadius) * 0.4))
+                readonly property real insetB: root.isHorizontalLight ? Math.max(2, Math.round((root.lightEdge === "top" ? root.effectiveTopRightRadius : root.effectiveBottomRightRadius) * 0.4)) : Math.max(2, Math.round((root.lightEdge === "left" ? root.effectiveBottomLeftRadius : root.effectiveBottomRightRadius) * 0.4))
+
                 visible: !root.isPill && (root.mode === "liquid" || root.mode === "clear")
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.topMargin: 1
-                anchors.leftMargin: Math.max(2, Math.round(root.effectiveTopLeftRadius * 0.4))
-                anchors.rightMargin: Math.max(2, Math.round(root.effectiveTopRightRadius * 0.4))
-                height: 1
+                x: root.isHorizontalLight ? insetA : (root.lightEdge === "left" ? 1 : Math.max(1, parent.width - 2))
+                y: root.isHorizontalLight ? (root.lightEdge === "top" ? 1 : Math.max(1, parent.height - 2)) : insetA
+                width: root.isHorizontalLight ? Math.max(0, parent.width - insetA - insetB) : 1
+                height: root.isHorizontalLight ? 1 : Math.max(0, parent.height - insetA - insetB)
                 antialiasing: true
 
                 gradient: Gradient {
-                    orientation: Gradient.Horizontal
+                    orientation: root.isHorizontalLight ? Gradient.Horizontal : Gradient.Vertical
 
                     GradientStop {
                         position: 0
@@ -226,13 +232,13 @@ Item {
                     }
 
                     GradientStop {
-                        position: 0.18
-                        color: Qt.rgba(1, 1, 1, 0.14 * root.rimIllumination)
+                        position: 0.16
+                        color: Qt.rgba(1, 1, 1, 0.15 * root.rimIllumination)
                     }
 
                     GradientStop {
-                        position: 0.82
-                        color: Qt.rgba(1, 1, 1, 0.14 * root.rimIllumination)
+                        position: 0.84
+                        color: Qt.rgba(1, 1, 1, 0.15 * root.rimIllumination)
                     }
 
                     GradientStop {

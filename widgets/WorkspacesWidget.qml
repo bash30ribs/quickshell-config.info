@@ -54,7 +54,7 @@ Item {
                 }
                 readonly property bool hasCustomInactiveIcon: resolvedInactiveIcon.length > 0
 
-                height: root.isVertical ? (isActive ? Math.max(24, Appearance.workspacesActiveCapsuleWidth - 10) : Math.max(16, Appearance.workspacesCapsuleWidth - 4)) : root.capsuleThickness
+                height: root.isVertical ? (isActive ? Math.max(24, Appearance.workspacesActiveCapsuleWidth - 14) : Math.max(16, Appearance.workspacesCapsuleWidth - 6)) : root.capsuleThickness
                 width: root.isVertical ? root.capsuleThickness : (isActive ? Appearance.workspacesActiveCapsuleWidth : Appearance.workspacesCapsuleWidth)
                 radius: Math.min(width, height) / 2
                 antialiasing: true
@@ -143,6 +143,8 @@ Item {
                 }
 
                 Behavior on width {
+                    enabled: !Appearance.barTransitioning
+
                     NumberAnimation {
                         duration: Appearance.animDurationNormal
                         easing.type: Easing.OutCubic
@@ -151,6 +153,8 @@ Item {
                 }
 
                 Behavior on height {
+                    enabled: !Appearance.barTransitioning
+
                     NumberAnimation {
                         duration: Appearance.animDurationNormal
                         easing.type: Easing.OutCubic

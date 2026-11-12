@@ -300,6 +300,14 @@ Item {
 
             }
 
+            Behavior on anchors.bottomMargin {
+                NumberAnimation {
+                    duration: 180
+                    easing.type: Easing.OutCubic
+                }
+
+            }
+
             transform: Translate {
                 y: (1 - root.animProgress) * 20
             }

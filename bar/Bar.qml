@@ -38,6 +38,14 @@ PanelWindow {
     readonly property real screenWidth: root.screen ? root.screen.width : 1920
     readonly property real screenHeight: root.screen ? root.screen.height : 1200
     readonly property real totalContentWidth: root.isVertical ? (leftSection.height + clockWidget.height + rightSection.height + (Appearance.barSectionSpacing * 4)) : (leftSection.width + clockWidget.width + rightSection.width + (Appearance.barSectionSpacing * 4))
+    // Synchronized 2-phase edge-drop & show/hide choreography state
+    property string pendingEdge: Appearance.barEdge
+    property real edgeProgress: 1
+    property real showProgress: Appearance.barVisible ? 1 : 0
+    property bool isVisibleSurface: Appearance.barVisible
+    property bool _edgeInitialized: false
+    readonly property bool isEdgeTransitioning: edgeRetractAnim.running || edgeSwapTimer.running || edgeAppearDelayTimer.running || edgeDropAnim.running || Appearance.barTransitioning
+    readonly property string barLightEdge: Appearance.barIsLeft ? "right" : (Appearance.barIsRight ? "left" : "top")
 
     function normalizeEdge(rawEdge) {
         var e = String(rawEdge || "").trim().toLowerCase();
@@ -61,14 +69,46 @@ PanelWindow {
         if (!normalized)
             return "";
 
-        if (root.clipboardDrawer && root.clipboardDrawer.isOpen)
-            root.clipboardDrawer.close();
-
-        Appearance.barEdge = normalized;
         if (persist) {
             var cmd = "mkdir -p \"$HOME/.config/quickshell\" && printf '%s\\n' \"" + normalized + "\" > \"$HOME/.config/quickshell/bar-edge\"";
             Quickshell.execDetached(["sh", "-c", cmd]);
         }
+        if (!root._edgeInitialized) {
+            root._edgeInitialized = true;
+            root.pendingEdge = normalized;
+            if (Appearance.barEdge !== normalized) {
+                Appearance.barTransitioning = true;
+                Appearance.barEdge = normalized;
+            }
+            if (Appearance.barVisible) {
+                root.edgeProgress = 0;
+                edgeAppearDelayTimer.restart();
+            } else {
+                Appearance.barTransitioning = false;
+            }
+            return normalized;
+        }
+        var activeTarget = (edgeRetractAnim.running || edgeSwapTimer.running || edgeAppearDelayTimer.running) ? root.pendingEdge : Appearance.barEdge;
+        if (normalized === activeTarget)
+            return normalized;
+
+        if (root.clipboardDrawer && root.clipboardDrawer.isOpen)
+            root.clipboardDrawer.close();
+
+        Appearance.closeBarPopups();
+        root.pendingEdge = normalized;
+        if (!Appearance.barVisible) {
+            Appearance.barTransitioning = true;
+            Appearance.barEdge = normalized;
+            Appearance.barTransitioning = false;
+            return normalized;
+        }
+        if (edgeRetractAnim.running || edgeSwapTimer.running || edgeAppearDelayTimer.running)
+            return normalized;
+
+        edgeDropAnim.stop();
+        Appearance.barTransitioning = true;
+        edgeRetractAnim.restart();
         return normalized;
     }
 
@@ -123,7 +163,7 @@ PanelWindow {
         event.accepted = true;
     }
 
-    visible: Appearance.barVisible
+    visible: root.isVisibleSurface
     implicitHeight: root.isHorizontal ? Appearance.barHeight : (root.isCompact ? Math.round(root.totalContentWidth + (Appearance.barMarginHorizontal * 2)) : (root.isWide ? Math.round(root.screenHeight * 0.72) : Math.round(root.screenHeight - (Appearance.barMarginHorizontal * 2))))
     implicitWidth: root.isVertical ? Appearance.barThickness : (root.isCompact ? Math.round(root.totalContentWidth + (Appearance.barMarginHorizontal * 2)) : (root.isWide ? Math.round(root.screenWidth * 0.72) : Math.round(root.screenWidth - (Appearance.barMarginHorizontal * 2))))
     color: "transparent"
@@ -148,62 +188,98 @@ PanelWindow {
         bottom: (root.isHorizontal && Appearance.barIsBottom) ? 0 : Appearance.barMarginHorizontal
     }
 
-    // Unified background surface with Mornye Liquid Glass material (floating, wide, compact modes)
-    GlassPanel {
-        id: barBackground
+    Connections {
+        function onBarVisibleChanged() {
+            if (Appearance.barVisible) {
+                root.isVisibleSurface = true;
+                hideAnim.stop();
+                showAnim.restart();
+            } else {
+                showAnim.stop();
+                hideAnim.restart();
+            }
+        }
 
-        readonly property int cornerRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
-
-        visible: !root.isIslands
-        anchors.fill: parent
-        topLeftRadius: (Appearance.barIsTop || Appearance.barIsLeft) ? 0 : cornerRadius
-        topRightRadius: (Appearance.barIsTop || Appearance.barIsRight) ? 0 : cornerRadius
-        bottomLeftRadius: (Appearance.barIsBottom || Appearance.barIsLeft) ? 0 : cornerRadius
-        bottomRightRadius: (Appearance.barIsBottom || Appearance.barIsRight) ? 0 : cornerRadius
-        baseColor: Theme.barBackground
-        accentTint: Theme.accent
+        target: Appearance
     }
 
-    // Left/Top island capsule (islands mode)
-    GlassPanel {
-        id: leftIslandBg
+    NumberAnimation {
+        id: edgeRetractAnim
 
-        visible: root.isIslands
-        x: root.isVertical ? 0 : (leftSection.x - 6)
-        y: root.isVertical ? (leftSection.y - 6) : Math.round((parent.height - height) / 2)
-        width: root.isVertical ? barContainer.width : (leftSection.width + 12)
-        height: root.isVertical ? (leftSection.height + 12) : (Appearance.barButtonHeight + 4)
-        radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
-        baseColor: Theme.barBackground
-        accentTint: Theme.accent
+        target: root
+        property: "edgeProgress"
+        from: root.edgeProgress
+        to: 0
+        duration: Math.max(35, Math.round(75 * root.edgeProgress))
+        easing.type: Easing.InCubic
+        onFinished: {
+            if (root.edgeProgress <= 0.001)
+                edgeSwapTimer.restart();
+
+        }
     }
 
-    // Center island capsule (islands mode)
-    GlassPanel {
-        id: centerIslandBg
+    Timer {
+        id: edgeSwapTimer
 
-        visible: root.isIslands
-        x: root.isVertical ? 0 : (clockWidget.x - 8)
-        y: root.isVertical ? (clockWidget.y - 8) : Math.round((parent.height - height) / 2)
-        width: root.isVertical ? barContainer.width : (clockWidget.width + 16)
-        height: root.isVertical ? (clockWidget.height + 16) : (Appearance.barButtonHeight + 4)
-        radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
-        baseColor: Theme.barBackground
-        accentTint: Theme.accent
+        interval: 16
+        repeat: false
+        onTriggered: {
+            Appearance.barEdge = root.pendingEdge;
+            edgeAppearDelayTimer.restart();
+        }
     }
 
-    // Right/Bottom island capsule (islands mode)
-    GlassPanel {
-        id: rightIslandBg
+    Timer {
+        id: edgeAppearDelayTimer
 
-        visible: root.isIslands
-        x: root.isVertical ? 0 : (rightSection.x - 6)
-        y: root.isVertical ? (rightSection.y - 6) : Math.round((parent.height - height) / 2)
-        width: root.isVertical ? barContainer.width : (rightSection.width + 12)
-        height: root.isVertical ? (rightSection.height + 12) : (Appearance.barButtonHeight + 4)
-        radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
-        baseColor: Theme.barBackground
-        accentTint: Theme.accent
+        interval: 22
+        repeat: false
+        onTriggered: {
+            Appearance.barTransitioning = false;
+            if (Appearance.barVisible)
+                edgeDropAnim.restart();
+            else
+                root.edgeProgress = 1;
+        }
+    }
+
+    NumberAnimation {
+        id: edgeDropAnim
+
+        target: root
+        property: "edgeProgress"
+        from: root.edgeProgress
+        to: 1
+        duration: 185
+        easing.type: Easing.OutQuart
+    }
+
+    NumberAnimation {
+        id: showAnim
+
+        target: root
+        property: "showProgress"
+        from: root.showProgress
+        to: 1
+        duration: 175
+        easing.type: Easing.OutQuart
+    }
+
+    NumberAnimation {
+        id: hideAnim
+
+        target: root
+        property: "showProgress"
+        from: root.showProgress
+        to: 0
+        duration: 115
+        easing.type: Easing.InCubic
+        onFinished: {
+            if (!Appearance.barVisible && root.showProgress <= 0.001)
+                root.isVisibleSurface = false;
+
+        }
     }
 
     Timer {
@@ -216,182 +292,339 @@ PanelWindow {
         }
     }
 
-    // Widget content container
+    // Animated edge-drop container carrying glass backgrounds and widgets at 120fps
     Item {
-        id: barContainer
+        id: edgeSurface
+
+        readonly property real reveal: root.edgeProgress * root.showProgress
+        readonly property real travelX: Appearance.barIsLeft ? -root.width : (Appearance.barIsRight ? root.width : 0)
+        readonly property real travelY: Appearance.barIsTop ? -root.height : (Appearance.barIsBottom ? root.height : 0)
 
         anchors.fill: parent
+        opacity: Math.max(0, Math.min(1, reveal * 2.25))
+        scale: 0.96 + (0.04 * reveal)
+        transformOrigin: Appearance.barIsBottom ? Item.Bottom : (Appearance.barIsLeft ? Item.Left : (Appearance.barIsRight ? Item.Right : Item.Top))
 
-        HoverHandler {
-            id: barHover
+        // Unified background surface with Mornye Liquid Glass material (floating, wide, compact modes)
+        GlassPanel {
+            id: barBackground
+
+            readonly property int cornerRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
+
+            visible: !root.isIslands
+            anchors.fill: parent
+            topLeftRadius: (Appearance.barIsTop || Appearance.barIsLeft) ? 0 : cornerRadius
+            topRightRadius: (Appearance.barIsTop || Appearance.barIsRight) ? 0 : cornerRadius
+            bottomLeftRadius: (Appearance.barIsBottom || Appearance.barIsLeft) ? 0 : cornerRadius
+            bottomRightRadius: (Appearance.barIsBottom || Appearance.barIsRight) ? 0 : cornerRadius
+            lightEdge: root.barLightEdge
+            baseColor: Theme.barBackground
+            accentTint: Theme.accent
         }
 
-        // Topmost wheel, touchpad scroll-gesture, and touchscreen overlay across the whole bar
-        Item {
-            anchors.fill: parent
-            z: 100
+        // Left/Top island capsule (islands mode)
+        GlassPanel {
+            id: leftIslandBg
 
-            MouseArea {
-                anchors.fill: parent
-                acceptedButtons: Qt.NoButton
-                hoverEnabled: false
-                scrollGestureEnabled: true
-                onWheel: function(event) {
-                    event.accepted = true;
-                    root.handleBarWheel(event);
-                }
+            visible: root.isIslands
+            x: root.isVertical ? 0 : (leftSection.x - 6)
+            y: root.isVertical ? (leftSection.y - 6) : Math.round((parent.height - height) / 2)
+            width: root.isVertical ? barContainer.width : (leftSection.width + 12)
+            height: root.isVertical ? (leftSection.height + 12) : (Appearance.barButtonHeight + 4)
+            radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
+            lightEdge: root.barLightEdge
+            baseColor: Theme.barBackground
+            accentTint: Theme.accent
+        }
+
+        // Center island capsule (islands mode)
+        GlassPanel {
+            id: centerIslandBg
+
+            visible: root.isIslands
+            x: root.isVertical ? 0 : (clockWidget.x - 8)
+            y: root.isVertical ? (clockWidget.y - 8) : Math.round((parent.height - height) / 2)
+            width: root.isVertical ? barContainer.width : (clockWidget.width + 16)
+            height: root.isVertical ? (clockWidget.height + 16) : (Appearance.barButtonHeight + 4)
+            radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
+            lightEdge: root.barLightEdge
+            baseColor: Theme.barBackground
+            accentTint: Theme.accent
+        }
+
+        // Right/Bottom island capsule (islands mode)
+        GlassPanel {
+            id: rightIslandBg
+
+            visible: root.isIslands
+            x: root.isVertical ? 0 : (rightSection.x - 6)
+            y: root.isVertical ? (rightSection.y - 6) : Math.round((parent.height - height) / 2)
+            width: root.isVertical ? barContainer.width : (rightSection.width + 12)
+            height: root.isVertical ? (rightSection.height + 12) : (Appearance.barButtonHeight + 4)
+            radius: Appearance.barRadius > 0 ? Appearance.barRadius : 14
+            lightEdge: root.barLightEdge
+            baseColor: Theme.barBackground
+            accentTint: Theme.accent
+        }
+
+        // Widget content container
+        Item {
+            id: barContainer
+
+            anchors.fill: parent
+
+            HoverHandler {
+                id: barHover
             }
 
-            DragHandler {
-                id: twoFingerBarDrag
+            // Topmost wheel, touchpad scroll-gesture, and touchscreen overlay across the whole bar
+            Item {
+                anchors.fill: parent
+                z: 100
 
-                acceptedDevices: PointerDevice.TouchScreen
-                minimumPointCount: 2
-                maximumPointCount: 2
-                target: null
-                xAxis.enabled: root.isVertical
-                yAxis.enabled: root.isHorizontal
-                onTranslationChanged: {
-                    if (!root.clipboardDrawer || Date.now() < root.glideCooldownUntil)
-                        return ;
-
-                    var inward = Appearance.barIsTop ? translation.y : (Appearance.barIsBottom ? -translation.y : (Appearance.barIsLeft ? translation.x : -translation.x));
-                    if (!root.clipboardDrawer.isOpen && inward >= 16) {
-                        root.glideCooldownUntil = Date.now() + 280;
-                        root.clipboardDrawer.open();
-                    } else if (root.clipboardDrawer.isOpen && inward <= -16) {
-                        root.glideCooldownUntil = Date.now() + 280;
-                        root.clipboardDrawer.close();
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.NoButton
+                    hoverEnabled: false
+                    scrollGestureEnabled: true
+                    onWheel: function(event) {
+                        event.accepted = true;
+                        root.handleBarWheel(event);
                     }
                 }
-            }
 
-        }
+                DragHandler {
+                    id: twoFingerBarDrag
 
-        // Subtle pull-inward indicator along inner edge of bar
-        Rectangle {
-            readonly property real activeLen: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? 32 : (barHover.hovered ? 24 : 12)
+                    acceptedDevices: PointerDevice.TouchScreen
+                    minimumPointCount: 2
+                    maximumPointCount: 2
+                    target: null
+                    xAxis.enabled: root.isVertical
+                    yAxis.enabled: root.isHorizontal
+                    onTranslationChanged: {
+                        if (!root.clipboardDrawer || Date.now() < root.glideCooldownUntil)
+                            return ;
 
-            x: root.isVertical ? (Appearance.barIsLeft ? (parent.width - 3) : 1) : Math.round((parent.width - activeLen) / 2)
-            y: root.isHorizontal ? (Appearance.barIsTop ? (parent.height - 3) : 1) : Math.round((parent.height - activeLen) / 2)
-            width: root.isVertical ? 2 : activeLen
-            height: root.isVertical ? activeLen : 2
-            radius: 1
-            color: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? Theme.accent : Theme.withAlpha(Theme.bright_foreground, 0.55)
-            opacity: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? 0.8 : (barHover.hovered ? 0.5 : 0)
-            visible: !root.isIslands
-            z: 20
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: 150
+                        var inward = Appearance.barIsTop ? translation.y : (Appearance.barIsBottom ? -translation.y : (Appearance.barIsLeft ? translation.x : -translation.x));
+                        if (!root.clipboardDrawer.isOpen && inward >= 16) {
+                            root.glideCooldownUntil = Date.now() + 280;
+                            root.clipboardDrawer.open();
+                        } else if (root.clipboardDrawer.isOpen && inward <= -16) {
+                            root.glideCooldownUntil = Date.now() + 280;
+                            root.clipboardDrawer.close();
+                        }
+                    }
                 }
 
             }
 
-            Behavior on width {
-                NumberAnimation {
-                    duration: 180
-                    easing.type: Easing.OutCubic
+            // Subtle pull-inward indicator along inner edge of bar (fixed geometry + centered Scale)
+            Rectangle {
+                id: pullHint
+
+                readonly property real activeScale: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? 1 : (barHover.hovered ? 0.75 : 0.375)
+
+                x: root.isVertical ? (Appearance.barIsLeft ? (parent.width - 3) : 1) : Math.round((parent.width - width) / 2)
+                y: root.isHorizontal ? (Appearance.barIsTop ? (parent.height - 3) : 1) : Math.round((parent.height - height) / 2)
+                width: root.isVertical ? 2 : 32
+                height: root.isVertical ? 32 : 2
+                radius: 1
+                color: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? Theme.accent : Theme.withAlpha(Theme.bright_foreground, 0.55)
+                opacity: (root.clipboardDrawer && root.clipboardDrawer.isOpen) ? 0.8 : (barHover.hovered ? 0.5 : 0)
+                visible: !root.isIslands
+                z: 20
+
+                transform: Scale {
+                    origin.x: root.isVertical ? 1 : 16
+                    origin.y: root.isVertical ? 16 : 1
+                    xScale: root.isHorizontal ? pullHint.activeScale : 1
+                    yScale: root.isVertical ? pullHint.activeScale : 1
+
+                    Behavior on xScale {
+                        enabled: !root.isEdgeTransitioning
+
+                        NumberAnimation {
+                            duration: 160
+                            easing.type: Easing.OutCubic
+                        }
+
+                    }
+
+                    Behavior on yScale {
+                        enabled: !root.isEdgeTransitioning
+
+                        NumberAnimation {
+                            duration: 160
+                            easing.type: Easing.OutCubic
+                        }
+
+                    }
+
+                }
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 150
+                    }
+
+                }
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: 160
+                    }
+
                 }
 
             }
 
-            Behavior on height {
-                NumberAnimation {
-                    duration: 180
-                    easing.type: Easing.OutCubic
+            // Left / Top section: workspace switcher and media pill
+            Grid {
+                id: leftSection
+
+                columns: root.isVertical ? 1 : 4
+                columnSpacing: Appearance.barSectionSpacing
+                rowSpacing: Appearance.barSectionSpacing
+                horizontalItemAlignment: Grid.AlignHCenter
+                verticalItemAlignment: Grid.AlignVCenter
+                width: implicitWidth
+                height: implicitHeight
+                x: root.isVertical ? Math.round((barContainer.width - width) / 2) : (root.isCompact ? Math.round((barContainer.width - root.totalContentWidth) / 2) : Appearance.barMarginHorizontal)
+                y: root.isVertical ? (root.isCompact ? Math.round((barContainer.height - root.totalContentWidth) / 2) : Appearance.barMarginHorizontal) : Math.round((barContainer.height - height) / 2)
+
+                WorkspacesWidget {
+                    service: root.workspacesService
+                }
+
+                NowBarPill {
+                    audioService: root.audioService
+                }
+
+                Behavior on x {
+                    enabled: !root.isEdgeTransitioning
+
+                    NumberAnimation {
+                        duration: 160
+                        easing.type: Easing.OutCubic
+                    }
+
+                }
+
+                Behavior on y {
+                    enabled: !root.isEdgeTransitioning
+
+                    NumberAnimation {
+                        duration: 160
+                        easing.type: Easing.OutCubic
+                    }
+
                 }
 
             }
 
-            Behavior on color {
-                ColorAnimation {
-                    duration: 160
-                }
+            // Center section: date and clock
+            ClockWidget {
+                id: clockWidget
 
-            }
-
-        }
-
-        // Left / Top section: workspace switcher and media pill
-        Grid {
-            id: leftSection
-
-            columns: root.isVertical ? 1 : 4
-            columnSpacing: Appearance.barSectionSpacing
-            rowSpacing: Appearance.barSectionSpacing
-            horizontalItemAlignment: Grid.AlignHCenter
-            verticalItemAlignment: Grid.AlignVCenter
-            width: implicitWidth
-            height: implicitHeight
-            x: root.isVertical ? Math.round((barContainer.width - width) / 2) : (root.isCompact ? Math.round((barContainer.width - root.totalContentWidth) / 2) : Appearance.barMarginHorizontal)
-            y: root.isVertical ? (root.isCompact ? Math.round((barContainer.height - root.totalContentWidth) / 2) : Appearance.barMarginHorizontal) : Math.round((barContainer.height - height) / 2)
-
-            WorkspacesWidget {
-                service: root.workspacesService
-            }
-
-            NowBarPill {
-                audioService: root.audioService
-            }
-
-        }
-
-        // Center section: date and clock
-        ClockWidget {
-            id: clockWidget
-
-            x: root.isVertical ? Math.round((barContainer.width - width) / 2) : (root.isCompact ? (leftSection.x + leftSection.width + (Appearance.barSectionSpacing * 2)) : Math.round((barContainer.width - width) / 2))
-            y: root.isVertical ? (root.isCompact ? (leftSection.y + leftSection.height + (Appearance.barSectionSpacing * 2)) : Math.round((barContainer.height - height) / 2)) : Math.round((barContainer.height - height) / 2)
-            powerService: root.powerService
-        }
-
-        // Right / Bottom section: hardware and status controls
-        Grid {
-            id: rightSection
-
-            columns: root.isVertical ? 1 : 8
-            columnSpacing: Appearance.barSpacing
-            rowSpacing: Appearance.barSpacing
-            horizontalItemAlignment: Grid.AlignHCenter
-            verticalItemAlignment: Grid.AlignVCenter
-            width: implicitWidth
-            height: implicitHeight
-            x: root.isVertical ? Math.round((barContainer.width - width) / 2) : (root.isCompact ? (clockWidget.x + clockWidget.width + (Appearance.barSectionSpacing * 2)) : Math.round(barContainer.width - width - Appearance.barMarginHorizontal))
-            y: root.isVertical ? (root.isCompact ? (clockWidget.y + clockWidget.height + (Appearance.barSectionSpacing * 2)) : Math.round(barContainer.height - height - Appearance.barMarginHorizontal)) : Math.round((barContainer.height - height) / 2)
-
-            BluetoothWidget {
-                id: bluetoothWidget
-
-                service: root.bluetoothService
-            }
-
-            NetworkWidget {
-                id: networkWidget
-
-                service: root.networkService
-            }
-
-            AudioWidget {
-                id: audioWidget
-
-                service: root.audioService
-            }
-
-            MonitorWidget {
-                id: monitorWidget
-
-                service: root.brightnessService
-            }
-
-            BatteryWidget {
-                id: batteryWidget
-
-                batteryService: root.batteryService
+                x: root.isVertical ? Math.round((barContainer.width - width) / 2) : (root.isCompact ? (leftSection.x + leftSection.width + (Appearance.barSectionSpacing * 2)) : Math.round((barContainer.width - width) / 2))
+                y: root.isVertical ? (root.isCompact ? (leftSection.y + leftSection.height + (Appearance.barSectionSpacing * 2)) : Math.round((barContainer.height - height) / 2)) : Math.round((barContainer.height - height) / 2)
                 powerService: root.powerService
+
+                Behavior on x {
+                    enabled: !root.isEdgeTransitioning
+
+                    NumberAnimation {
+                        duration: 160
+                        easing.type: Easing.OutCubic
+                    }
+
+                }
+
+                Behavior on y {
+                    enabled: !root.isEdgeTransitioning
+
+                    NumberAnimation {
+                        duration: 160
+                        easing.type: Easing.OutCubic
+                    }
+
+                }
+
             }
 
+            // Right / Bottom section: hardware and status controls
+            Grid {
+                id: rightSection
+
+                columns: root.isVertical ? 1 : 8
+                columnSpacing: Appearance.barSpacing
+                rowSpacing: Appearance.barSpacing
+                horizontalItemAlignment: Grid.AlignHCenter
+                verticalItemAlignment: Grid.AlignVCenter
+                width: implicitWidth
+                height: implicitHeight
+                x: root.isVertical ? Math.round((barContainer.width - width) / 2) : (root.isCompact ? (clockWidget.x + clockWidget.width + (Appearance.barSectionSpacing * 2)) : Math.round(barContainer.width - width - Appearance.barMarginHorizontal))
+                y: root.isVertical ? (root.isCompact ? (clockWidget.y + clockWidget.height + (Appearance.barSectionSpacing * 2)) : Math.round(barContainer.height - height - Appearance.barMarginHorizontal)) : Math.round((barContainer.height - height) / 2)
+
+                BluetoothWidget {
+                    id: bluetoothWidget
+
+                    service: root.bluetoothService
+                }
+
+                NetworkWidget {
+                    id: networkWidget
+
+                    service: root.networkService
+                }
+
+                AudioWidget {
+                    id: audioWidget
+
+                    service: root.audioService
+                }
+
+                MonitorWidget {
+                    id: monitorWidget
+
+                    service: root.brightnessService
+                }
+
+                BatteryWidget {
+                    id: batteryWidget
+
+                    batteryService: root.batteryService
+                    powerService: root.powerService
+                }
+
+                Behavior on x {
+                    enabled: !root.isEdgeTransitioning
+
+                    NumberAnimation {
+                        duration: 160
+                        easing.type: Easing.OutCubic
+                    }
+
+                }
+
+                Behavior on y {
+                    enabled: !root.isEdgeTransitioning
+
+                    NumberAnimation {
+                        duration: 160
+                        easing.type: Easing.OutCubic
+                    }
+
+                }
+
+            }
+
+        }
+
+        transform: Translate {
+            x: edgeSurface.travelX * (1 - edgeSurface.reveal)
+            y: edgeSurface.travelY * (1 - edgeSurface.reveal)
         }
 
     }
@@ -466,6 +699,7 @@ PanelWindow {
         path: Quickshell.env("HOME") + "/.config/quickshell/bar-style"
         watchChanges: true
         printErrors: false
+        onFileChanged: reload()
         onLoaded: {
             var raw = String(text() || "").trim().toLowerCase();
             if (raw === "compact" || raw === "floating" || raw === "islands" || raw === "wide")
@@ -479,6 +713,7 @@ PanelWindow {
         path: Quickshell.env("HOME") + "/.config/quickshell/bar-visibility"
         watchChanges: true
         printErrors: false
+        onFileChanged: reload()
         onLoaded: {
             var raw = String(text() || "").trim().toLowerCase();
             if (raw === "hidden" || raw === "false" || raw === "hide" || raw === "off")
@@ -492,6 +727,10 @@ PanelWindow {
         path: Quickshell.env("HOME") + "/.config/quickshell/bar-edge"
         watchChanges: true
         printErrors: false
+        onFileChanged: reload()
+        onLoadFailed: {
+            root._edgeInitialized = true;
+        }
         onLoaded: {
             var normalized = root.normalizeEdge(text());
             if (normalized)

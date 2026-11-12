@@ -274,15 +274,15 @@ PanelWindow {
         right: Appearance.barIsRight ? Appearance.barThickness : 0
     }
 
-    // Crisp slide-and-scale reveal from beneath the top bar
+    // Crisp drop-and-scale reveal from beneath the active docked bar
     NumberAnimation {
         id: openAnim
 
         target: root
         property: "animProgress"
         to: 1
-        duration: 145
-        easing.type: Easing.OutCubic
+        duration: 165
+        easing.type: Easing.OutQuart
     }
 
     NumberAnimation {
@@ -291,8 +291,8 @@ PanelWindow {
         target: root
         property: "animProgress"
         to: 0
-        duration: 110
-        easing.type: Easing.OutQuad
+        duration: 105
+        easing.type: Easing.InCubic
         onFinished: {
             if (!root.isOpen) {
                 root.isVisibleSurface = false;
@@ -444,8 +444,8 @@ PanelWindow {
 
             width: Appearance.clipboardWidth
             height: root.targetDrawerHeight
-            x: Appearance.barIsVertical ? (Appearance.barIsRight ? Math.round(clipViewport.width - width - 6 + ((1 - root.animProgress) * 18)) : Math.round(6 - ((1 - root.animProgress) * 18))) : Math.round((clipViewport.width - width) / 2)
-            y: Appearance.barIsVertical ? Math.round((clipViewport.height - height) / 2) : (Appearance.barIsBottom ? Math.round(clipViewport.height - height - 6 + ((1 - root.animProgress) * 18)) : Math.round(6 - ((1 - root.animProgress) * 18)))
+            x: Appearance.barIsVertical ? (Appearance.barIsRight ? Math.round(clipViewport.width - width - 6 + ((1 - root.animProgress) * 26)) : Math.round(6 - ((1 - root.animProgress) * 26))) : Math.round((clipViewport.width - width) / 2)
+            y: Appearance.barIsVertical ? Math.round((clipViewport.height - height) / 2) : (Appearance.barIsBottom ? Math.round(clipViewport.height - height - 6 + ((1 - root.animProgress) * 26)) : Math.round(6 - ((1 - root.animProgress) * 26)))
             radius: Appearance.clipboardRadius
             baseColor: Theme.barBackground
             accentTint: Theme.accent
@@ -453,8 +453,8 @@ PanelWindow {
             rimIllumination: 0.72
             specularIntensity: 0.9
             transformOrigin: Appearance.barIsBottom ? Item.Bottom : (Appearance.barIsLeft ? Item.Left : (Appearance.barIsRight ? Item.Right : Item.Top))
-            opacity: Math.max(0, Math.min(1, root.animProgress * 3.5))
-            scale: 0.97 + (0.03 * root.animProgress)
+            opacity: Math.max(0, Math.min(1, root.animProgress * 3.8))
+            scale: 0.955 + (0.045 * root.animProgress)
 
             HoverHandler {
                 id: drawerActivityHover

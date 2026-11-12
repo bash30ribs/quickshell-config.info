@@ -19,7 +19,7 @@ Rectangle {
     signal clicked()
 
     implicitWidth: root.vertical ? Math.max(Appearance.barButtonHeight, Appearance.barThickness - 6) : Math.max(Appearance.barButtonHeight, contentGrid.implicitWidth + (customPadding * 2))
-    implicitHeight: root.vertical ? Math.max(Appearance.barButtonHeight, contentGrid.implicitHeight + (root.text.length > 0 ? 8 : 6)) : Appearance.barButtonHeight
+    implicitHeight: root.vertical ? Math.max(30, contentGrid.implicitHeight + (root.text.length > 0 ? 6 : 8)) : Appearance.barButtonHeight
     width: implicitWidth
     height: implicitHeight
     radius: Appearance.buttonRadius > 0 ? Appearance.buttonRadius : 6
@@ -45,7 +45,7 @@ Rectangle {
         anchors.centerIn: parent
         columns: root.vertical ? 1 : 2
         columnSpacing: Appearance.spacingMedium - 2 // 6px
-        rowSpacing: 1
+        rowSpacing: (root.vertical && root.icon.length > 0 && root.text.length > 0) ? 0 : 1
         horizontalItemAlignment: Grid.AlignHCenter
         verticalItemAlignment: Grid.AlignVCenter
 
@@ -53,7 +53,7 @@ Rectangle {
             visible: root.icon.length > 0
             text: root.icon
             font.family: Icons.effectiveFont(root.icon)
-            font.pixelSize: root.iconSize
+            font.pixelSize: (root.vertical && root.text.length > 0) ? Math.max(13, Math.round(root.iconSize * 0.8)) : root.iconSize
             color: {
                 if (root.accentActive || root.active)
                     return Theme.accent;
@@ -81,6 +81,8 @@ Rectangle {
             font.family: Fonts.uiFont
             font.pixelSize: (root.vertical && root.icon.length > 0) ? Math.max(9, Fonts.scale(9)) : root.textSize
             font.bold: root.active
+            font.weight: (root.vertical && !root.active) ? Font.DemiBold : (root.active ? Font.Bold : Font.Normal)
+            lineHeight: (root.vertical && root.text.indexOf("\n") >= 0) ? 0.9 : 1
             horizontalAlignment: Text.AlignHCenter
             color: root.active ? Theme.accent : Theme.bright_foreground
             style: Text.Raised

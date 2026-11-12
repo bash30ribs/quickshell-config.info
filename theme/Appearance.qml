@@ -17,6 +17,7 @@ QtObject {
     property int barButtonHeight: barHeight - 4
     property bool barVisible: true
     property string barEdge: "top" // "top" | "bottom" | "left" | "right"
+    property bool barTransitioning: false
     readonly property bool barIsVertical: root.barEdge === "left" || root.barEdge === "right"
     readonly property bool barIsHorizontal: !root.barIsVertical
     readonly property bool barIsTop: root.barEdge === "top"
@@ -235,6 +236,8 @@ QtObject {
     property int animDurationMedium: 200
     property int animDurationSlow: 250
     property int animDurationSpring: 320
+
+    signal closeBarPopups()
 
     function computeBarScreenOrigin(anchorItem, fallbackW, fallbackH) {
         if (!anchorItem)

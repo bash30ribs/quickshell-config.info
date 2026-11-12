@@ -1715,6 +1715,14 @@ PanelWindow {
 
         }
 
+        Behavior on anchors.bottomMargin {
+            NumberAnimation {
+                duration: 180
+                easing.type: Easing.OutCubic
+            }
+
+        }
+
         // Smooth size morphing when converting between menus while open
         Behavior on width {
             enabled: root.viewTransitionsEnabled

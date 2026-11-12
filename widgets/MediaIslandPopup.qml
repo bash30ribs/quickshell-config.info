@@ -204,8 +204,8 @@ PanelWindow {
         property: "animProgress"
         from: root.animProgress
         to: 1
-        duration: 300
-        easing.type: Easing.OutCubic
+        duration: 205
+        easing.type: Easing.OutQuart
     }
 
     NumberAnimation {
@@ -215,8 +215,16 @@ PanelWindow {
         property: "animProgress"
         from: root.animProgress
         to: 0
-        duration: 200
+        duration: 125
         easing.type: Easing.InCubic
+    }
+
+    Connections {
+        function onCloseBarPopups() {
+            root.open = false;
+        }
+
+        target: Appearance
     }
 
     Timer {
@@ -267,9 +275,9 @@ PanelWindow {
         height: root.contentHeight
         radius: Appearance.mediaIslandRadius
         baseColor: Theme.barBackground
-        transformOrigin: Appearance.barIsBottom ? Item.BottomLeft : (Appearance.barIsRight ? Item.TopRight : Item.TopLeft)
-        scale: 0.32 + 0.68 * root.animProgress
-        opacity: Math.min(1, root.animProgress * 1.8)
+        transformOrigin: Appearance.barIsBottom ? Item.BottomLeft : (Appearance.barIsRight ? Item.Right : (Appearance.barIsLeft ? Item.Left : Item.TopLeft))
+        scale: 0.36 + 0.64 * root.animProgress
+        opacity: Math.min(1, root.animProgress * 2.2)
 
         MouseArea {
             anchors.fill: parent
@@ -688,6 +696,11 @@ PanelWindow {
 
             }
 
+        }
+
+        transform: Translate {
+            x: (1 - root.animProgress) * (Appearance.barIsLeft ? -14 : (Appearance.barIsRight ? 14 : 0))
+            y: (1 - root.animProgress) * (Appearance.barIsTop ? -14 : (Appearance.barIsBottom ? 14 : 0))
         }
 
     }
