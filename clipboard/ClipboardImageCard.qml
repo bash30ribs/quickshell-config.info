@@ -2,6 +2,7 @@ import "../components"
 import "../theme"
 import QtQuick
 import QtQuick.Effects
+import Quickshell
 
 // Editorial liquid-glass screenshot card with hover HUD, click-to-paste, and Wayland drag-and-drop
 Item {
@@ -11,6 +12,11 @@ Item {
     required property int index
     required property var clipboardService
     property bool stayPinnedOpen: false
+    property bool dragTriggered: false
+    property bool pendingCloseAfterDrop: false
+    property var cachedDragImage: null
+    readonly property string imageMimeType: (imgCard.modelData && imgCard.modelData.mime) ? String(imgCard.modelData.mime) : "image/png"
+    readonly property string thumbUrl: imgCard.modelData.thumbPath ? ("file://" + imgCard.modelData.thumbPath) : (imgCard.modelData.path ? imgCard.toFileUri(imgCard.modelData.path) : "")
     readonly property bool isCopiedNow: clipboardService && clipboardService.copiedFeedbackId === modelData.id
     readonly property bool isHovered: imgCardHover.hovered || pillMouse.containsMouse || copyBtn.isHovered || editBtn.isHovered || deleteBtn.isHovered || copyBtn.isPressed || editBtn.isPressed || deleteBtn.isPressed
 
@@ -21,7 +27,47 @@ Item {
     signal dragStateChanged(bool dragging)
     signal closeDrawerRequested()
 
-    scale: imgDragHandler.active ? 0.965 : (imgCard.isHovered ? 1.025 : 1)
+    function toFileUri(filePath) {
+        var clean = String(filePath || "");
+        if (!clean)
+            return "";
+
+        return "file://" + encodeURI(clean).replace(/#/g, "%23").replace(/\?/g, "%3F");
+    }
+
+    function refreshCachedImage() {
+        var win = imgCard.QsWindow ? imgCard.QsWindow.window : null;
+        if (!imgThumb || imgThumb.status !== Image.Ready || imgCard.cachedDragImage || !imgCard.visible || !win || !win.visible)
+            return ;
+
+        imgThumb.grabToImage(function(result) {
+            if (result && result.image)
+                imgCard.cachedDragImage = result.image;
+
+        }, Qt.size(340, 220));
+    }
+
+    function buildDragMimeData() {
+        var filePath = String(imgCard.modelData.path || "");
+        var uri = imgCard.toFileUri(filePath);
+        var map = {
+        };
+        if (uri) {
+            map["text/uri-list"] = uri + "\r\n";
+            map["x-special/gnome-copied-files"] = "copy\n" + uri;
+        }
+        if (imgCard.cachedDragImage)
+            map[imgCard.imageMimeType] = imgCard.cachedDragImage;
+
+        return map;
+    }
+
+    scale: imgCard.dragTriggered ? 0.965 : (imgCard.isHovered ? 1.025 : 1)
+    onIsHoveredChanged: {
+        if (imgCard.isHovered)
+            imgCard.refreshCachedImage();
+
+    }
 
     HoverHandler {
         id: imgCardHover
@@ -29,25 +75,19 @@ Item {
         cursorShape: Qt.PointingHandCursor
     }
 
-    Item {
-        id: imgDragPayload
+    Timer {
+        id: dragFinishGraceTimer
 
-        Drag.active: imgDragHandler.active
-        Drag.dragType: Drag.Automatic
-        Drag.supportedActions: Qt.CopyAction
-        Drag.hotSpot: Qt.point(80, 50)
-        Drag.imageSource: imgCard.modelData.thumbPath ? ("file://" + imgCard.modelData.thumbPath) : (imgCard.modelData.path ? ("file://" + imgCard.modelData.path) : "")
-        Drag.imageSourceSize: Qt.size(160, 100)
-        Drag.mimeData: {
-            "text/uri-list": "file://" + (imgCard.modelData.path || "") + "\r\n",
-            "text/plain": imgCard.modelData.path || ""
-        }
-        Drag.onDragStarted: imgCard.dragStateChanged(true)
-        Drag.onDragFinished: function(dropAction) {
+        interval: 220
+        repeat: false
+        onTriggered: {
+            imgCardFrame.Drag.active = false;
+            imgCard.dragTriggered = false;
             imgCard.dragStateChanged(false);
-            if (dropAction !== Qt.IgnoreAction && !imgCard.stayPinnedOpen)
+            if (imgCard.pendingCloseAfterDrop) {
+                imgCard.pendingCloseAfterDrop = false;
                 imgCard.closeDrawerRequested();
-
+            }
         }
     }
 
@@ -58,6 +98,21 @@ Item {
         radius: 12
         color: Theme.withAlpha(Theme.darker_background, 0.56)
         clip: true
+        Drag.active: false
+        Drag.dragType: Drag.Automatic
+        Drag.supportedActions: Qt.CopyAction | Qt.LinkAction
+        Drag.proposedAction: Qt.CopyAction
+        Drag.hotSpot: Qt.point(Math.round(width / 2), Math.round(height / 2))
+        Drag.imageSource: imgCard.thumbUrl
+        Drag.imageSourceSize: Qt.size(340, 220)
+        Drag.onDragStarted: {
+            dragFinishGraceTimer.stop();
+            imgCard.dragStateChanged(true);
+        }
+        Drag.onDragFinished: function(dropAction) {
+            imgCard.pendingCloseAfterDrop = (dropAction !== Qt.IgnoreAction && !imgCard.stayPinnedOpen);
+            dragFinishGraceTimer.restart();
+        }
 
         Rectangle {
             id: thumbMask
@@ -70,8 +125,10 @@ Item {
         }
 
         Image {
+            id: imgThumb
+
             anchors.fill: parent
-            source: imgCard.modelData.thumbPath ? ("file://" + imgCard.modelData.thumbPath) : (imgCard.modelData.path ? ("file://" + imgCard.modelData.path) : "")
+            source: imgCard.thumbUrl
             fillMode: Image.PreserveAspectCrop
             asynchronous: true
             cache: true
@@ -139,22 +196,50 @@ Item {
 
         }
 
-        // Body Interaction Layer (Wayland DnD, Click-to-Paste)
-        Item {
+        // Body Interaction Layer (Wayland DnD with cached PNG + URI payload, Click-to-Paste)
+        MouseArea {
+            id: cardDragMouse
+
+            property point pressPos: Qt.point(0, 0)
+
             anchors.fill: parent
             z: 10
-
-            DragHandler {
-                id: imgDragHandler
-
-                target: null
-                dragThreshold: 8
+            acceptedButtons: Qt.LeftButton
+            hoverEnabled: false
+            preventStealing: true
+            cursorShape: imgCard.dragTriggered ? Qt.ClosedHandCursor : Qt.PointingHandCursor
+            onPressed: function(mouse) {
+                dragFinishGraceTimer.stop();
+                imgCard.refreshCachedImage();
+                imgCard.dragTriggered = false;
+                imgCard.pendingCloseAfterDrop = false;
+                pressPos = Qt.point(mouse.x, mouse.y);
             }
+            onPositionChanged: function(mouse) {
+                if (imgCard.dragTriggered || !(mouse.buttons & Qt.LeftButton))
+                    return ;
 
-            TapHandler {
-                onTapped: imgCard.pasteRequested(imgCard.modelData.id)
+                var dx = mouse.x - pressPos.x;
+                var dy = mouse.y - pressPos.y;
+                if ((dx * dx + dy * dy) < 64)
+                    return ;
+
+                imgCard.dragTriggered = true;
+                imgCard.dragStateChanged(true);
+                imgCardFrame.Drag.mimeData = imgCard.buildDragMimeData();
+                imgCardFrame.Drag.active = true;
             }
+            onReleased: function() {
+                if (!imgCard.dragTriggered)
+                    imgCard.pasteRequested(imgCard.modelData.id);
 
+            }
+            onCanceled: {
+                if (!imgCardFrame.Drag.active && !dragFinishGraceTimer.running) {
+                    imgCard.dragTriggered = false;
+                    imgCard.dragStateChanged(false);
+                }
+            }
         }
 
         // Hover Top-Right Frosted Floating Action Pill (isolated from body tap/drag)
@@ -326,9 +411,9 @@ Item {
 
     Behavior on scale {
         NumberAnimation {
-            duration: imgDragHandler.active ? 80 : 180
-            easing.type: imgDragHandler.active ? Easing.OutQuad : Easing.OutBack
-            easing.overshoot: imgDragHandler.active ? 1 : 1.25
+            duration: imgCard.dragTriggered ? 80 : 180
+            easing.type: imgCard.dragTriggered ? Easing.OutQuad : Easing.OutBack
+            easing.overshoot: imgCard.dragTriggered ? 1 : 1.25
         }
 
     }

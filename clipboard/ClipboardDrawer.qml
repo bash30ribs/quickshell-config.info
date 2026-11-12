@@ -25,7 +25,7 @@ PanelWindow {
     property real stageCooldownUntil: 0
     property real gestureUpAccum: 0
     property real stageDownAccum: 0
-    property int autoCloseMs: 5000
+    property int autoCloseMs: 3000
     property point lastActivityPos: Qt.point(-1, -1)
     readonly property bool searchFocused: searchInput.activeFocus
     readonly property var imageItems: root.clipboardService ? root.clipboardService.filteredItems("image", "") : []
@@ -73,7 +73,7 @@ PanelWindow {
         }
         root.openedAtMs = now;
         root.stageChangedAtMs = now;
-        root.stageCooldownUntil = now + 340;
+        root.stageCooldownUntil = now + 220;
         root.isVisibleSurface = true;
         root.isOpen = true;
         closeAnim.stop();
@@ -142,7 +142,7 @@ PanelWindow {
             return ;
 
         var now = Date.now();
-        if (now - root.openedAtMs < 320 || now < root.stageCooldownUntil)
+        if (now - root.openedAtMs < 240 || now < root.stageCooldownUntil)
             return ;
 
         if (negDelta < 0) {
@@ -167,7 +167,7 @@ PanelWindow {
         }
         var inwardDelta = Appearance.barIsTop ? dy : (Appearance.barIsBottom ? -dy : (Appearance.barIsLeft ? dx : -dx));
         var crossDelta = Appearance.barIsVertical ? dy : dx;
-        if (inwardDelta === 0 || Math.abs(inwardDelta) < Math.abs(crossDelta) * 0.7) {
+        if (inwardDelta === 0 || Math.abs(inwardDelta) < Math.abs(crossDelta) * 0.65) {
             event.accepted = false;
             return ;
         }
@@ -177,12 +177,12 @@ PanelWindow {
             return ;
         }
         if (inwardDelta > 0 && allowAdvanceToStage2 && root.stage === 1) {
-            if (Math.abs(inwardDelta) >= Math.abs(crossDelta) * 1.25 && (now - root.stageChangedAtMs) >= 340) {
+            if (Math.abs(inwardDelta) >= Math.abs(crossDelta) * 0.85 && (now - root.stageChangedAtMs) >= 220) {
                 root.gestureUpAccum = 0;
                 root.stageDownAccum += inwardDelta;
                 gestureDecayTimer.restart();
                 root.touchActivity();
-                if (root.stageDownAccum >= 8) {
+                if (root.stageDownAccum >= 4) {
                     root.stageDownAccum = 0;
                     root.showTextStage();
                 }
@@ -471,6 +471,39 @@ PanelWindow {
                 }
             }
 
+            // Fallback wheel & touchscreen two-finger gesture handler across all surface padding/gaps
+            MouseArea {
+                anchors.fill: parent
+                z: 0
+                acceptedButtons: Qt.NoButton
+                hoverEnabled: false
+                scrollGestureEnabled: true
+                onWheel: function(event) {
+                    root.handleStageWheel(event, root.stage === 1);
+                }
+            }
+
+            DragHandler {
+                id: drawerTwoFingerDrag
+
+                acceptedDevices: PointerDevice.TouchScreen
+                minimumPointCount: 2
+                maximumPointCount: 2
+                target: null
+                xAxis.enabled: Appearance.barIsVertical
+                yAxis.enabled: Appearance.barIsHorizontal
+                onTranslationChanged: {
+                    if (!root.isOpen || Date.now() < root.stageCooldownUntil)
+                        return ;
+
+                    var inward = Appearance.barIsTop ? translation.y : (Appearance.barIsBottom ? -translation.y : (Appearance.barIsLeft ? translation.x : -translation.x));
+                    if (root.stage === 1 && inward >= 18)
+                        root.showTextStage();
+                    else if (inward <= -18)
+                        root.close();
+                }
+            }
+
             // Seamless borderless liquid-glass wash (keeps composite alpha >= 0.20 across entire surface)
             Rectangle {
                 anchors.fill: parent
@@ -640,21 +673,40 @@ PanelWindow {
                                     event.accepted = false;
                                     return ;
                                 }
-                                // Prioritize horizontal panning across the screenshot strip
-                                if (Math.abs(dx) >= Math.abs(dy) * 0.65) {
-                                    root.gestureUpAccum = 0;
-                                    root.stageDownAccum = 0;
-                                    root.touchActivity();
-                                    var maxX = Math.max(0, imgStripList.contentWidth - imgStripList.width);
-                                    if (maxX > 0) {
+                                var maxX = Math.max(0, imgStripList.contentWidth - imgStripList.width);
+                                var inward = Appearance.barIsTop ? dy : (Appearance.barIsBottom ? -dy : (Appearance.barIsLeft ? dx : -dx));
+                                if (Appearance.barIsHorizontal) {
+                                    if (maxX > 0 && Math.abs(dx) > Math.abs(dy) * 1.15) {
+                                        root.gestureUpAccum = 0;
+                                        root.stageDownAccum = 0;
+                                        root.touchActivity();
                                         var nextX = Math.max(0, Math.min(maxX, imgStripList.contentX - (dx * 0.65)));
                                         imgStripList.contentX = nextX;
                                         imgStripList.preservedX = nextX;
+                                        event.accepted = true;
+                                        return ;
                                     }
-                                    event.accepted = true;
-                                    return ;
+                                } else {
+                                    if (maxX > 0 && Math.abs(dy) > Math.abs(dx) * 1.15) {
+                                        root.gestureUpAccum = 0;
+                                        root.stageDownAccum = 0;
+                                        root.touchActivity();
+                                        var nextXV = Math.max(0, Math.min(maxX, imgStripList.contentX - (dy * 0.65)));
+                                        imgStripList.contentX = nextXV;
+                                        imgStripList.preservedX = nextXV;
+                                        event.accepted = true;
+                                        return ;
+                                    }
+                                    if (maxX > 0 && inward < 0 && Math.abs(dx) > Math.abs(dy) * 1.15 && imgStripList.contentX < maxX - 2 && imgStripList.contentX > 2) {
+                                        root.touchActivity();
+                                        var nextXH = Math.max(0, Math.min(maxX, imgStripList.contentX - (dx * 0.65)));
+                                        imgStripList.contentX = nextXH;
+                                        imgStripList.preservedX = nextXH;
+                                        event.accepted = true;
+                                        return ;
+                                    }
                                 }
-                                // Vertical two-finger gesture: down -> Stage 2 Text, up -> Close
+                                // Inward two-finger glide -> Stage 2 Text, outward -> Close
                                 root.handleStageWheel(event, true);
                             }
                         }

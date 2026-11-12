@@ -195,6 +195,10 @@ PanelWindow {
                 hideAnim.stop();
                 showAnim.restart();
             } else {
+                if (root.clipboardDrawer && root.clipboardDrawer.isOpen)
+                    root.clipboardDrawer.close();
+
+                Appearance.closeBarPopups();
                 showAnim.stop();
                 hideAnim.restart();
             }
