@@ -41,348 +41,21 @@ QtObject {
     property string connectionErrorSsid: ""
     property string connectionErrorMessage: ""
     property Timer connectionErrorTimer
-
-    connectionErrorTimer: Timer {
-        interval: 4000
-        repeat: false
-        onTriggered: {
-            root.connectionErrorSsid = "";
-            root.connectionErrorMessage = "";
-        }
-    }
-
     property Timer connectTimeoutTimer
-
-    connectTimeoutTimer: Timer {
-        interval: 22000
-        repeat: false
-        onTriggered: {
-            if (root.connectingSsid) {
-                root.connectionErrorSsid = root.connectingSsid;
-                root.connectionErrorMessage = "Timed out";
-                root.connectingSsid = "";
-                connectionErrorTimer.restart();
-                if (connectProc.running)
-                    connectProc.running = false;
-
-                root.refresh();
-                root.scanWifi();
-            }
-        }
-    }
-
     property Process connectProc
-
-    connectProc: Process {
-        id: connectProc
-
-        onExited: function(exitCode, exitStatus) {
-            connectTimeoutTimer.stop();
-            var targetSsid = root.connectingSsid;
-            root.connectingSsid = "";
-            if (exitCode !== 0) {
-                root.connectionErrorSsid = targetSsid;
-                if (!root.connectionErrorMessage)
-                    root.connectionErrorMessage = "Connection failed";
-
-                connectionErrorTimer.restart();
-            } else {
-                root.connectionErrorSsid = "";
-                root.connectionErrorMessage = "";
-            }
-            root.refresh();
-            root.scanWifi();
-        }
-
-        stdout: StdioCollector {
-            waitForEnd: true
-        }
-
-        stderr: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: {
-                var err = String(text || "").trim();
-                if (err.length > 0) {
-                    if (err.indexOf("Secrets were required") !== -1 || err.indexOf("No secret provided") !== -1)
-                        root.connectionErrorMessage = "Wrong password";
-                    else if (err.indexOf("Association took too long") !== -1 || err.indexOf("timed out") !== -1)
-                        root.connectionErrorMessage = "Timeout";
-                    else
-                        root.connectionErrorMessage = "Connection failed";
-                }
-            }
-        }
-
-    }
-
     // Enforce Ethernet priority in NetworkManager (autoconnect priority 100, route metric 50, DNS priority 50)
     property Process prioritizeEthernetProc
-
-    prioritizeEthernetProc: Process {
-        id: prioritizeEthernetProc
-
-        command: ["bash", "-c", "nmcli -t -f NAME,TYPE connection show 2>/dev/null | while IFS=: read -r name type; do if [[ \"$type\" == \"802-3-ethernet\" ]]; then nmcli connection modify \"$name\" connection.autoconnect-priority 100 ipv4.route-metric 50 ipv6.route-metric 50 ipv4.dns-priority 50 ipv6.dns-priority 50 2>/dev/null || true; elif [[ \"$type\" == \"802-11-wireless\" ]]; then nmcli connection modify \"$name\" connection.autoconnect-priority 0 ipv4.route-metric 600 ipv6.route-metric 600 ipv4.dns-priority 600 ipv6.dns-priority 600 2>/dev/null || true; fi; done"]
-    }
-
     // 1. Live status & telemetry from qdeck-network-status --verbose
     property Process detailsProc
-
-    detailsProc: Process {
-        id: detailsProc
-
-        command: ["qdeck-network-status", "--verbose"]
-
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: {
-                var lines = String(text || "").split("\n");
-                var kv = {
-                };
-                for (var i = 0; i < lines.length; i++) {
-                    var line = lines[i];
-                    if (!line)
-                        continue;
-
-                    var parts = line.split("\t");
-                    if (parts.length >= 2)
-                        kv[parts[0].trim()] = parts[1].trim();
-
-                }
-                if (kv["type"])
-                    root.connectionType = kv["type"];
-
-                if (kv["iface"])
-                    root.interfaceName = kv["iface"];
-
-                if (kv["ip"])
-                    root.localIp = kv["ip"];
-
-                if (kv["gateway"])
-                    root.gateway = kv["gateway"];
-
-                if (kv["ssid"]) {
-                    root.currentSsid = kv["ssid"];
-                    if (root.connectingSsid === kv["ssid"])
-                        root.connectingSsid = "";
-
-                }
-                if (kv["signal_dbm"]) {
-                    var dbm = parseFloat(kv["signal_dbm"]);
-                    if (!isNaN(dbm))
-                        root.signalStrength = Math.max(10, Math.min(100, Math.round(2 * (dbm + 100))));
-
-                }
-                var rx = parseFloat(kv["rx_bytes"] || "0");
-                var tx = parseFloat(kv["tx_bytes"] || "0");
-                root.rxBytes = rx;
-                root.txBytes = tx;
-                var now = Date.now() / 1000;
-                if (root.prevSampleTime > 0 && now > root.prevSampleTime) {
-                    var dt = now - root.prevSampleTime;
-                    if (dt > 0.5) {
-                        root.downloadRate = Math.max(0, (rx - root.prevRxBytes) / dt);
-                        root.uploadRate = Math.max(0, (tx - root.prevTxBytes) / dt);
-                    }
-                }
-                root.prevRxBytes = rx;
-                root.prevTxBytes = tx;
-                root.prevSampleTime = now;
-                var p = kv["internet_ping_ms"] || kv["router_ping_ms"];
-                if (p) {
-                    var pNum = parseFloat(p);
-                    if (!isNaN(pNum) && pNum >= 0) {
-                        root.pingMs = pNum;
-                        root.packetLoss = 0;
-                    } else {
-                        root.pingMs = -1;
-                        root.packetLoss = 100;
-                    }
-                } else {
-                    root.pingMs = -1;
-                }
-            }
-        }
-
-    }
-
     // 2. DNS Provider query
     property Process dnsProc
-
-    dnsProc: Process {
-        id: dnsProc
-
-        command: ["qdeck-dns"]
-
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: {
-                var out = String(text || "").trim();
-                if (out)
-                    root.dnsProvider = out;
-
-            }
-        }
-
-    }
-
     // 3. QR Code generator
     property Process qrProc
-
-    qrProc: Process {
-        id: qrProc
-
-        command: ["qdeck-network-qr", "--meta"]
-
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: {
-                root.qrLoading = false;
-                var lines = String(text || "").trim().split("\n");
-                if (lines.length > 1) {
-                    var matrix = [];
-                    for (var i = 1; i < lines.length; i++) {
-                        var row = lines[i].trim();
-                        if (row.length > 0)
-                            matrix.push(row);
-
-                    }
-                    root.qrMatrix = matrix;
-                    root.qrSize = matrix.length;
-                    root.qrError = "";
-                } else {
-                    root.qrError = "No active connection to share";
-                }
-            }
-        }
-
-        stderr: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: {
-                var err = String(text || "").trim();
-                if (err && root.qrMatrix.length === 0) {
-                    root.qrError = err;
-                    root.qrLoading = false;
-                }
-            }
-        }
-
-    }
-
     // 4. Wi-Fi Scan & Categorization into Known and Other Networks
     property Process scanProc
-
-    scanProc: Process {
-        id: scanProc
-
-        command: ["bash", "-c", "echo '===SAVED==='; nmcli -t -f NAME,TYPE connection show 2>/dev/null; echo '===WIFI==='; nmcli -t -f active,ssid,signal,security dev wifi 2>/dev/null"]
-
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: {
-                root.scanning = false;
-                var output = String(text || "");
-                var sections = output.split("===WIFI===");
-                var savedSection = sections.length > 0 ? sections[0] : "";
-                var wifiSection = sections.length > 1 ? sections[1] : "";
-                // Extract saved SSIDs
-                var knownSet = {
-                };
-                var savedLines = savedSection.split("\n");
-                for (var i = 0; i < savedLines.length; i++) {
-                    var sLine = savedLines[i].trim();
-                    if (!sLine || sLine === "===SAVED===")
-                        continue;
-
-                    var sParts = sLine.split(":");
-                    if (sParts.length >= 2 && sParts[1].indexOf("802-11-wireless") !== -1)
-                        knownSet[sParts[0]] = true;
-
-                }
-                // Parse active & scanned networks
-                var wifiLines = wifiSection.split("\n");
-                var seen = {
-                };
-                var knownList = [];
-                var otherList = [];
-                var activeFound = false;
-                for (var j = 0; j < wifiLines.length; j++) {
-                    var wLine = wifiLines[j].trim();
-                    if (!wLine)
-                        continue;
-
-                    var wParts = wLine.split(":");
-                    if (wParts.length >= 3) {
-                        var isActive = (wParts[0] === "yes");
-                        var ssid = wParts[1];
-                        var signal = parseInt(wParts[2], 10) || 0;
-                        var security = wParts[3] || "";
-                        if (!ssid || seen[ssid])
-                            continue;
-
-                        seen[ssid] = true;
-                        var isSecured = (security.length > 0 && security.indexOf("--") === -1 && security.toLowerCase().indexOf("open") === -1);
-                        var isKnown = isActive || (knownSet[ssid] === true);
-                        var item = {
-                            "ssid": ssid,
-                            "signal": signal,
-                            "security": security,
-                            "isSecured": isSecured,
-                            "active": isActive
-                        };
-                        if (isActive) {
-                            root.currentSsid = ssid;
-                            root.signalStrength = signal;
-                            activeFound = true;
-                            if (root.connectingSsid === ssid)
-                                root.connectingSsid = "";
-
-                        }
-                        if (isKnown)
-                            knownList.push(item);
-                        else
-                            otherList.push(item);
-                    }
-                }
-                if (!activeFound && root.wifiEnabled && root.currentSsid === "")
-                    root.currentSsid = "";
-
-                // Sort: active first in knownList, then by signal descending
-                knownList.sort(function(a, b) {
-                    if (a.active !== b.active)
-                        return a.active ? -1 : 1;
-
-                    return b.signal - a.signal;
-                });
-                otherList.sort(function(a, b) {
-                    return b.signal - a.signal;
-                });
-                root.knownNetworks = knownList;
-                root.otherNetworks = otherList;
-                root.networks = knownList.concat(otherList);
-            }
-        }
-
-    }
-
     property Timer refreshTimer
-
-    refreshTimer: Timer {
-        id: refreshTimer
-
-        interval: 600
-        repeat: false
-        onTriggered: root.refresh()
-    }
-
     // Passive telemetry background polling (does not execute nmcli dev wifi scans)
     property Timer pollTimer
-
-    pollTimer: Timer {
-        interval: 3500
-        repeat: true
-        running: true
-        onTriggered: root.refresh()
-    }
 
     function wifiIconFor(signal) {
         return Icons.wifiSignal(signal);
@@ -521,8 +194,328 @@ QtObject {
 
     }
 
+    onIsEthernetChanged: root.prioritizeEthernet()
     Component.onCompleted: {
         root.refresh();
         root.prioritizeEthernet();
     }
+
+    connectionErrorTimer: Timer {
+        interval: 4000
+        repeat: false
+        onTriggered: {
+            root.connectionErrorSsid = "";
+            root.connectionErrorMessage = "";
+        }
+    }
+
+    connectTimeoutTimer: Timer {
+        interval: 22000
+        repeat: false
+        onTriggered: {
+            if (root.connectingSsid) {
+                root.connectionErrorSsid = root.connectingSsid;
+                root.connectionErrorMessage = "Timed out";
+                root.connectingSsid = "";
+                connectionErrorTimer.restart();
+                if (connectProc.running)
+                    connectProc.running = false;
+
+                root.refresh();
+                root.scanWifi();
+            }
+        }
+    }
+
+    connectProc: Process {
+        id: connectProc
+
+        onExited: function(exitCode, exitStatus) {
+            connectTimeoutTimer.stop();
+            var targetSsid = root.connectingSsid;
+            root.connectingSsid = "";
+            if (exitCode !== 0) {
+                root.connectionErrorSsid = targetSsid;
+                if (!root.connectionErrorMessage)
+                    root.connectionErrorMessage = "Connection failed";
+
+                connectionErrorTimer.restart();
+            } else {
+                root.connectionErrorSsid = "";
+                root.connectionErrorMessage = "";
+            }
+            root.refresh();
+            root.scanWifi();
+        }
+
+        stdout: StdioCollector {
+            waitForEnd: true
+        }
+
+        stderr: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                var err = String(text || "").trim();
+                if (err.length > 0) {
+                    if (err.indexOf("Secrets were required") !== -1 || err.indexOf("No secret provided") !== -1)
+                        root.connectionErrorMessage = "Wrong password";
+                    else if (err.indexOf("Association took too long") !== -1 || err.indexOf("timed out") !== -1)
+                        root.connectionErrorMessage = "Timeout";
+                    else
+                        root.connectionErrorMessage = "Connection failed";
+                }
+            }
+        }
+
+    }
+
+    prioritizeEthernetProc: Process {
+        id: prioritizeEthernetProc
+
+        command: ["qdeck-prioritize-ethernet"]
+    }
+
+    detailsProc: Process {
+        id: detailsProc
+
+        command: ["qdeck-network-status", "--verbose"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                var lines = String(text || "").split("\n");
+                var kv = {
+                };
+                for (var i = 0; i < lines.length; i++) {
+                    var line = lines[i];
+                    if (!line)
+                        continue;
+
+                    var parts = line.split("\t");
+                    if (parts.length >= 2)
+                        kv[parts[0].trim()] = parts[1].trim();
+
+                }
+                if (kv["type"])
+                    root.connectionType = kv["type"];
+
+                if (kv["iface"])
+                    root.interfaceName = kv["iface"];
+
+                if (kv["ip"])
+                    root.localIp = kv["ip"];
+
+                if (kv["gateway"])
+                    root.gateway = kv["gateway"];
+
+                if (kv["ssid"]) {
+                    root.currentSsid = kv["ssid"];
+                    if (root.connectingSsid === kv["ssid"])
+                        root.connectingSsid = "";
+
+                }
+                if (kv["signal_dbm"]) {
+                    var dbm = parseFloat(kv["signal_dbm"]);
+                    if (!isNaN(dbm))
+                        root.signalStrength = Math.max(10, Math.min(100, Math.round(2 * (dbm + 100))));
+
+                }
+                var rx = parseFloat(kv["rx_bytes"] || "0");
+                var tx = parseFloat(kv["tx_bytes"] || "0");
+                root.rxBytes = rx;
+                root.txBytes = tx;
+                var now = Date.now() / 1000;
+                if (root.prevSampleTime > 0 && now > root.prevSampleTime) {
+                    var dt = now - root.prevSampleTime;
+                    if (dt > 0.5) {
+                        root.downloadRate = Math.max(0, (rx - root.prevRxBytes) / dt);
+                        root.uploadRate = Math.max(0, (tx - root.prevTxBytes) / dt);
+                    }
+                }
+                root.prevRxBytes = rx;
+                root.prevTxBytes = tx;
+                root.prevSampleTime = now;
+                var p = kv["internet_ping_ms"] || kv["router_ping_ms"];
+                if (p) {
+                    var pNum = parseFloat(p);
+                    if (!isNaN(pNum) && pNum >= 0) {
+                        root.pingMs = pNum;
+                        root.packetLoss = 0;
+                    } else {
+                        root.pingMs = -1;
+                        root.packetLoss = 100;
+                    }
+                } else {
+                    root.pingMs = -1;
+                }
+            }
+        }
+
+    }
+
+    dnsProc: Process {
+        id: dnsProc
+
+        command: ["qdeck-dns"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                var out = String(text || "").trim();
+                if (out)
+                    root.dnsProvider = out;
+
+            }
+        }
+
+    }
+
+    qrProc: Process {
+        id: qrProc
+
+        command: ["qdeck-network-qr", "--meta"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                root.qrLoading = false;
+                var lines = String(text || "").trim().split("\n");
+                if (lines.length > 1) {
+                    var matrix = [];
+                    for (var i = 1; i < lines.length; i++) {
+                        var row = lines[i].trim();
+                        if (row.length > 0)
+                            matrix.push(row);
+
+                    }
+                    root.qrMatrix = matrix;
+                    root.qrSize = matrix.length;
+                    root.qrError = "";
+                } else {
+                    root.qrError = "No active connection to share";
+                }
+            }
+        }
+
+        stderr: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                var err = String(text || "").trim();
+                if (err && root.qrMatrix.length === 0) {
+                    root.qrError = err;
+                    root.qrLoading = false;
+                }
+            }
+        }
+
+    }
+
+    scanProc: Process {
+        id: scanProc
+
+        command: ["bash", "-c", "echo '===SAVED==='; nmcli -t -f NAME,TYPE connection show 2>/dev/null; echo '===WIFI==='; nmcli -t -f active,ssid,signal,security dev wifi 2>/dev/null"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                root.scanning = false;
+                var output = String(text || "");
+                var sections = output.split("===WIFI===");
+                var savedSection = sections.length > 0 ? sections[0] : "";
+                var wifiSection = sections.length > 1 ? sections[1] : "";
+                // Extract saved SSIDs
+                var knownSet = {
+                };
+                var savedLines = savedSection.split("\n");
+                for (var i = 0; i < savedLines.length; i++) {
+                    var sLine = savedLines[i].trim();
+                    if (!sLine || sLine === "===SAVED===")
+                        continue;
+
+                    var sParts = sLine.split(":");
+                    if (sParts.length >= 2 && sParts[1].indexOf("802-11-wireless") !== -1)
+                        knownSet[sParts[0]] = true;
+
+                }
+                // Parse active & scanned networks
+                var wifiLines = wifiSection.split("\n");
+                var seen = {
+                };
+                var knownList = [];
+                var otherList = [];
+                var activeFound = false;
+                for (var j = 0; j < wifiLines.length; j++) {
+                    var wLine = wifiLines[j].trim();
+                    if (!wLine)
+                        continue;
+
+                    var wParts = wLine.split(":");
+                    if (wParts.length >= 3) {
+                        var isActive = (wParts[0] === "yes");
+                        var ssid = wParts[1];
+                        var signal = parseInt(wParts[2], 10) || 0;
+                        var security = wParts[3] || "";
+                        if (!ssid || seen[ssid])
+                            continue;
+
+                        seen[ssid] = true;
+                        var isSecured = (security.length > 0 && security.indexOf("--") === -1 && security.toLowerCase().indexOf("open") === -1);
+                        var isKnown = isActive || (knownSet[ssid] === true);
+                        var item = {
+                            "ssid": ssid,
+                            "signal": signal,
+                            "security": security,
+                            "isSecured": isSecured,
+                            "active": isActive
+                        };
+                        if (isActive) {
+                            root.currentSsid = ssid;
+                            root.signalStrength = signal;
+                            activeFound = true;
+                            if (root.connectingSsid === ssid)
+                                root.connectingSsid = "";
+
+                        }
+                        if (isKnown)
+                            knownList.push(item);
+                        else
+                            otherList.push(item);
+                    }
+                }
+                if (!activeFound && root.wifiEnabled && root.currentSsid === "")
+                    root.currentSsid = "";
+
+                // Sort: active first in knownList, then by signal descending
+                knownList.sort(function(a, b) {
+                    if (a.active !== b.active)
+                        return a.active ? -1 : 1;
+
+                    return b.signal - a.signal;
+                });
+                otherList.sort(function(a, b) {
+                    return b.signal - a.signal;
+                });
+                root.knownNetworks = knownList;
+                root.otherNetworks = otherList;
+                root.networks = knownList.concat(otherList);
+            }
+        }
+
+    }
+
+    refreshTimer: Timer {
+        id: refreshTimer
+
+        interval: 600
+        repeat: false
+        onTriggered: root.refresh()
+    }
+
+    pollTimer: Timer {
+        interval: 3500
+        repeat: true
+        running: true
+        onTriggered: root.refresh()
+    }
+
 }
