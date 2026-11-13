@@ -29,17 +29,11 @@ ShellRoot {
     property AuditService auditService
     property ClipboardService clipboardService
     property HardwareService hardwareService
-    readonly property Notifications notificationsService: notifications
     readonly property ClipboardDrawer clipboardDrawer: clipboardDrawerWindow
 
     IpcHandler {
         function toggle() : string {
             Quickshell.execDetached(["qs", "ipc", "call", "barpopups", "toggleControlCenter"]);
-            return "ok";
-        }
-
-        function notifications() : string {
-            Quickshell.execDetached(["qs", "ipc", "call", "barpopups", "toggleNotificationCenter"]);
             return "ok";
         }
 
@@ -159,7 +153,6 @@ ShellRoot {
             powerService: root.powerService
             clipboardDrawer: root.clipboardDrawer
             hardwareService: root.hardwareService
-            notificationsService: root.notificationsService
         }
 
     }

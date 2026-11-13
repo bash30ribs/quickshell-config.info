@@ -18,7 +18,6 @@ PanelWindow {
     required property BluetoothService bluetoothService
     required property PowerService powerService
     required property HardwareService hardwareService
-    required property var notificationsService
     property QtObject clipboardDrawer: null
     property real glideAccum: 0
     property real glideCooldownUntil: 0
@@ -507,10 +506,6 @@ PanelWindow {
                     audioService: root.audioService
                 }
 
-                ActiveWindowPill {
-                    id: activeWindowPill
-                }
-
             }
 
             // Center section: date and clock
@@ -571,11 +566,6 @@ PanelWindow {
                     id: controlCenterWidget
 
                     hardwareService: root.hardwareService
-                    notificationsService: root.notificationsService
-                    audioService: root.audioService
-                    brightnessService: root.brightnessService
-                    networkService: root.networkService
-                    bluetoothService: root.bluetoothService
                     powerService: root.powerService
                 }
 
@@ -732,14 +722,6 @@ PanelWindow {
         function toggleControlCenter() : string {
             if (controlCenterWidget) {
                 controlCenterWidget.toggle();
-                return "ok";
-            }
-            return "none";
-        }
-
-        function toggleNotificationCenter() : string {
-            if (controlCenterWidget) {
-                controlCenterWidget.openTab("notifications");
                 return "ok";
             }
             return "none";

@@ -5,15 +5,13 @@ import Quickshell.Io
 QtObject {
     id: root
 
-    // Live Telemetry
+    // Live Resource Telemetry
     property real cpuPercent: 0
     property real ramPercent: 0
     property string ramUsedGb: "0.0"
     property string ramTotalGb: "0.0"
     property int tempCelsius: 40
-    // Quick Setting States
-    property bool micMuted: false
-    property bool nightLight: false
+    // System Optimization Profile (powerprofilesctl)
     property string powerProfile: "balanced"
     // Internal delta tracking for CPU calculation
     property real _lastIdle: 0
@@ -24,8 +22,7 @@ QtObject {
     telemetryProc: Process {
         id: telemetryProc
 
-        // Single fast subshell reading cpu, memory, temp, mic mute, and power profile in parallel
-        command: ["sh", "-c", "head -n 1 /proc/stat; " + "grep -E 'MemTotal|MemAvailable' /proc/meminfo; " + "cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 0; " + "wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null || echo ''; " + "powerprofilesctl get 2>/dev/null || echo 'balanced'"]
+        command: ["sh", "-c", "head -n 1 /proc/stat; " + "grep -E 'MemTotal|MemAvailable' /proc/meminfo; " + "cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 0; " + "powerprofilesctl get 2>/dev/null || echo 'balanced'"]
 
         stdout: StdioCollector {
             waitForEnd: true
@@ -34,7 +31,7 @@ QtObject {
                 if (lines.length < 3)
                     return ;
 
-                // 1. CPU line: cpu  user nice system idle iowait irq softirq steal guest guest_nice
+                // 1. CPU line
                 var cpuParts = lines[0].trim().split(/\s+/);
                 if (cpuParts[0] === "cpu" && cpuParts.length >= 5) {
                     var user = parseFloat(cpuParts[1]) || 0;
@@ -60,7 +57,7 @@ QtObject {
                     root._lastTotal = total;
                     root._lastIdle = idleTime;
                 }
-                // 2. RAM parsing
+                // 2. RAM line
                 var memTotalKb = 0;
                 var memAvailableKb = 0;
                 var nextIdx = 1;
@@ -78,19 +75,13 @@ QtObject {
                     root.ramUsedGb = (usedKb / 1.04858e+06).toFixed(1);
                     root.ramTotalGb = (memTotalKb / 1.04858e+06).toFixed(1);
                 }
-                // 3. Temp line
+                // 3. Temperature line
                 if (nextIdx < lines.length) {
                     var rawTemp = parseInt(lines[nextIdx].trim(), 10) || 0;
                     root.tempCelsius = rawTemp > 1000 ? Math.round(rawTemp / 1000) : rawTemp;
                     nextIdx++;
                 }
-                // 4. Mic line
-                if (nextIdx < lines.length) {
-                    var micStr = lines[nextIdx];
-                    root.micMuted = micStr.indexOf("[MUTED]") !== -1;
-                    nextIdx++;
-                }
-                // 5. Power profile line
+                // 4. Power profile line
                 if (nextIdx < lines.length) {
                     var prof = lines[nextIdx].trim();
                     if (prof)
@@ -127,16 +118,10 @@ QtObject {
 
     }
 
-    function toggleMicMute() {
-        Quickshell.execDetached(["wpctl", "set-mute", "@DEFAULT_AUDIO_SOURCE@", "toggle"]);
+    function setPowerProfile(profile) {
+        root.powerProfile = profile;
+        Quickshell.execDetached(["powerprofilesctl", "set", profile]);
         refreshTimer.restart();
-    }
-
-    function toggleNightLight() {
-        root.nightLight = !root.nightLight;
-        var shaderPath = root.nightLight ? (Quickshell.env("HOME") + "/.config/quickshell/effects/nightlight.frag") : "";
-        var cmd = "hl.config({ decoration = { screen_shader = \"" + shaderPath + "\" } })";
-        Quickshell.execDetached(["hyprctl", "eval", cmd]);
     }
 
     function cyclePowerProfile() {
@@ -147,8 +132,7 @@ QtObject {
             next = "power-saver";
         else
             next = "balanced";
-        root.powerProfile = next;
-        Quickshell.execDetached(["powerprofilesctl", "set", next]);
+        root.setPowerProfile(next);
     }
 
     Component.onCompleted: root.refresh()
