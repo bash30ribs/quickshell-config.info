@@ -51,7 +51,7 @@ Item {
     }
 
     function formatDayTime(d) {
-        var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        var days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         return days[d.getDay()] + " " + formatTime(d);
     }
 
@@ -86,7 +86,7 @@ Item {
         icon: ""
         text: root.formatDayTime(root.now)
         active: clockPopup.open
-        customPadding: 10
+        customPadding: 6
         textSize: Fonts.sizeRegular
         onClicked: {
             clockPopup.toggle();

@@ -15,7 +15,7 @@ Item {
     readonly property string trackTitle: root.controller ? (root.controller.title || root.controller.artist || "Music") : ""
     readonly property bool isVertical: Appearance.barIsVertical
 
-    implicitHeight: root.isVertical ? (hasMedia ? 54 : 0) : Appearance.mediaPillHeight
+    implicitHeight: root.isVertical ? (hasMedia ? 54 : 0) : (hasMedia ? Appearance.mediaPillHeight : 0)
     implicitWidth: root.isVertical ? (hasMedia ? Math.max(Appearance.mediaPillHeight, Appearance.barThickness - 10) : 0) : (hasMedia ? Math.min(220, Math.max(130, titleMeasure.implicitWidth + 82)) : 0)
     height: implicitHeight
     width: implicitWidth
