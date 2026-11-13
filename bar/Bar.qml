@@ -181,12 +181,12 @@ PanelWindow {
         right: root.isVertical ? Appearance.barIsRight : root.hasSideAnchors
     }
 
-    // Outer screen margins for floating appearance (docked edge sits flush at 0)
+    // Outer screen margins for floating appearance (docked and inward edges sit flush at 0)
     margins {
-        left: (root.isVertical && Appearance.barIsLeft) ? 0 : Appearance.barMarginHorizontal
-        right: (root.isVertical && Appearance.barIsRight) ? 0 : Appearance.barMarginHorizontal
-        top: (root.isHorizontal && Appearance.barIsTop) ? 0 : Appearance.barMarginHorizontal
-        bottom: (root.isHorizontal && Appearance.barIsBottom) ? 0 : Appearance.barMarginHorizontal
+        left: root.isVertical ? 0 : (root.hasSideAnchors ? Appearance.barMarginHorizontal : 0)
+        right: root.isVertical ? 0 : (root.hasSideAnchors ? Appearance.barMarginHorizontal : 0)
+        top: root.isHorizontal ? 0 : (root.hasSideAnchors ? Appearance.barMarginHorizontal : 0)
+        bottom: root.isHorizontal ? 0 : (root.hasSideAnchors ? Appearance.barMarginHorizontal : 0)
     }
 
     Connections {
