@@ -79,18 +79,18 @@ QtObject {
     property int networkIconSize: root.barIconSize
     property int monitorIconSize: root.barIconSize
     // Hyprland Workspaces Indicator Controls - adaptively scaled with global text size
-    property int workspacesPaddingHorizontal: Math.max(2, Math.round(Fonts.baseTextSize * (3 / 12)))
-    property int workspacesPaddingVertical: Math.max(2, Math.round(Fonts.baseTextSize * (2 / 12)))
+    property int workspacesPaddingHorizontal: Math.max(2, Math.round(Fonts.baseTextSize * (4 / 12)))
+    property int workspacesPaddingVertical: Math.max(2, Math.round(Fonts.baseTextSize * (3 / 12)))
     property int workspacesMargin: 0
-    property int workspacesSpacing: Math.max(2, Math.round(Fonts.baseTextSize * (3 / 12)))
-    property int workspacesDotSize: Math.max(4, Math.round(Fonts.baseTextSize * (6 / 12)))
-    property int workspacesStarSize: Math.max(8, Math.round(Fonts.baseTextSize * (12 / 12)))
+    property int workspacesSpacing: Math.max(2, Math.round(Fonts.baseTextSize * (4 / 12)))
+    property int workspacesDotSize: Math.max(4, Math.round(Fonts.baseTextSize * (7 / 12)))
+    property int workspacesStarSize: Math.max(8, Math.round(Fonts.baseTextSize * (14 / 12)))
     property int workspacesIconSize: root.workspacesStarSize
-    property int workspacesInactiveIconSize: Math.max(6, Math.round(Fonts.baseTextSize * (10 / 12)))
+    property int workspacesInactiveIconSize: Math.max(6, Math.round(Fonts.baseTextSize * (11 / 12)))
     property int workspacesIconOffsetX: 0
     property int workspacesIconOffsetY: 0
-    property int workspacesCapsuleWidth: Math.max(10, Math.round(Fonts.baseTextSize * (12 / 12)))
-    property int workspacesActiveCapsuleWidth: Math.max(20, Math.round(Fonts.baseTextSize * (24 / 12)))
+    property int workspacesCapsuleWidth: Math.max(16, Math.round(Fonts.baseTextSize * (24 / 12)))
+    property int workspacesActiveCapsuleWidth: Math.max(30, Math.round(Fonts.baseTextSize * (46 / 12)))
     // =========================================================================
     // Corner Radii
     // =========================================================================
@@ -134,7 +134,7 @@ QtObject {
     // Button & Control Dimensions
     // =========================================================================
     property int buttonHeight: 32
-    property int buttonPadding: 5
+    property int buttonPadding: 8
     // =========================================================================
     // Sliders
     // =========================================================================

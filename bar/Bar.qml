@@ -38,9 +38,7 @@ PanelWindow {
     readonly property bool isHorizontal: !root.isVertical
     readonly property real screenWidth: root.screen ? root.screen.width : 1920
     readonly property real screenHeight: root.screen ? root.screen.height : 1200
-    readonly property int compactSpacing: 6
-    readonly property int compactMargin: 8
-    readonly property real totalContentWidth: root.isVertical ? (leftSection.height + clockWidget.height + rightSection.height + (root.isCompact ? (root.compactSpacing * 2) : (Appearance.barSectionSpacing * 4))) : (leftSection.width + clockWidget.width + rightSection.width + (root.isCompact ? (root.compactSpacing * 2) : (Appearance.barSectionSpacing * 4)))
+    readonly property real totalContentWidth: root.isVertical ? (leftSection.height + clockWidget.height + rightSection.height + (Appearance.barSectionSpacing * 4)) : (leftSection.width + clockWidget.width + rightSection.width + (Appearance.barSectionSpacing * 4))
     // Synchronized 2-phase edge-drop & show/hide choreography state
     property string pendingEdge: Appearance.barEdge
     property real edgeProgress: 1
@@ -167,8 +165,8 @@ PanelWindow {
     }
 
     visible: root.isVisibleSurface
-    implicitHeight: root.isHorizontal ? Appearance.barHeight : (root.isCompact ? Math.round(root.totalContentWidth + (root.compactMargin * 2)) : (root.isWide ? Math.round(root.screenHeight * 0.72) : Math.round(root.screenHeight - (Appearance.barMarginHorizontal * 2))))
-    implicitWidth: root.isVertical ? Appearance.barThickness : (root.isCompact ? Math.round(root.totalContentWidth + (root.compactMargin * 2)) : (root.isWide ? Math.round(root.screenWidth * 0.72) : Math.round(root.screenWidth - (Appearance.barMarginHorizontal * 2))))
+    implicitHeight: root.isHorizontal ? Appearance.barHeight : (root.isCompact ? Math.round(root.totalContentWidth + (Appearance.barMarginHorizontal * 2)) : (root.isWide ? Math.round(root.screenHeight * 0.72) : Math.round(root.screenHeight - (Appearance.barMarginHorizontal * 2))))
+    implicitWidth: root.isVertical ? Appearance.barThickness : (root.isCompact ? Math.round(root.totalContentWidth + (Appearance.barMarginHorizontal * 2)) : (root.isWide ? Math.round(root.screenWidth * 0.72) : Math.round(root.screenWidth - (Appearance.barMarginHorizontal * 2))))
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "quickshell-bar"
@@ -497,8 +495,8 @@ PanelWindow {
                 verticalItemAlignment: Grid.AlignVCenter
                 width: implicitWidth
                 height: implicitHeight
-                x: root.isVertical ? Math.round((barContainer.width - width) / 2) : (root.isCompact ? root.compactMargin : Appearance.barMarginHorizontal)
-                y: root.isVertical ? (root.isCompact ? root.compactMargin : Appearance.barMarginHorizontal) : Math.round((barContainer.height - height) / 2)
+                x: root.isVertical ? Math.round((barContainer.width - width) / 2) : (root.isCompact ? Math.round((barContainer.width - root.totalContentWidth) / 2) : Appearance.barMarginHorizontal)
+                y: root.isVertical ? (root.isCompact ? Math.round((barContainer.height - root.totalContentWidth) / 2) : Appearance.barMarginHorizontal) : Math.round((barContainer.height - height) / 2)
 
                 WorkspacesWidget {
                     service: root.workspacesService
@@ -514,8 +512,8 @@ PanelWindow {
             ClockWidget {
                 id: clockWidget
 
-                x: root.isVertical ? Math.round((barContainer.width - width) / 2) : (root.isCompact ? (leftSection.x + leftSection.width + root.compactSpacing) : Math.round((barContainer.width - width) / 2))
-                y: root.isVertical ? (root.isCompact ? (leftSection.y + leftSection.height + root.compactSpacing) : Math.round((barContainer.height - height) / 2)) : Math.round((barContainer.height - height) / 2)
+                x: root.isVertical ? Math.round((barContainer.width - width) / 2) : (root.isCompact ? (leftSection.x + leftSection.width + (Appearance.barSectionSpacing * 2)) : Math.round((barContainer.width - width) / 2))
+                y: root.isVertical ? (root.isCompact ? (leftSection.y + leftSection.height + (Appearance.barSectionSpacing * 2)) : Math.round((barContainer.height - height) / 2)) : Math.round((barContainer.height - height) / 2)
                 powerService: root.powerService
             }
 
@@ -530,8 +528,8 @@ PanelWindow {
                 verticalItemAlignment: Grid.AlignVCenter
                 width: implicitWidth
                 height: implicitHeight
-                x: root.isVertical ? Math.round((barContainer.width - width) / 2) : (root.isCompact ? (clockWidget.x + clockWidget.width + root.compactSpacing) : Math.round(barContainer.width - width - Appearance.barMarginHorizontal))
-                y: root.isVertical ? (root.isCompact ? (clockWidget.y + clockWidget.height + root.compactSpacing) : Math.round(barContainer.height - height - Appearance.barMarginHorizontal)) : Math.round((barContainer.height - height) / 2)
+                x: root.isVertical ? Math.round((barContainer.width - width) / 2) : (root.isCompact ? (clockWidget.x + clockWidget.width + (Appearance.barSectionSpacing * 2)) : Math.round(barContainer.width - width - Appearance.barMarginHorizontal))
+                y: root.isVertical ? (root.isCompact ? (clockWidget.y + clockWidget.height + (Appearance.barSectionSpacing * 2)) : Math.round(barContainer.height - height - Appearance.barMarginHorizontal)) : Math.round((barContainer.height - height) / 2)
 
                 BluetoothWidget {
                     id: bluetoothWidget
