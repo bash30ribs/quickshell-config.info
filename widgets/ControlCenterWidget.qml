@@ -5,38 +5,68 @@ import QtQuick
 import QtQuick.Layouts
 
 Item {
-    // Electric Cyan
-    // Cyber Mint
-
     id: root
 
     required property HardwareService hardwareService
     required property PowerService powerService
     property int iconSize: Appearance.barIconSize
-    // High-vibrancy dynamic temperature palette
+    // ── btop / Arch Linux Color Tokens ─────────────────────────────────────────
+    readonly property color btopBg: "#1e2326"
+    readonly property color btopBoxBg: "#232a2e"
+    readonly property color btopBorder: "#3d484d"
+    readonly property color btopFg: "#d3c6aa"
+    readonly property color btopMuted: "#9da9a0"
+    readonly property color btopArchTeal: "#7fbbb3"
+    readonly property color btopSage: "#a7c080"
+    readonly property color btopAmber: "#dbbc7f"
+    readonly property color btopRed: "#f85552"
+    // Dynamic CPU palette (btop cpu meter)
+    readonly property color cpuStartColor: {
+        var c = root.hardwareService.cpuPercent;
+        if (c > 75)
+            return btopAmber;
+
+        return btopSage;
+    }
+    readonly property color cpuEndColor: {
+        var c = root.hardwareService.cpuPercent;
+        if (c > 75)
+            return btopRed;
+
+        if (c > 40)
+            return btopAmber;
+
+        return btopSage;
+    }
+    // Dynamic RAM palette (btop memory meter)
+    readonly property color ramStartColor: btopArchTeal
+    readonly property color ramEndColor: {
+        var r = root.hardwareService.ramPercent;
+        if (r > 80)
+            return btopRed;
+
+        if (r > 60)
+            return btopAmber;
+
+        return "#83c092";
+    }
+    // Dynamic Temperature palette (btop temp graph)
     readonly property color tempStartColor: {
         var t = root.hardwareService.tempCelsius;
-        if (t > 68)
-            return "#FF0055";
+        if (t > 72)
+            return btopAmber;
 
-        // Hyper Crimson
-        if (t > 52)
-            return "#FFB703";
-
-        // Vivid Sunfire Amber
-        return "#00F0FF";
+        return btopSage;
     }
     readonly property color tempEndColor: {
         var t = root.hardwareService.tempCelsius;
-        if (t > 68)
-            return "#FF5500";
+        if (t > 72)
+            return btopRed;
 
-        // Solar Flare
-        if (t > 52)
-            return "#FF3366";
+        if (t > 54)
+            return btopAmber;
 
-        // Neon Sunset Coral
-        return "#00F5A0";
+        return btopSage;
     }
 
     function toggle() {
@@ -60,15 +90,15 @@ Item {
         accentActive: root.hardwareService.powerProfile === "performance"
         customColor: {
             if (usagePopup.open)
-                return "#00F0FF";
+                return root.btopArchTeal;
 
             if (root.hardwareService.powerProfile === "performance")
-                return "#FF3366";
+                return root.btopRed;
 
             if (root.hardwareService.powerProfile === "power-saver")
-                return "#00F5A0";
+                return root.btopSage;
 
-            return Theme.bright_foreground;
+            return root.btopFg;
         }
         onClicked: {
             root.toggle();
@@ -80,112 +110,102 @@ Item {
 
         anchorItem: usageButton
         showDefaultHeader: false
-        contentWidth: 360
+        contentWidth: 350
         contentHeight: mainCol.implicitHeight + 24
 
         Column {
             id: mainCol
 
             anchors.fill: parent
-            spacing: 14
+            spacing: 12
 
-            // ── 1. Top Header & Active Status Capsule ─────────────────────────
+            // ── 1. Terminal Header ────────────────────────────────────────────
             Item {
                 width: parent.width
-                height: 38
+                height: 34
 
                 Row {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
-                    spacing: 10
+                    spacing: 8
 
-                    // Glowing icon circle
+                    // Terminal prompt icon
                     Rectangle {
-                        width: 32
-                        height: 32
-                        radius: 16
-                        color: Theme.withAlpha("#00F0FF", 0.16)
-                        border.color: Theme.withAlpha("#00F0FF", 0.5)
+                        width: 28
+                        height: 28
+                        radius: 6
+                        color: root.btopBoxBg
+                        border.color: root.btopBorder
                         border.width: 1
                         anchors.verticalCenter: parent.verticalCenter
 
                         Text {
                             anchors.centerIn: parent
-                            text: Icons.useMaterialSymbols ? "speed" : "󰓅"
+                            text: Icons.useMaterialSymbols ? "terminal" : "󰆍"
                             font.family: Icons.effectiveFont(text)
-                            font.pixelSize: Fonts.scale(16)
-                            color: "#00F0FF"
+                            font.pixelSize: Fonts.scale(14)
+                            color: root.btopArchTeal
                         }
 
                     }
 
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 2
+                        spacing: 1
 
                         Text {
-                            text: "System Resources"
-                            font.family: Fonts.uiFont
-                            font.pixelSize: Fonts.scale(14)
+                            text: "SYS::TELEMETRY"
+                            font.family: Fonts.monoFont
+                            font.pixelSize: Fonts.scale(12)
                             font.bold: true
-                            color: Theme.bright_foreground
+                            color: root.btopFg
                         }
 
                         Text {
-                            text: root.powerService.uptime ? ("Uptime: " + root.powerService.uptime) : "Real-time Telemetry"
-                            font.family: Fonts.uiFont
-                            font.pixelSize: Fonts.scale(10)
-                            color: Theme.glassLabel
+                            text: root.powerService.uptime ? ("uptime: " + root.powerService.uptime) : "btop core monitor"
+                            font.family: Fonts.monoFont
+                            font.pixelSize: Fonts.scale(9.5)
+                            color: root.btopMuted
                         }
 
                     }
 
                 }
 
-                // Profile Badge Capsule
+                // Profile Indicator Capsule
                 Rectangle {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    width: profileLabel.implicitWidth + 22
-                    height: 26
-                    radius: 13
-                    color: {
-                        if (root.hardwareService.powerProfile === "performance")
-                            return Theme.withAlpha("#FF3366", 0.25);
-
-                        if (root.hardwareService.powerProfile === "power-saver")
-                            return Theme.withAlpha("#00F5A0", 0.25);
-
-                        return Theme.withAlpha("#00F0FF", 0.22);
-                    }
+                    width: profileLabel.implicitWidth + 18
+                    height: 24
+                    radius: 4
+                    color: root.btopBoxBg
                     border.color: {
                         if (root.hardwareService.powerProfile === "performance")
-                            return "#FF3366";
+                            return root.btopRed;
 
                         if (root.hardwareService.powerProfile === "power-saver")
-                            return "#00F5A0";
+                            return root.btopSage;
 
-                        return "#00F0FF";
+                        return root.btopArchTeal;
                     }
                     border.width: 1
 
                     Row {
                         anchors.centerIn: parent
-                        spacing: 6
+                        spacing: 5
 
-                        Rectangle {
-                            width: 6
-                            height: 6
-                            radius: 3
-                            anchors.verticalCenter: parent.verticalCenter
+                        Text {
+                            text: "●"
+                            font.pixelSize: Fonts.scale(8)
                             color: {
                                 if (root.hardwareService.powerProfile === "performance")
-                                    return "#FF3366";
+                                    return root.btopRed;
 
                                 if (root.hardwareService.powerProfile === "power-saver")
-                                    return "#00F5A0";
+                                    return root.btopSage;
 
-                                return "#00F0FF";
+                                return root.btopArchTeal;
                             }
                         }
 
@@ -193,24 +213,10 @@ Item {
                             id: profileLabel
 
                             text: root.hardwareService.powerProfile.toUpperCase()
-                            font.family: Fonts.uiFont
-                            font.pixelSize: Fonts.scale(9.5)
+                            font.family: Fonts.monoFont
+                            font.pixelSize: Fonts.scale(9)
                             font.bold: true
-                            color: "#FFFFFF"
-                        }
-
-                    }
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: 200
-                        }
-
-                    }
-
-                    Behavior on border.color {
-                        ColorAnimation {
-                            duration: 200
+                            color: root.btopFg
                         }
 
                     }
@@ -219,116 +225,78 @@ Item {
 
             }
 
-            // ── 2. Real-Time Resource Telemetry Surface ───────────────────────
+            // ── 2. Real-Time Resource Telemetry Box ───────────────────────────
             Rectangle {
                 width: parent.width
-                height: 168
-                radius: 18
+                height: 160
+                radius: 8
                 antialiasing: true
-                color: Theme.withAlpha("#0A0E1A", 0.85)
-                border.color: Theme.withAlpha("#00F0FF", 0.3)
+                color: root.btopBoxBg
+                border.color: root.btopBorder
                 border.width: 1
-
-                // Multi-tone top specular rim glow
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: 1
-                    height: 1.5
-                    radius: parent.radius
-                    color: Theme.withAlpha("#FFFFFF", 0.5)
-                }
 
                 Column {
                     anchors.fill: parent
-                    anchors.margins: 12
-                    spacing: 11
+                    anchors.margins: 10
+                    spacing: 10
 
-                    // Section Title Row
+                    // Box Section Title
                     Item {
                         width: parent.width
                         height: 14
 
-                        Row {
+                        Text {
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
-                            spacing: 6
-
-                            Rectangle {
-                                width: 6
-                                height: 6
-                                radius: 3
-                                color: "#00F0FF"
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            Text {
-                                text: "LIVE TELEMETRY"
-                                font.family: Fonts.uiFont
-                                font.pixelSize: Fonts.scale(9)
-                                font.bold: true
-                                color: "#00F0FF"
-                            }
-
+                            text: "┌─ [ METRICS ]"
+                            font.family: Fonts.monoFont
+                            font.pixelSize: Fonts.scale(9.5)
+                            font.bold: true
+                            color: root.btopArchTeal
                         }
 
-                        // Memory stats pill
-                        Rectangle {
+                        Text {
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            width: ramText.implicitWidth + 12
-                            height: 18
-                            radius: 9
-                            color: Theme.withAlpha("#00F5A0", 0.16)
-                            border.color: Theme.withAlpha("#00F5A0", 0.35)
-                            border.width: 1
-
-                            Text {
-                                id: ramText
-
-                                anchors.centerIn: parent
-                                text: root.hardwareService.ramUsedGb + " GB / " + root.hardwareService.ramTotalGb + " GB"
-                                font.family: Fonts.monoFont
-                                font.pixelSize: Fonts.scale(9.5)
-                                font.bold: true
-                                color: "#00F5A0"
-                            }
-
+                            text: root.hardwareService.ramUsedGb + " GiB / " + root.hardwareService.ramTotalGb + " GiB"
+                            font.family: Fonts.monoFont
+                            font.pixelSize: Fonts.scale(9)
+                            font.bold: true
+                            color: root.btopMuted
                         }
 
                     }
 
-                    // 3 Radiant High-Tech Gauges
+                    // 3 Precision Telemetry Gauges
                     Row {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        spacing: 20
+                        spacing: 18
 
-                        // CPU Gauge: Electric Hyper Cyan -> Vivid Neon Violet
+                        // CPU Gauge (Sage -> Amber -> Red)
                         GlassCircularGauge {
                             value: root.hardwareService.cpuPercent
                             maxValue: 100
                             label: "CPU"
                             unit: "%"
-                            accentColor: "#00F0FF"
-                            gradientEndColor: "#B026FF"
-                            gaugeSize: 92
-                            strokeWidth: 7
+                            accentColor: root.cpuStartColor
+                            gradientEndColor: root.cpuEndColor
+                            gaugeSize: 86
+                            strokeWidth: 5
                         }
 
-                        // RAM Gauge: Cyber Spring Mint -> Electric Turquoise
+                        // RAM Gauge (Arch Teal -> Aqua)
                         GlassCircularGauge {
                             value: root.hardwareService.ramPercent
                             maxValue: 100
-                            label: "RAM"
+                            label: "MEM"
                             unit: "%"
-                            accentColor: "#00F5A0"
-                            gradientEndColor: "#00D9F5"
-                            gaugeSize: 92
-                            strokeWidth: 7
+                            accentColor: root.ramStartColor
+                            gradientEndColor: root.ramEndColor
+                            gaugeSize: 86
+                            strokeWidth: 5
                         }
 
-                        // Temperature Gauge: Dynamic Sunfire Embers
+                        // Temperature Gauge (btop thermal progression)
                         GlassCircularGauge {
                             value: root.hardwareService.tempCelsius
                             maxValue: 100
@@ -336,49 +304,40 @@ Item {
                             unit: "°"
                             accentColor: root.tempStartColor
                             gradientEndColor: root.tempEndColor
-                            gaugeSize: 92
-                            strokeWidth: 7
+                            gaugeSize: 86
+                            strokeWidth: 5
                         }
 
                     }
 
-                    // Micro Memory Track with Radiant Progress Bar
+                    // Precision Memory Bar
                     Item {
                         width: parent.width
-                        height: 7
+                        height: 6
 
-                        // Background Groove
+                        // Recessed Track
                         Rectangle {
                             anchors.fill: parent
-                            radius: 3.5
-                            color: Theme.withAlpha("#00F5A0", 0.12)
-                            border.color: Theme.withAlpha("#00F5A0", 0.22)
+                            radius: 2
+                            color: "#1e2326"
+                            border.color: root.btopBorder
                             border.width: 1
                         }
 
-                        // Active Neon Fill
+                        // Memory Fill (Arch Teal)
                         Rectangle {
                             anchors.left: parent.left
                             anchors.top: parent.top
                             anchors.bottom: parent.bottom
-                            width: Math.max(0, Math.min(parent.width, parent.width * (root.hardwareService.ramPercent / 100)))
-                            radius: 3.5
-                            color: "#00F5A0"
+                            anchors.margins: 1
+                            width: Math.max(0, Math.min(parent.width - 2, (parent.width - 2) * (root.hardwareService.ramPercent / 100)))
+                            radius: 1
+                            color: root.btopArchTeal
                             antialiasing: true
-
-                            // Specular gloss shine on bar
-                            Rectangle {
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.top: parent.top
-                                height: 2
-                                radius: 1
-                                color: Theme.withAlpha("#FFFFFF", 0.5)
-                            }
 
                             Behavior on width {
                                 NumberAnimation {
-                                    duration: 400
+                                    duration: 350
                                     easing.type: Easing.OutCubic
                                 }
 
@@ -392,236 +351,224 @@ Item {
 
             }
 
-            // ── 3. Energy & Performance Profiles ──────────────────────────────
-            Column {
+            // ── 3. Energy & Power Governor Box ────────────────────────────────
+            Rectangle {
                 width: parent.width
-                spacing: 8
+                height: 76
+                radius: 8
+                antialiasing: true
+                color: root.btopBoxBg
+                border.color: root.btopBorder
+                border.width: 1
 
-                Item {
-                    width: parent.width
-                    height: 14
-
-                    Row {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 6
-
-                        Rectangle {
-                            width: 6
-                            height: 6
-                            radius: 3
-                            color: "#00F5A0"
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        Text {
-                            text: "ENERGY & PERFORMANCE PROFILES"
-                            font.family: Fonts.uiFont
-                            font.pixelSize: Fonts.scale(9)
-                            font.bold: true
-                            color: Theme.bright_foreground
-                        }
-
-                    }
-
-                }
-
-                Row {
-                    width: parent.width
+                Column {
+                    anchors.fill: parent
+                    anchors.margins: 10
                     spacing: 8
 
-                    // ── Power Saver Button (Neon Emerald) ──
-                    Rectangle {
-                        width: (parent.width - 16) / 3
-                        height: 40
-                        radius: 12
-                        color: root.hardwareService.powerProfile === "power-saver" ? Theme.withAlpha("#00F5A0", 0.25) : (psMouse.containsMouse ? Theme.withAlpha("#00F5A0", 0.14) : Theme.withAlpha("#0A0E1A", 0.7))
-                        border.color: root.hardwareService.powerProfile === "power-saver" ? "#00F5A0" : (psMouse.containsMouse ? Theme.withAlpha("#00F5A0", 0.5) : Theme.withAlpha(Theme.glassBorderColor, 0.25))
-                        border.width: root.hardwareService.powerProfile === "power-saver" ? 1.5 : 1
-                        scale: psMouse.pressed ? 0.96 : (psMouse.containsMouse ? 1.025 : 1)
-
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: 6
-
-                            Text {
-                                text: Icons.useMaterialSymbols ? "eco" : "󰌪"
-                                font.family: Icons.effectiveFont(text)
-                                font.pixelSize: Fonts.scale(14)
-                                color: root.hardwareService.powerProfile === "power-saver" ? "#00F5A0" : Theme.foreground
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            Text {
-                                text: "Saver"
-                                font.family: Fonts.uiFont
-                                font.pixelSize: Fonts.scale(11)
-                                font.bold: root.hardwareService.powerProfile === "power-saver"
-                                color: root.hardwareService.powerProfile === "power-saver" ? "#FFFFFF" : Theme.foreground
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                        }
-
-                        MouseArea {
-                            id: psMouse
-
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.hardwareService.setPowerProfile("power-saver")
-                        }
-
-                        Behavior on scale {
-                            NumberAnimation {
-                                duration: 140
-                                easing.type: Easing.OutQuad
-                            }
-
-                        }
-
-                        Behavior on color {
-                            ColorAnimation {
-                                duration: 160
-                            }
-
-                        }
-
-                        Behavior on border.color {
-                            ColorAnimation {
-                                duration: 160
-                            }
-
-                        }
-
+                    Text {
+                        text: "┌─ [ POWER GOVERNOR ]"
+                        font.family: Fonts.monoFont
+                        font.pixelSize: Fonts.scale(9.5)
+                        font.bold: true
+                        color: root.btopSage
                     }
 
-                    // ── Balanced Button (Electric Cyan) ──
-                    Rectangle {
-                        width: (parent.width - 16) / 3
-                        height: 40
-                        radius: 12
-                        color: root.hardwareService.powerProfile === "balanced" ? Theme.withAlpha("#00F0FF", 0.25) : (balMouse.containsMouse ? Theme.withAlpha("#00F0FF", 0.14) : Theme.withAlpha("#0A0E1A", 0.7))
-                        border.color: root.hardwareService.powerProfile === "balanced" ? "#00F0FF" : (balMouse.containsMouse ? Theme.withAlpha("#00F0FF", 0.5) : Theme.withAlpha(Theme.glassBorderColor, 0.25))
-                        border.width: root.hardwareService.powerProfile === "balanced" ? 1.5 : 1
-                        scale: balMouse.pressed ? 0.96 : (balMouse.containsMouse ? 1.025 : 1)
+                    Row {
+                        width: parent.width
+                        spacing: 8
 
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: 6
+                        // ── Power Saver Button ──
+                        Rectangle {
+                            width: (parent.width - 16) / 3
+                            height: 32
+                            radius: 4
+                            color: root.hardwareService.powerProfile === "power-saver" ? "#2d353b" : "#1e2326"
+                            border.color: root.hardwareService.powerProfile === "power-saver" ? root.btopSage : root.btopBorder
+                            border.width: 1
+                            scale: psMouse.pressed ? 0.97 : (psMouse.containsMouse ? 1.02 : 1)
 
-                            Text {
-                                text: Icons.useMaterialSymbols ? "balance" : "󰈐"
-                                font.family: Icons.effectiveFont(text)
-                                font.pixelSize: Fonts.scale(14)
-                                color: root.hardwareService.powerProfile === "balanced" ? "#00F0FF" : Theme.foreground
-                                anchors.verticalCenter: parent.verticalCenter
+                            Row {
+                                anchors.centerIn: parent
+                                spacing: 5
+
+                                Text {
+                                    text: Icons.useMaterialSymbols ? "eco" : "󰌪"
+                                    font.family: Icons.effectiveFont(text)
+                                    font.pixelSize: Fonts.scale(12)
+                                    color: root.hardwareService.powerProfile === "power-saver" ? root.btopSage : root.btopMuted
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                                Text {
+                                    text: "saver"
+                                    font.family: Fonts.monoFont
+                                    font.pixelSize: Fonts.scale(10)
+                                    font.bold: root.hardwareService.powerProfile === "power-saver"
+                                    color: root.hardwareService.powerProfile === "power-saver" ? root.btopFg : root.btopMuted
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
                             }
 
-                            Text {
-                                text: "Balanced"
-                                font.family: Fonts.uiFont
-                                font.pixelSize: Fonts.scale(11)
-                                font.bold: root.hardwareService.powerProfile === "balanced"
-                                color: root.hardwareService.powerProfile === "balanced" ? "#FFFFFF" : Theme.foreground
-                                anchors.verticalCenter: parent.verticalCenter
+                            MouseArea {
+                                id: psMouse
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.hardwareService.setPowerProfile("power-saver")
                             }
 
-                        }
+                            Behavior on scale {
+                                NumberAnimation {
+                                    duration: 120
+                                }
 
-                        MouseArea {
-                            id: balMouse
-
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.hardwareService.setPowerProfile("balanced")
-                        }
-
-                        Behavior on scale {
-                            NumberAnimation {
-                                duration: 140
-                                easing.type: Easing.OutQuad
                             }
 
-                        }
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: 140
+                                }
 
-                        Behavior on color {
-                            ColorAnimation {
-                                duration: 160
                             }
 
-                        }
+                            Behavior on border.color {
+                                ColorAnimation {
+                                    duration: 140
+                                }
 
-                        Behavior on border.color {
-                            ColorAnimation {
-                                duration: 160
-                            }
-
-                        }
-
-                    }
-
-                    // ── Performance Button (Hyper Crimson) ──
-                    Rectangle {
-                        width: (parent.width - 16) / 3
-                        height: 40
-                        radius: 12
-                        color: root.hardwareService.powerProfile === "performance" ? Theme.withAlpha("#FF3366", 0.28) : (perfMouse.containsMouse ? Theme.withAlpha("#FF3366", 0.14) : Theme.withAlpha("#0A0E1A", 0.7))
-                        border.color: root.hardwareService.powerProfile === "performance" ? "#FF3366" : (perfMouse.containsMouse ? Theme.withAlpha("#FF3366", 0.5) : Theme.withAlpha(Theme.glassBorderColor, 0.25))
-                        border.width: root.hardwareService.powerProfile === "performance" ? 1.5 : 1
-                        scale: perfMouse.pressed ? 0.96 : (perfMouse.containsMouse ? 1.025 : 1)
-
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: 6
-
-                            Text {
-                                text: Icons.useMaterialSymbols ? "bolt" : "󰓅"
-                                font.family: Icons.effectiveFont(text)
-                                font.pixelSize: Fonts.scale(14)
-                                color: root.hardwareService.powerProfile === "performance" ? "#FF3366" : Theme.foreground
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-
-                            Text {
-                                text: "Performance"
-                                font.family: Fonts.uiFont
-                                font.pixelSize: Fonts.scale(11)
-                                font.bold: root.hardwareService.powerProfile === "performance"
-                                color: root.hardwareService.powerProfile === "performance" ? "#FFFFFF" : Theme.foreground
-                                anchors.verticalCenter: parent.verticalCenter
                             }
 
                         }
 
-                        MouseArea {
-                            id: perfMouse
+                        // ── Balanced Button ──
+                        Rectangle {
+                            width: (parent.width - 16) / 3
+                            height: 32
+                            radius: 4
+                            color: root.hardwareService.powerProfile === "balanced" ? "#2d353b" : "#1e2326"
+                            border.color: root.hardwareService.powerProfile === "balanced" ? root.btopArchTeal : root.btopBorder
+                            border.width: 1
+                            scale: balMouse.pressed ? 0.97 : (balMouse.containsMouse ? 1.02 : 1)
 
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.hardwareService.setPowerProfile("performance")
-                        }
+                            Row {
+                                anchors.centerIn: parent
+                                spacing: 5
 
-                        Behavior on scale {
-                            NumberAnimation {
-                                duration: 140
-                                easing.type: Easing.OutQuad
+                                Text {
+                                    text: Icons.useMaterialSymbols ? "balance" : "󰈐"
+                                    font.family: Icons.effectiveFont(text)
+                                    font.pixelSize: Fonts.scale(12)
+                                    color: root.hardwareService.powerProfile === "balanced" ? root.btopArchTeal : root.btopMuted
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                                Text {
+                                    text: "balanced"
+                                    font.family: Fonts.monoFont
+                                    font.pixelSize: Fonts.scale(10)
+                                    font.bold: root.hardwareService.powerProfile === "balanced"
+                                    color: root.hardwareService.powerProfile === "balanced" ? root.btopFg : root.btopMuted
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                            }
+
+                            MouseArea {
+                                id: balMouse
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.hardwareService.setPowerProfile("balanced")
+                            }
+
+                            Behavior on scale {
+                                NumberAnimation {
+                                    duration: 120
+                                }
+
+                            }
+
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: 140
+                                }
+
+                            }
+
+                            Behavior on border.color {
+                                ColorAnimation {
+                                    duration: 140
+                                }
+
                             }
 
                         }
 
-                        Behavior on color {
-                            ColorAnimation {
-                                duration: 160
+                        // ── Performance Button ──
+                        Rectangle {
+                            width: (parent.width - 16) / 3
+                            height: 32
+                            radius: 4
+                            color: root.hardwareService.powerProfile === "performance" ? "#2d353b" : "#1e2326"
+                            border.color: root.hardwareService.powerProfile === "performance" ? root.btopRed : root.btopBorder
+                            border.width: 1
+                            scale: perfMouse.pressed ? 0.97 : (perfMouse.containsMouse ? 1.02 : 1)
+
+                            Row {
+                                anchors.centerIn: parent
+                                spacing: 5
+
+                                Text {
+                                    text: Icons.useMaterialSymbols ? "bolt" : "󰓅"
+                                    font.family: Icons.effectiveFont(text)
+                                    font.pixelSize: Fonts.scale(12)
+                                    color: root.hardwareService.powerProfile === "performance" ? root.btopRed : root.btopMuted
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
+                                Text {
+                                    text: "perf"
+                                    font.family: Fonts.monoFont
+                                    font.pixelSize: Fonts.scale(10)
+                                    font.bold: root.hardwareService.powerProfile === "performance"
+                                    color: root.hardwareService.powerProfile === "performance" ? root.btopFg : root.btopMuted
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+
                             }
 
-                        }
+                            MouseArea {
+                                id: perfMouse
 
-                        Behavior on border.color {
-                            ColorAnimation {
-                                duration: 160
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.hardwareService.setPowerProfile("performance")
+                            }
+
+                            Behavior on scale {
+                                NumberAnimation {
+                                    duration: 120
+                                }
+
+                            }
+
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: 140
+                                }
+
+                            }
+
+                            Behavior on border.color {
+                                ColorAnimation {
+                                    duration: 140
+                                }
+
                             }
 
                         }
