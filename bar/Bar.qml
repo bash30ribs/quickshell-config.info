@@ -214,8 +214,8 @@ PanelWindow {
         property: "edgeProgress"
         from: root.edgeProgress
         to: 0
-        duration: Math.max(35, Math.round(75 * root.edgeProgress))
-        easing.type: Easing.InCubic
+        duration: Math.max(20, Math.round(45 * root.edgeProgress))
+        easing.type: Easing.InQuad
         onFinished: {
             if (root.edgeProgress <= 0.001)
                 edgeSwapTimer.restart();
@@ -226,7 +226,7 @@ PanelWindow {
     Timer {
         id: edgeSwapTimer
 
-        interval: 16
+        interval: 10
         repeat: false
         onTriggered: {
             Appearance.barEdge = root.pendingEdge;
@@ -237,7 +237,7 @@ PanelWindow {
     Timer {
         id: edgeAppearDelayTimer
 
-        interval: 22
+        interval: 12
         repeat: false
         onTriggered: {
             Appearance.barTransitioning = false;
@@ -255,7 +255,7 @@ PanelWindow {
         property: "edgeProgress"
         from: root.edgeProgress
         to: 1
-        duration: 185
+        duration: 135
         easing.type: Easing.OutQuart
     }
 
@@ -266,7 +266,7 @@ PanelWindow {
         property: "showProgress"
         from: root.showProgress
         to: 1
-        duration: 175
+        duration: 140
         easing.type: Easing.OutQuart
     }
 
@@ -656,9 +656,40 @@ PanelWindow {
         function setMode(newMode: string) : string {
             if (newMode === "compact" || newMode === "floating" || newMode === "islands" || newMode === "wide") {
                 root.barMode = newMode;
+                Appearance.barVisible = true;
+                var cmd = "mkdir -p \"$HOME/.config/quickshell\" && printf '%s\\n' \"" + newMode + "\" > \"$HOME/.config/quickshell/bar-style\"";
+                Quickshell.execDetached(["sh", "-c", cmd]);
                 return "ok: " + newMode;
             }
             return "error: unknown mode";
+        }
+
+        function nextMode() : string {
+            var modes = ["floating", "islands", "wide", "compact"];
+            var idx = modes.indexOf(root.barMode);
+            var nextIdx = (idx + 1) % modes.length;
+            var target = modes[nextIdx];
+            root.barMode = target;
+            Appearance.barVisible = true;
+            var cmd = "mkdir -p \"$HOME/.config/quickshell\" && printf '%s\\n' \"" + target + "\" > \"$HOME/.config/quickshell/bar-style\"";
+            Quickshell.execDetached(["sh", "-c", cmd]);
+            return target;
+        }
+
+        function prevMode() : string {
+            var modes = ["floating", "islands", "wide", "compact"];
+            var idx = modes.indexOf(root.barMode);
+            var prevIdx = (idx - 1 + modes.length) % modes.length;
+            var target = modes[prevIdx];
+            root.barMode = target;
+            Appearance.barVisible = true;
+            var cmd = "mkdir -p \"$HOME/.config/quickshell\" && printf '%s\\n' \"" + target + "\" > \"$HOME/.config/quickshell/bar-style\"";
+            Quickshell.execDetached(["sh", "-c", cmd]);
+            return target;
+        }
+
+        function cycleMode() : string {
+            return nextMode();
         }
 
         function getMode() : string {
@@ -679,16 +710,22 @@ PanelWindow {
 
         function toggleBar() : string {
             Appearance.barVisible = !Appearance.barVisible;
+            var cmd = "mkdir -p \"$HOME/.config/quickshell\" && printf '%s\\n' \"" + (Appearance.barVisible ? "visible" : "hidden") + "\" > \"$HOME/.config/quickshell/bar-visibility\"";
+            Quickshell.execDetached(["sh", "-c", cmd]);
             return Appearance.barVisible ? "visible" : "hidden";
         }
 
         function hideBar() : string {
             Appearance.barVisible = false;
+            var cmd = "mkdir -p \"$HOME/.config/quickshell\" && printf '%s\\n' \"hidden\" > \"$HOME/.config/quickshell/bar-visibility\"";
+            Quickshell.execDetached(["sh", "-c", cmd]);
             return "hidden";
         }
 
         function showBar() : string {
             Appearance.barVisible = true;
+            var cmd = "mkdir -p \"$HOME/.config/quickshell\" && printf '%s\\n' \"visible\" > \"$HOME/.config/quickshell/bar-visibility\"";
+            Quickshell.execDetached(["sh", "-c", cmd]);
             return "visible";
         }
 

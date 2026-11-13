@@ -33,16 +33,22 @@ ShellRoot {
     IpcHandler {
         function toggle() : string {
             Appearance.barVisible = !Appearance.barVisible;
+            var cmd = "mkdir -p \"$HOME/.config/quickshell\" && printf '%s\\n' \"" + (Appearance.barVisible ? "visible" : "hidden") + "\" > \"$HOME/.config/quickshell/bar-visibility\"";
+            Quickshell.execDetached(["sh", "-c", cmd]);
             return Appearance.barVisible ? "visible" : "hidden";
         }
 
         function hide() : string {
             Appearance.barVisible = false;
+            var cmd = "mkdir -p \"$HOME/.config/quickshell\" && printf '%s\\n' \"hidden\" > \"$HOME/.config/quickshell/bar-visibility\"";
+            Quickshell.execDetached(["sh", "-c", cmd]);
             return "hidden";
         }
 
         function show() : string {
             Appearance.barVisible = true;
+            var cmd = "mkdir -p \"$HOME/.config/quickshell\" && printf '%s\\n' \"visible\" > \"$HOME/.config/quickshell/bar-visibility\"";
+            Quickshell.execDetached(["sh", "-c", cmd]);
             return "visible";
         }
 
