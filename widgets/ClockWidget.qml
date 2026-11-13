@@ -62,7 +62,7 @@ Item {
     }
 
     implicitWidth: Appearance.barIsVertical ? Math.max(36, Appearance.barThickness - 10) : clockButton.implicitWidth
-    implicitHeight: Appearance.barIsVertical ? (vertClockCol.implicitHeight + 14) : clockButton.implicitHeight
+    implicitHeight: Appearance.barIsVertical ? Math.max(38, vertClockCol.implicitHeight + 12) : clockButton.implicitHeight
     width: implicitWidth
     height: implicitHeight
 
@@ -101,7 +101,7 @@ Item {
 
         visible: Appearance.barIsVertical
         anchors.fill: parent
-        radius: Appearance.radiusMedium + 2
+        radius: Appearance.buttonRadius > 0 ? Appearance.radiusMedium : 8
         antialiasing: true
         scale: vertClockMouse.pressed ? 0.96 : (vertClockMouse.containsMouse ? 1.025 : 1)
         color: {
@@ -128,59 +128,16 @@ Item {
             id: vertClockCol
 
             anchors.centerIn: parent
-            spacing: 1
+            spacing: 2
             width: parent.width - 4
 
-            // Day of week abbreviation (e.g. "FRI")
+            // Top row: Day of week + Date (e.g. "FRI 13")
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: Qt.formatDate(root.now, "ddd").toUpperCase()
+                text: Qt.formatDate(root.now, "ddd d").toUpperCase()
                 color: (clockPopup.open || vertClockMouse.containsMouse) ? Theme.accent : Theme.glassLabel
-                font.family: Fonts.uiFont
-                font.pixelSize: Math.max(9, Fonts.scale(9))
-                font.bold: true
-                font.letterSpacing: 1
-                horizontalAlignment: Text.AlignHCenter
-                style: Text.Raised
-                styleColor: Qt.rgba(0, 0, 0, 0.65)
-            }
-
-            // Day of month number (e.g. "13")
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: Qt.formatDate(root.now, "dd")
-                color: Theme.bright_foreground
-                font.family: Fonts.uiFont
-                font.pixelSize: Math.max(12, Fonts.scale(12))
-                font.bold: true
-                horizontalAlignment: Text.AlignHCenter
-                style: Text.Raised
-                styleColor: Qt.rgba(0, 0, 0, 0.65)
-            }
-
-            // Subtle optical divider line
-            Item {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: parent.width
-                height: 5
-
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: 14
-                    height: 1
-                    radius: 0.5
-                    color: (clockPopup.open || vertClockMouse.containsMouse) ? Theme.withAlpha(Theme.accent, 0.5) : Theme.withAlpha(Theme.bright_foreground, 0.2)
-                }
-
-            }
-
-            // Stacked Hour (e.g. "11")
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: String(root.now.getHours()).padStart(2, "0")
-                color: (clockPopup.open || vertClockMouse.containsMouse) ? Theme.accent : Theme.bright_foreground
                 font.family: Fonts.monoFont
-                font.pixelSize: Math.max(13, Fonts.scale(13))
+                font.pixelSize: Math.max(9, Fonts.scale(9))
                 font.bold: true
                 font.letterSpacing: 0.5
                 horizontalAlignment: Text.AlignHCenter
@@ -188,13 +145,13 @@ Item {
                 styleColor: Qt.rgba(0, 0, 0, 0.65)
             }
 
-            // Stacked Minute (e.g. "46")
+            // Bottom row: Digital Time (e.g. "13:30")
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: String(root.now.getMinutes()).padStart(2, "0")
+                text: root.formatTime(root.now)
                 color: Theme.bright_foreground
                 font.family: Fonts.monoFont
-                font.pixelSize: Math.max(13, Fonts.scale(13))
+                font.pixelSize: Math.max(11, Fonts.scale(11))
                 font.bold: true
                 font.letterSpacing: 0.5
                 horizontalAlignment: Text.AlignHCenter
