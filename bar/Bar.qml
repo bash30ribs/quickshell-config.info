@@ -305,7 +305,7 @@ PanelWindow {
         readonly property real travelY: Appearance.barIsTop ? -root.height : (Appearance.barIsBottom ? root.height : 0)
 
         anchors.fill: parent
-        opacity: Math.max(0, Math.min(1, reveal * 2.25))
+        opacity: reveal > 0.001 ? 1 : 0
         scale: 0.96 + (0.04 * reveal)
         transformOrigin: Appearance.barIsBottom ? Item.Bottom : (Appearance.barIsLeft ? Item.Left : (Appearance.barIsRight ? Item.Right : Item.Top))
 
@@ -505,26 +505,6 @@ PanelWindow {
                     audioService: root.audioService
                 }
 
-                Behavior on x {
-                    enabled: !root.isEdgeTransitioning && !root.isCompact && !root.isWide
-
-                    NumberAnimation {
-                        duration: 160
-                        easing.type: Easing.OutCubic
-                    }
-
-                }
-
-                Behavior on y {
-                    enabled: !root.isEdgeTransitioning && !root.isCompact && !root.isWide
-
-                    NumberAnimation {
-                        duration: 160
-                        easing.type: Easing.OutCubic
-                    }
-
-                }
-
             }
 
             // Center section: date and clock
@@ -534,27 +514,6 @@ PanelWindow {
                 x: root.isVertical ? Math.round((barContainer.width - width) / 2) : (root.isCompact ? (leftSection.x + leftSection.width + (Appearance.barSectionSpacing * 2)) : Math.round((barContainer.width - width) / 2))
                 y: root.isVertical ? (root.isCompact ? (leftSection.y + leftSection.height + (Appearance.barSectionSpacing * 2)) : Math.round((barContainer.height - height) / 2)) : Math.round((barContainer.height - height) / 2)
                 powerService: root.powerService
-
-                Behavior on x {
-                    enabled: !root.isEdgeTransitioning && !root.isCompact && !root.isWide
-
-                    NumberAnimation {
-                        duration: 160
-                        easing.type: Easing.OutCubic
-                    }
-
-                }
-
-                Behavior on y {
-                    enabled: !root.isEdgeTransitioning && !root.isCompact && !root.isWide
-
-                    NumberAnimation {
-                        duration: 160
-                        easing.type: Easing.OutCubic
-                    }
-
-                }
-
             }
 
             // Right / Bottom section: hardware and status controls
@@ -600,26 +559,6 @@ PanelWindow {
 
                     batteryService: root.batteryService
                     powerService: root.powerService
-                }
-
-                Behavior on x {
-                    enabled: !root.isEdgeTransitioning && !root.isCompact && !root.isWide
-
-                    NumberAnimation {
-                        duration: 160
-                        easing.type: Easing.OutCubic
-                    }
-
-                }
-
-                Behavior on y {
-                    enabled: !root.isEdgeTransitioning && !root.isCompact && !root.isWide
-
-                    NumberAnimation {
-                        duration: 160
-                        easing.type: Easing.OutCubic
-                    }
-
                 }
 
             }
