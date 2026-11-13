@@ -128,7 +128,11 @@ QtObject {
     property Timer symlinkWatcherTimer
 
     function withAlpha(colorVal, alphaVal) {
-        return Qt.rgba(colorVal.r, colorVal.g, colorVal.b, alphaVal);
+        if (!colorVal)
+            return Qt.rgba(0, 0, 0, alphaVal || 0);
+
+        var c = Qt.color(colorVal);
+        return Qt.rgba(c.r, c.g, c.b, alphaVal !== undefined ? alphaVal : 1);
     }
 
     function wheelDeltaY(event) {

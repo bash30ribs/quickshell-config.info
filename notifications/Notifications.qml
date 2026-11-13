@@ -14,6 +14,8 @@ Item {
     property var liveRefs: ({
     })
     property alias popupModel: popupModel
+    property alias historyModel: historyModel
+    property int unreadCount: 0
     readonly property int lowPopupDuration: 5000
     readonly property int normalPopupDuration: 8000
     readonly property int maxPopupDuration: 30000
@@ -23,8 +25,9 @@ Item {
     })
 
     function durationFor(urgency, expireTimeout) {
+        // Critical
+
         if (urgency === 2)
-            // Critical
             return 0;
 
         var timeoutMs = Number(expireTimeout || 0);
@@ -47,6 +50,8 @@ Item {
                 delete root.liveRefs[snapshot.originalId];
 
         });
+        // Always preserve in notification history drawer
+        root.addToHistory(snapshot);
         // Check DND silencing
         if (root.doNotDisturb && !NotificationLogic.shouldBypassDnd(notification, 2)) {
             delete root.liveRefs[snapshot.originalId];
@@ -65,9 +70,7 @@ Item {
 
         }
         // Limit maximum concurrent visible toasts
-        while (popupModel.count >= 4)
-            root.dismissPopup(popupModel.count - 1);
-
+        while (popupModel.count >= 4)root.dismissPopup(popupModel.count - 1)
         // Add new notification to top of list
         snapshot.remainingLifetime = 1;
         popupModel.insert(0, snapshot);
@@ -154,9 +157,7 @@ Item {
     }
 
     function clearPopups() {
-        while (popupModel.count > 0)
-            dismissPopup(0);
-
+        while (popupModel.count > 0)dismissPopup(0)
     }
 
     function invokePopupDefault(index) {
@@ -232,7 +233,8 @@ Item {
     function focusApp(appName) {
         if (!appName)
             return ;
- // Focus window using hyprctl dispatch
+
+        // Focus window using hyprctl dispatch
         runProcess(["hyprctl", "dispatch", "focuswindow", "class:(?i)" + appName]);
     }
 
@@ -256,8 +258,97 @@ Item {
         root.hoveredMap = next;
     }
 
+    function addToHistory(snapshot) {
+        if (!snapshot)
+            return ;
+
+        for (var i = historyModel.count - 1; i >= 0; i--) {
+            var ex = historyModel.get(i);
+            if (ex && ex.app === snapshot.app && ex.summary === snapshot.summary && ex.body === snapshot.body) {
+                historyModel.remove(i);
+                break;
+            }
+        }
+        var entry = {
+            "app": snapshot.app || "System",
+            "appIcon": snapshot.appIcon || "",
+            "summary": snapshot.summary || "",
+            "body": snapshot.body || "",
+            "glyph": snapshot.glyph || "󰂚",
+            "timestamp": snapshot.timestamp || Date.now(),
+            "urgency": snapshot.urgency !== undefined ? snapshot.urgency : 1,
+            "execArgv": snapshot.execArgv || ""
+        };
+        historyModel.insert(0, entry);
+        while (historyModel.count > 50)historyModel.remove(historyModel.count - 1)
+        root.unreadCount = historyModel.count;
+        saveHistory();
+    }
+
+    function clearHistory() {
+        historyModel.clear();
+        root.unreadCount = 0;
+        saveHistory();
+    }
+
+    function removeHistoryItem(index) {
+        if (index >= 0 && index < historyModel.count) {
+            historyModel.remove(index);
+            root.unreadCount = historyModel.count;
+            saveHistory();
+        }
+    }
+
+    function markHistoryRead() {
+        root.unreadCount = 0;
+    }
+
+    function saveHistory() {
+        var items = [];
+        for (var i = 0; i < historyModel.count; i++) {
+            var row = historyModel.get(i);
+            items.push({
+                "app": row.app || "",
+                "appIcon": row.appIcon || "",
+                "summary": row.summary || "",
+                "body": row.body || "",
+                "glyph": row.glyph || "󰂚",
+                "timestamp": row.timestamp || Date.now(),
+                "urgency": row.urgency || 1,
+                "execArgv": row.execArgv || ""
+            });
+        }
+        historyFile.setText(JSON.stringify(items, null, 2) + "\n");
+    }
+
     ListModel {
         id: popupModel
+    }
+
+    ListModel {
+        id: historyModel
+    }
+
+    FileView {
+        id: historyFile
+
+        path: Quickshell.env("HOME") + "/.local/state/quickshell/notification_history.json"
+        watchChanges: false
+        atomicWrites: true
+        printErrors: false
+        onLoaded: {
+            try {
+                var items = JSON.parse(text() || "[]");
+                if (Array.isArray(items)) {
+                    historyModel.clear();
+                    for (var i = 0; i < items.length && i < 50; i++) {
+                        historyModel.append(items[i]);
+                    }
+                    root.unreadCount = historyModel.count;
+                }
+            } catch (e) {
+            }
+        }
     }
 
     Process {
@@ -306,6 +397,15 @@ Item {
 
         function isDnd() : string {
             return dndState();
+        }
+
+        function historyCount() : string {
+            return String(historyModel.count);
+        }
+
+        function clearHistory() : string {
+            root.clearHistory();
+            return "ok";
         }
 
         function dismissAll() : string {

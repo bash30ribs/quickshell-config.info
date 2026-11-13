@@ -17,6 +17,8 @@ PanelWindow {
     required property NetworkService networkService
     required property BluetoothService bluetoothService
     required property PowerService powerService
+    required property HardwareService hardwareService
+    required property var notificationsService
     property QtObject clipboardDrawer: null
     property real glideAccum: 0
     property real glideCooldownUntil: 0
@@ -505,6 +507,10 @@ PanelWindow {
                     audioService: root.audioService
                 }
 
+                ActiveWindowPill {
+                    id: activeWindowPill
+                }
+
             }
 
             // Center section: date and clock
@@ -558,6 +564,18 @@ PanelWindow {
                     id: batteryWidget
 
                     batteryService: root.batteryService
+                    powerService: root.powerService
+                }
+
+                ControlCenterWidget {
+                    id: controlCenterWidget
+
+                    hardwareService: root.hardwareService
+                    notificationsService: root.notificationsService
+                    audioService: root.audioService
+                    brightnessService: root.brightnessService
+                    networkService: root.networkService
+                    bluetoothService: root.bluetoothService
                     powerService: root.powerService
                 }
 
@@ -709,6 +727,22 @@ PanelWindow {
 
         function isBarVisible() : string {
             return Appearance.barVisible ? "true" : "false";
+        }
+
+        function toggleControlCenter() : string {
+            if (controlCenterWidget) {
+                controlCenterWidget.toggle();
+                return "ok";
+            }
+            return "none";
+        }
+
+        function toggleNotificationCenter() : string {
+            if (controlCenterWidget) {
+                controlCenterWidget.openTab("notifications");
+                return "ok";
+            }
+            return "none";
         }
 
         target: "barpopups"

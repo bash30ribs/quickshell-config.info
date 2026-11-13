@@ -11,11 +11,6 @@ QtObject {
     property bool useMaterialSymbols: true
     // Local font loader for Google Material Symbols Rounded
     property FontLoader materialSymbolsLoader
-
-    materialSymbolsLoader: FontLoader {
-        source: "file://" + Quickshell.env("HOME") + "/.local/share/fonts/MaterialSymbolsRounded.ttf"
-    }
-
     // Semantic icon sizes
     readonly property int sizeXs: Fonts.sizeXs
     readonly property int sizeSmall: Fonts.sizeSmall
@@ -277,6 +272,42 @@ QtObject {
         return isMuted ? root.micOff : root.mic;
     }
 
+    // Dynamic Application Glyph resolver
+    function appGlyph(appId, title) {
+        var str = ((appId || "") + " " + (title || "")).toLowerCase();
+        if (str.indexOf("kitty") !== -1 || str.indexOf("alacritty") !== -1 || str.indexOf("foot") !== -1 || str.indexOf("term") !== -1 || str.indexOf("console") !== -1)
+            return root.terminal;
+
+        if (str.indexOf("code") !== -1 || str.indexOf("antigravity") !== -1 || str.indexOf("nvim") !== -1 || str.indexOf("vim") !== -1 || str.indexOf("subl") !== -1 || str.indexOf("dev") !== -1)
+            return root.codeIcon;
+
+        if (str.indexOf("brave") !== -1 || str.indexOf("firefox") !== -1 || str.indexOf("chrome") !== -1 || str.indexOf("chromium") !== -1 || str.indexOf("zen") !== -1 || str.indexOf("browser") !== -1)
+            return root.useMaterialSymbols ? "public" : "󰖟";
+
+        if (str.indexOf("spotify") !== -1 || str.indexOf("music") !== -1 || str.indexOf("cider") !== -1)
+            return root.music;
+
+        if (str.indexOf("discord") !== -1 || str.indexOf("vesktop") !== -1 || str.indexOf("webcord") !== -1)
+            return "󰙯";
+
+        if (str.indexOf("telegram") !== -1)
+            return "󰏲";
+
+        if (str.indexOf("nautilus") !== -1 || str.indexOf("thunar") !== -1 || str.indexOf("dolphin") !== -1 || str.indexOf("files") !== -1)
+            return root.folder;
+
+        if (str.indexOf("vlc") !== -1 || str.indexOf("mpv") !== -1 || str.indexOf("video") !== -1)
+            return root.useMaterialSymbols ? "movie" : "󰕼";
+
+        if (str.indexOf("steam") !== -1)
+            return "󰓓";
+
+        if (str.indexOf("settings") !== -1 || str.indexOf("pavucontrol") !== -1)
+            return root.settings;
+
+        return root.window;
+    }
+
     // Helper function to safely resolve an icon by semantic name with a fallback
     function get(name, fallback) {
         if (root[name] !== undefined && root[name] !== "")
@@ -302,6 +333,10 @@ QtObject {
             return root.iconFont;
 
         return root.useMaterialSymbols ? root.symbolFont : root.iconFont;
+    }
+
+    materialSymbolsLoader: FontLoader {
+        source: "file://" + Quickshell.env("HOME") + "/.local/share/fonts/MaterialSymbolsRounded.ttf"
     }
 
 }
