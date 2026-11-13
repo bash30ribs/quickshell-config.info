@@ -697,6 +697,7 @@ PanelWindow {
         }
 
         function setEdge(newEdge: string) : string {
+            Appearance.barVisible = true;
             var applied = root.applyEdge(newEdge, true);
             if (applied)
                 return "ok: " + applied;
