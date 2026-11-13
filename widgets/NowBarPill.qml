@@ -16,7 +16,7 @@ Item {
     readonly property bool isVertical: Appearance.barIsVertical
 
     implicitHeight: root.isVertical ? (hasMedia ? 54 : 0) : Appearance.mediaPillHeight
-    implicitWidth: root.isVertical ? (hasMedia ? Math.max(Appearance.mediaPillHeight, Appearance.barThickness - 8) : 0) : (hasMedia ? Math.min(220, Math.max(130, titleMeasure.implicitWidth + 82)) : 0)
+    implicitWidth: root.isVertical ? (hasMedia ? Math.max(Appearance.mediaPillHeight, Appearance.barThickness - 10) : 0) : (hasMedia ? Math.min(220, Math.max(130, titleMeasure.implicitWidth + 82)) : 0)
     height: implicitHeight
     width: implicitWidth
     visible: (width > 0 && height > 0) || opacity > 0

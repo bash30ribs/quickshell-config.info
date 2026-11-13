@@ -522,7 +522,7 @@ PanelWindow {
 
                 columns: root.isVertical ? 1 : 8
                 columnSpacing: Appearance.barSpacing
-                rowSpacing: Appearance.barSpacing
+                rowSpacing: root.isVertical ? (Appearance.barSpacing + 2) : Appearance.barSpacing
                 horizontalItemAlignment: Grid.AlignHCenter
                 verticalItemAlignment: Grid.AlignVCenter
                 width: implicitWidth

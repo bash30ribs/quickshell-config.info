@@ -9,7 +9,7 @@ QtObject {
 
     // Bar dimensions and layout
     property int barHeight: Math.max(26, Math.round(Fonts.baseTextSize * 2.5))
-    property int barVerticalWidth: Math.max(40, Math.round(Fonts.baseTextSize * 3.5))
+    property int barVerticalWidth: Math.max(46, Math.round(Fonts.baseTextSize * 4))
     property int barRadius: 16
     property int barMarginHorizontal: 12
     property int barSpacing: 4

@@ -11,7 +11,7 @@ Item {
     readonly property int capsuleThickness: Appearance.barButtonHeight - (Appearance.workspacesPaddingVertical * 2)
 
     implicitHeight: root.isVertical ? (wsRow.implicitHeight + (Appearance.workspacesPaddingHorizontal * 2)) : Appearance.barButtonHeight
-    implicitWidth: root.isVertical ? Math.max(Appearance.barButtonHeight, Appearance.barThickness - 6) : (wsRow.implicitWidth + (Appearance.workspacesPaddingHorizontal * 2))
+    implicitWidth: root.isVertical ? Math.max(Appearance.barButtonHeight, Appearance.barThickness - 10) : (wsRow.implicitWidth + (Appearance.workspacesPaddingHorizontal * 2))
     width: implicitWidth
     height: implicitHeight
 
@@ -54,7 +54,7 @@ Item {
                 }
                 readonly property bool hasCustomInactiveIcon: resolvedInactiveIcon.length > 0
 
-                height: root.isVertical ? (isActive ? Math.max(24, Appearance.workspacesActiveCapsuleWidth - 14) : Math.max(16, Appearance.workspacesCapsuleWidth - 6)) : root.capsuleThickness
+                height: root.isVertical ? (isActive ? Math.max(30, Appearance.workspacesActiveCapsuleWidth - 12) : root.capsuleThickness) : root.capsuleThickness
                 width: root.isVertical ? root.capsuleThickness : (isActive ? Appearance.workspacesActiveCapsuleWidth : Appearance.workspacesCapsuleWidth)
                 radius: Math.min(width, height) / 2
                 antialiasing: true

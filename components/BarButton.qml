@@ -15,14 +15,15 @@ Rectangle {
     property int iconSize: Icons.sizeNormal
     property int textSize: Fonts.sizeRegular
     property bool vertical: Appearance.barIsVertical
+    readonly property int buttonSize: Math.max(Appearance.barButtonHeight, Appearance.barThickness - 10)
 
     signal clicked()
 
-    implicitWidth: root.vertical ? Math.max(Appearance.barButtonHeight, Appearance.barThickness - 6) : Math.max(Appearance.barButtonHeight, contentGrid.implicitWidth + (customPadding * 2))
-    implicitHeight: root.vertical ? Math.max(30, contentGrid.implicitHeight + (root.text.length > 0 ? 6 : 8)) : Appearance.barButtonHeight
+    implicitWidth: root.vertical ? root.buttonSize : Math.max(Appearance.barButtonHeight, contentGrid.implicitWidth + (customPadding * 2))
+    implicitHeight: root.vertical ? (root.text.length > 0 ? Math.max(root.buttonSize, contentGrid.implicitHeight + 8) : root.buttonSize) : Appearance.barButtonHeight
     width: implicitWidth
     height: implicitHeight
-    radius: Appearance.buttonRadius > 0 ? Appearance.buttonRadius : 6
+    radius: Appearance.buttonRadius > 0 ? (root.vertical ? Appearance.radiusMedium : Appearance.buttonRadius) : 8
     antialiasing: true
     // Subtle press compression
     scale: mouseArea.pressed ? 0.96 : 1

@@ -61,8 +61,8 @@ Item {
         return h + "\n" + m;
     }
 
-    implicitWidth: clockButton.implicitWidth
-    implicitHeight: clockButton.implicitHeight
+    implicitWidth: Appearance.barIsVertical ? Math.max(36, Appearance.barThickness - 10) : clockButton.implicitWidth
+    implicitHeight: Appearance.barIsVertical ? (vertClockCol.implicitHeight + 14) : clockButton.implicitHeight
     width: implicitWidth
     height: implicitHeight
 
@@ -82,11 +82,12 @@ Item {
     BarButton {
         id: clockButton
 
+        visible: !Appearance.barIsVertical
         icon: ""
-        text: Appearance.barIsVertical ? root.formatVerticalTime(root.now) : root.formatDayTime(root.now)
+        text: root.formatDayTime(root.now)
         active: clockPopup.open
-        customPadding: Appearance.barIsVertical ? 4 : 10
-        textSize: Appearance.barIsVertical ? Math.max(10, Fonts.scale(11)) : Fonts.sizeRegular
+        customPadding: 10
+        textSize: Fonts.sizeRegular
         onClicked: {
             clockPopup.toggle();
             if (clockPopup.open)
@@ -95,10 +96,156 @@ Item {
         }
     }
 
+    Rectangle {
+        id: verticalClockButton
+
+        visible: Appearance.barIsVertical
+        anchors.fill: parent
+        radius: Appearance.radiusMedium + 2
+        antialiasing: true
+        scale: vertClockMouse.pressed ? 0.96 : (vertClockMouse.containsMouse ? 1.025 : 1)
+        color: {
+            if (clockPopup.open)
+                return Theme.withAlpha(Theme.accent, 0.22);
+
+            if (vertClockMouse.containsMouse)
+                return Theme.withAlpha(Theme.accent, 0.12);
+
+            return Theme.withAlpha(Theme.glassCrest, 0.08);
+        }
+        border.width: 1
+        border.color: {
+            if (clockPopup.open)
+                return Theme.accent;
+
+            if (vertClockMouse.containsMouse)
+                return Theme.withAlpha(Theme.glassCrest, 0.45);
+
+            return Theme.withAlpha(Theme.glassBorderColor, 0.28);
+        }
+
+        Column {
+            id: vertClockCol
+
+            anchors.centerIn: parent
+            spacing: 1
+            width: parent.width - 4
+
+            // Day of week abbreviation (e.g. "FRI")
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: Qt.formatDate(root.now, "ddd").toUpperCase()
+                color: (clockPopup.open || vertClockMouse.containsMouse) ? Theme.accent : Theme.glassLabel
+                font.family: Fonts.uiFont
+                font.pixelSize: Math.max(9, Fonts.scale(9))
+                font.bold: true
+                font.letterSpacing: 1
+                horizontalAlignment: Text.AlignHCenter
+                style: Text.Raised
+                styleColor: Qt.rgba(0, 0, 0, 0.65)
+            }
+
+            // Day of month number (e.g. "13")
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: Qt.formatDate(root.now, "dd")
+                color: Theme.bright_foreground
+                font.family: Fonts.uiFont
+                font.pixelSize: Math.max(12, Fonts.scale(12))
+                font.bold: true
+                horizontalAlignment: Text.AlignHCenter
+                style: Text.Raised
+                styleColor: Qt.rgba(0, 0, 0, 0.65)
+            }
+
+            // Subtle optical divider line
+            Item {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width
+                height: 5
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 14
+                    height: 1
+                    radius: 0.5
+                    color: (clockPopup.open || vertClockMouse.containsMouse) ? Theme.withAlpha(Theme.accent, 0.5) : Theme.withAlpha(Theme.bright_foreground, 0.2)
+                }
+
+            }
+
+            // Stacked Hour (e.g. "11")
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: String(root.now.getHours()).padStart(2, "0")
+                color: (clockPopup.open || vertClockMouse.containsMouse) ? Theme.accent : Theme.bright_foreground
+                font.family: Fonts.monoFont
+                font.pixelSize: Math.max(13, Fonts.scale(13))
+                font.bold: true
+                font.letterSpacing: 0.5
+                horizontalAlignment: Text.AlignHCenter
+                style: Text.Raised
+                styleColor: Qt.rgba(0, 0, 0, 0.65)
+            }
+
+            // Stacked Minute (e.g. "46")
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: String(root.now.getMinutes()).padStart(2, "0")
+                color: Theme.bright_foreground
+                font.family: Fonts.monoFont
+                font.pixelSize: Math.max(13, Fonts.scale(13))
+                font.bold: true
+                font.letterSpacing: 0.5
+                horizontalAlignment: Text.AlignHCenter
+                style: Text.Raised
+                styleColor: Qt.rgba(0, 0, 0, 0.65)
+            }
+
+        }
+
+        MouseArea {
+            id: vertClockMouse
+
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                clockPopup.toggle();
+                if (clockPopup.open)
+                    root.goToToday();
+
+            }
+        }
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: 90
+                easing.type: Easing.OutQuad
+            }
+
+        }
+
+        Behavior on color {
+            ColorAnimation {
+                duration: 140
+            }
+
+        }
+
+        Behavior on border.color {
+            ColorAnimation {
+                duration: 140
+            }
+
+        }
+
+    }
+
     PopupCard {
         id: clockPopup
 
-        anchorItem: clockButton
+        anchorItem: Appearance.barIsVertical ? verticalClockButton : clockButton
         showDefaultHeader: false
         contentWidth: 380
         contentHeight: 375
