@@ -627,7 +627,7 @@ PanelWindow {
         }
 
         function nextMode() : string {
-            // 4-state cycle: floating -> islands -> wide -> hidden (closed) -> floating ...
+            // 5-state cycle: floating -> islands -> wide -> compact (short bar) -> hidden (closed) -> floating ...
             if (!Appearance.barVisible) {
                 Appearance.barVisible = true;
                 root.barMode = "floating";
@@ -637,10 +637,10 @@ PanelWindow {
                 Quickshell.execDetached(["sh", "-c", cmdStyle]);
                 return "floating";
             }
-            var visibleModes = ["floating", "islands", "wide"];
+            var visibleModes = ["floating", "islands", "wide", "compact"];
             var idx = visibleModes.indexOf(root.barMode);
             if (idx === -1 || idx === visibleModes.length - 1) {
-                // 4th function: Close the bar completely so nothing is there
+                // Closed state: Close the bar completely so nothing is there
                 Appearance.barVisible = false;
                 var cmdHide = "mkdir -p \"$HOME/.config/quickshell\" && printf '%s\\n' \"hidden\" > \"$HOME/.config/quickshell/bar-visibility\"";
                 Quickshell.execDetached(["sh", "-c", cmdHide]);
@@ -657,14 +657,14 @@ PanelWindow {
         function prevMode() : string {
             if (!Appearance.barVisible) {
                 Appearance.barVisible = true;
-                root.barMode = "wide";
+                root.barMode = "compact";
                 var cmdVis = "mkdir -p \"$HOME/.config/quickshell\" && printf '%s\\n' \"visible\" > \"$HOME/.config/quickshell/bar-visibility\"";
                 Quickshell.execDetached(["sh", "-c", cmdVis]);
-                var cmdStyle = "mkdir -p \"$HOME/.config/quickshell\" && printf '%s\\n' \"wide\" > \"$HOME/.config/quickshell/bar-style\"";
+                var cmdStyle = "mkdir -p \"$HOME/.config/quickshell\" && printf '%s\\n' \"compact\" > \"$HOME/.config/quickshell/bar-style\"";
                 Quickshell.execDetached(["sh", "-c", cmdStyle]);
-                return "wide";
+                return "compact";
             }
-            var visibleModes = ["floating", "islands", "wide"];
+            var visibleModes = ["floating", "islands", "wide", "compact"];
             var idx = visibleModes.indexOf(root.barMode);
             if (idx <= 0) {
                 Appearance.barVisible = false;
