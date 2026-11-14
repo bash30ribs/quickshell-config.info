@@ -1202,7 +1202,7 @@ PanelWindow {
                         orientation: ListView.Horizontal
                         spacing: 12
                         clip: true
-                        cacheBuffer: 4000
+                        cacheBuffer: 600
                         snapMode: ListView.SnapToItem
                         model: root.themes
                         currentIndex: root.themeIndex
@@ -1483,7 +1483,7 @@ PanelWindow {
                         orientation: ListView.Horizontal
                         spacing: 12
                         clip: true
-                        cacheBuffer: 4000
+                        cacheBuffer: 600
                         snapMode: ListView.SnapToItem
                         model: root.wallpapers
                         currentIndex: root.wallpaperIndex
