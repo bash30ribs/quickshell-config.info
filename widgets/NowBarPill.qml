@@ -9,28 +9,42 @@ Item {
     id: root
 
     property MediaController controller
+
+    controller: MediaController {
+        id: defaultCtrl
+    }
+
     property AudioService audioService: null
     property alias popup: mediaPopup
     readonly property bool hasMedia: controller ? controller.hasMedia : false
-    readonly property string trackTitle: root.controller ? (root.controller.title || root.controller.artist || "Music") : ""
+    readonly property string trackTitle: {
+        if (!root.controller)
+            return "";
+
+        var t = (root.controller.title || "").trim();
+        var a = (root.controller.artist || "").trim();
+        if (t && a)
+            return a + " • " + t;
+
+        return t || a || "Music";
+    }
     readonly property bool isVertical: Appearance.barIsVertical
 
     implicitHeight: root.isVertical ? (hasMedia ? 54 : 0) : Appearance.mediaPillHeight
-    implicitWidth: root.isVertical ? (hasMedia ? Math.max(Appearance.mediaPillHeight, Appearance.barThickness - 10) : 0) : (hasMedia ? Math.min(220, Math.max(130, titleMeasure.implicitWidth + 82)) : 0)
+    implicitWidth: root.isVertical ? (hasMedia ? Math.max(Appearance.mediaPillHeight, Appearance.barThickness - 10) : 0) : (hasMedia ? Math.min(195, Math.max(110, titleMeasure.implicitWidth + 56)) : 0)
     height: implicitHeight
     width: implicitWidth
     visible: (width > 0 && height > 0) || opacity > 0
     opacity: hasMedia ? 1 : 0
     scale: hasMedia ? 1 : 0.85
-
     // Hidden text measuring component for fluid pill expansion
     Text {
         id: titleMeasure
 
         text: root.trackTitle
         font.family: Fonts.uiFont
-        font.pixelSize: Fonts.scale(11)
-        font.weight: Fonts.weightBold
+        font.pixelSize: Fonts.scale(10.5)
+        font.weight: Fonts.weightDemiBold
         visible: false
     }
 
@@ -48,445 +62,271 @@ Item {
         scale: pillMouse.pressed ? 0.965 : (pillMouse.containsMouse ? 1.025 : 1)
         transformOrigin: Item.Center
 
-        // ── 1. Mini Rounded Album Art on Left Side ────────────────────────
+        // Content wrapper with dynamic opacity during pill width collapse
         Item {
-            id: miniArtBox
+            anchors.fill: parent
+            opacity: root.isVertical ? (root.height > 20 ? 1 : 0) : Math.max(0, Math.min(1, (root.width - 45) / 35))
 
-            width: 18
-            height: 18
-            x: root.isVertical ? Math.round((parent.width - width) / 2) : 6
-            y: root.isVertical ? 6 : Math.round((parent.height - height) / 2)
+            // ── 1. Mini Rounded Album Art on Left Side ────────────────────────
+            Item {
+                id: miniArtBox
 
-            Rectangle {
-                id: miniArtBg
-
-                anchors.fill: parent
-                radius: Appearance.radiusSmall
-                color: Theme.dark_background
-
-                Text {
-                    anchors.centerIn: parent
-                    text: "󰝚"
-                    font.family: Icons.effectiveFont("󰝚")
-                    font.pixelSize: Fonts.scale(10)
-                    color: Theme.muted
-                    visible: !miniArt.visible
-                }
+                width: 20
+                height: 20
+                x: root.isVertical ? Math.round((parent.width - width) / 2) : 5
+                y: root.isVertical ? 5 : Math.round((parent.height - height) / 2)
 
                 Rectangle {
-                    id: miniArtMask
+                    id: miniArtBg
 
                     anchors.fill: parent
                     radius: Appearance.radiusSmall
-                    color: "black"
-                    layer.enabled: true
-                    visible: false
-                }
+                    color: Theme.dark_background
 
-                Image {
-                    id: miniArt
+                    Text {
+                        anchors.centerIn: parent
+                        text: "󰝚"
+                        font.family: Icons.effectiveFont("󰝚")
+                        font.pixelSize: Fonts.scale(11)
+                        color: Theme.accent
+                        visible: !miniArt.visible
+                    }
 
-                    anchors.fill: parent
-                    source: root.controller ? root.controller.artUrl : ""
-                    fillMode: Image.PreserveAspectCrop
-                    asynchronous: true
-                    visible: status === Image.Ready
-                    sourceSize.width: 36
-                    sourceSize.height: 36
-                    mipmap: true
-                    smooth: true
-                    layer.enabled: true
+                    Rectangle {
+                        id: miniArtMask
 
-                    layer.effect: MultiEffect {
-                        maskEnabled: true
-                        maskSource: miniArtMask
+                        anchors.fill: parent
+                        radius: Appearance.radiusSmall
+                        color: "black"
+                        layer.enabled: true
+                        visible: false
+                    }
+
+                    Image {
+                        id: miniArt
+
+                        anchors.fill: parent
+                        source: root.controller ? root.controller.artUrl : ""
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        visible: status === Image.Ready
+                        sourceSize.width: 40
+                        sourceSize.height: 40
+                        mipmap: true
+                        smooth: true
+                        layer.enabled: true
+
+                        layer.effect: MultiEffect {
+                            maskEnabled: true
+                            maskSource: miniArtMask
+                        }
+
                     }
 
                 }
 
             }
 
-            Rectangle {
-                anchors.fill: parent
-                radius: Appearance.radiusSmall
-                color: "transparent"
-                border.color: "transparent"
-                border.width: 0
-                z: 2
-            }
+            // ── 2. Track & Artist Title in Middle (Left-Aligned, Rock-Solid) ──
+            Text {
+                id: titleText
 
-        }
-
-        // ── 3. Audio Visualizer on Right Side (Matching Image 1) ──────────
-        // 6 vertical white capsule bars, vertically centered along the midline
-        Row {
-            id: visualizerRow
-
-            x: root.isVertical ? Math.round((parent.width - width) / 2) : Math.round(parent.width - width - 8)
-            y: root.isVertical ? Math.round(parent.height - height - 6) : Math.round((parent.height - height) / 2)
-            spacing: root.isVertical ? 2 : 2.5
-            height: 16
-
-            // Bar 0: Short (Base 6px)
-            Rectangle {
-                width: 2.5
-                height: (root.controller && root.controller.isPlaying) ? 6 : 3.5
-                radius: width / 2
-                color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
+                visible: !root.isVertical
+                x: miniArtBox.x + miniArtBox.width + 7
+                width: Math.max(0, visualizerRow.x - x - 6)
                 anchors.verticalCenter: parent.verticalCenter
+                text: root.trackTitle
+                font.family: Fonts.uiFont
+                font.pixelSize: Fonts.scale(10.5)
+                font.weight: Fonts.weightDemiBold
+                color: Theme.bright_foreground
+                elide: Text.ElideRight
+                maximumLineCount: 1
+                horizontalAlignment: Text.AlignLeft
+            }
 
-                Behavior on height {
-                    enabled: !(root.controller && root.controller.isPlaying)
+            // ── 3. High-Fidelity 3-Bar Waveform Visualizer ─────────────────────
+            Row {
+                id: visualizerRow
 
-                    NumberAnimation {
-                        duration: 240
-                        easing.type: Easing.OutCubic
+                x: root.isVertical ? Math.round((parent.width - width) / 2) : Math.round(parent.width - width - 8)
+                y: root.isVertical ? Math.round(parent.height - height - 6) : Math.round((parent.height - height) / 2)
+                spacing: 2
+                height: 14
+
+                // Bar 0
+                Rectangle {
+                    width: 2.2
+                    height: (root.controller && root.controller.isPlaying) ? 6 : 3.5
+                    radius: width / 2
+                    color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.4)
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Behavior on height {
+                        enabled: !(root.controller && root.controller.isPlaying)
+
+                        NumberAnimation {
+                            duration: 220
+                            easing.type: Easing.OutCubic
+                        }
+
+                    }
+
+                    Behavior on color {
+                        ColorAnimation {
+                            duration: 180
+                        }
+
+                    }
+
+                    SequentialAnimation on height {
+                        running: root.controller && root.controller.isPlaying
+                        loops: Animation.Infinite
+
+                        NumberAnimation {
+                            to: 10
+                            duration: 240
+                            easing.type: Easing.InOutQuad
+                        }
+
+                        NumberAnimation {
+                            to: 4
+                            duration: 280
+                            easing.type: Easing.InOutQuad
+                        }
+
+                        NumberAnimation {
+                            to: 8
+                            duration: 210
+                            easing.type: Easing.InOutQuad
+                        }
+
+                        NumberAnimation {
+                            to: 6
+                            duration: 260
+                            easing.type: Easing.InOutQuad
+                        }
+
                     }
 
                 }
 
-                Behavior on color {
-                    ColorAnimation {
-                        duration: 200
+                // Bar 1 (Center Peak)
+                Rectangle {
+                    width: 2.2
+                    height: (root.controller && root.controller.isPlaying) ? 12 : 5
+                    radius: width / 2
+                    color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.4)
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Behavior on height {
+                        enabled: !(root.controller && root.controller.isPlaying)
+
+                        NumberAnimation {
+                            duration: 220
+                            easing.type: Easing.OutCubic
+                        }
+
+                    }
+
+                    Behavior on color {
+                        ColorAnimation {
+                            duration: 180
+                        }
+
+                    }
+
+                    SequentialAnimation on height {
+                        running: root.controller && root.controller.isPlaying
+                        loops: Animation.Infinite
+
+                        NumberAnimation {
+                            to: 6
+                            duration: 220
+                            easing.type: Easing.InOutQuad
+                        }
+
+                        NumberAnimation {
+                            to: 13
+                            duration: 270
+                            easing.type: Easing.InOutQuad
+                        }
+
+                        NumberAnimation {
+                            to: 7
+                            duration: 230
+                            easing.type: Easing.InOutQuad
+                        }
+
+                        NumberAnimation {
+                            to: 11
+                            duration: 250
+                            easing.type: Easing.InOutQuad
+                        }
+
                     }
 
                 }
 
-                SequentialAnimation on height {
-                    running: root.controller && root.controller.isPlaying
-                    loops: Animation.Infinite
+                // Bar 2
+                Rectangle {
+                    width: 2.2
+                    height: (root.controller && root.controller.isPlaying) ? 8 : 3.5
+                    radius: width / 2
+                    color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.4)
+                    anchors.verticalCenter: parent.verticalCenter
 
-                    NumberAnimation {
-                        to: 10
-                        duration: 240
-                        easing.type: Easing.InOutQuad
+                    Behavior on height {
+                        enabled: !(root.controller && root.controller.isPlaying)
+
+                        NumberAnimation {
+                            duration: 220
+                            easing.type: Easing.OutCubic
+                        }
+
                     }
 
-                    NumberAnimation {
-                        to: 4
-                        duration: 280
-                        easing.type: Easing.InOutQuad
+                    Behavior on color {
+                        ColorAnimation {
+                            duration: 180
+                        }
+
                     }
 
-                    NumberAnimation {
-                        to: 8
-                        duration: 210
-                        easing.type: Easing.InOutQuad
-                    }
+                    SequentialAnimation on height {
+                        running: root.controller && root.controller.isPlaying
+                        loops: Animation.Infinite
 
-                    NumberAnimation {
-                        to: 6
-                        duration: 260
-                        easing.type: Easing.InOutQuad
+                        NumberAnimation {
+                            to: 9
+                            duration: 260
+                            easing.type: Easing.InOutQuad
+                        }
+
+                        NumberAnimation {
+                            to: 4
+                            duration: 230
+                            easing.type: Easing.InOutQuad
+                        }
+
+                        NumberAnimation {
+                            to: 11
+                            duration: 280
+                            easing.type: Easing.InOutQuad
+                        }
+
+                        NumberAnimation {
+                            to: 7
+                            duration: 240
+                            easing.type: Easing.InOutQuad
+                        }
+
                     }
 
                 }
 
             }
 
-            // Bar 1: Medium-High (Base 11px)
-            Rectangle {
-                width: 2.5
-                height: (root.controller && root.controller.isPlaying) ? 11 : 4.5
-                radius: width / 2
-                color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
-                anchors.verticalCenter: parent.verticalCenter
-
-                Behavior on height {
-                    enabled: !(root.controller && root.controller.isPlaying)
-
-                    NumberAnimation {
-                        duration: 240
-                        easing.type: Easing.OutCubic
-                    }
-
-                }
-
-                Behavior on color {
-                    ColorAnimation {
-                        duration: 200
-                    }
-
-                }
-
-                SequentialAnimation on height {
-                    running: root.controller && root.controller.isPlaying
-                    loops: Animation.Infinite
-
-                    NumberAnimation {
-                        to: 5
-                        duration: 220
-                        easing.type: Easing.InOutQuad
-                    }
-
-                    NumberAnimation {
-                        to: 13
-                        duration: 260
-                        easing.type: Easing.InOutQuad
-                    }
-
-                    NumberAnimation {
-                        to: 7
-                        duration: 230
-                        easing.type: Easing.InOutQuad
-                    }
-
-                    NumberAnimation {
-                        to: 11
-                        duration: 250
-                        easing.type: Easing.InOutQuad
-                    }
-
-                }
-
-            }
-
-            // Bar 2: Highest Peak (Base 14px)
-            Rectangle {
-                width: 2.5
-                height: (root.controller && root.controller.isPlaying) ? 14 : 5.5
-                radius: width / 2
-                color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
-                anchors.verticalCenter: parent.verticalCenter
-
-                Behavior on height {
-                    enabled: !(root.controller && root.controller.isPlaying)
-
-                    NumberAnimation {
-                        duration: 240
-                        easing.type: Easing.OutCubic
-                    }
-
-                }
-
-                Behavior on color {
-                    ColorAnimation {
-                        duration: 200
-                    }
-
-                }
-
-                SequentialAnimation on height {
-                    running: root.controller && root.controller.isPlaying
-                    loops: Animation.Infinite
-
-                    NumberAnimation {
-                        to: 7
-                        duration: 260
-                        easing.type: Easing.InOutQuad
-                    }
-
-                    NumberAnimation {
-                        to: 15
-                        duration: 230
-                        easing.type: Easing.InOutQuad
-                    }
-
-                    NumberAnimation {
-                        to: 9
-                        duration: 270
-                        easing.type: Easing.InOutQuad
-                    }
-
-                    NumberAnimation {
-                        to: 14
-                        duration: 220
-                        easing.type: Easing.InOutQuad
-                    }
-
-                }
-
-            }
-
-            // Bar 3: Medium-Short (Base 8px)
-            Rectangle {
-                width: 2.5
-                height: (root.controller && root.controller.isPlaying) ? 8 : 4.5
-                radius: width / 2
-                color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
-                anchors.verticalCenter: parent.verticalCenter
-
-                Behavior on height {
-                    enabled: !(root.controller && root.controller.isPlaying)
-
-                    NumberAnimation {
-                        duration: 240
-                        easing.type: Easing.OutCubic
-                    }
-
-                }
-
-                Behavior on color {
-                    ColorAnimation {
-                        duration: 200
-                    }
-
-                }
-
-                SequentialAnimation on height {
-                    running: root.controller && root.controller.isPlaying
-                    loops: Animation.Infinite
-
-                    NumberAnimation {
-                        to: 12
-                        duration: 230
-                        easing.type: Easing.InOutQuad
-                    }
-
-                    NumberAnimation {
-                        to: 5
-                        duration: 270
-                        easing.type: Easing.InOutQuad
-                    }
-
-                    NumberAnimation {
-                        to: 10
-                        duration: 210
-                        easing.type: Easing.InOutQuad
-                    }
-
-                    NumberAnimation {
-                        to: 8
-                        duration: 250
-                        easing.type: Easing.InOutQuad
-                    }
-
-                }
-
-            }
-
-            // Bar 4: High (Base 12px)
-            Rectangle {
-                width: 2.5
-                height: (root.controller && root.controller.isPlaying) ? 12 : 3.5
-                radius: width / 2
-                color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
-                anchors.verticalCenter: parent.verticalCenter
-
-                Behavior on height {
-                    enabled: !(root.controller && root.controller.isPlaying)
-
-                    NumberAnimation {
-                        duration: 240
-                        easing.type: Easing.OutCubic
-                    }
-
-                }
-
-                Behavior on color {
-                    ColorAnimation {
-                        duration: 200
-                    }
-
-                }
-
-                SequentialAnimation on height {
-                    running: root.controller && root.controller.isPlaying
-                    loops: Animation.Infinite
-
-                    NumberAnimation {
-                        to: 5
-                        duration: 250
-                        easing.type: Easing.InOutQuad
-                    }
-
-                    NumberAnimation {
-                        to: 14
-                        duration: 220
-                        easing.type: Easing.InOutQuad
-                    }
-
-                    NumberAnimation {
-                        to: 8
-                        duration: 260
-                        easing.type: Easing.InOutQuad
-                    }
-
-                    NumberAnimation {
-                        to: 12
-                        duration: 240
-                        easing.type: Easing.InOutQuad
-                    }
-
-                }
-
-            }
-
-            // Bar 5: High (Base 12px)
-            Rectangle {
-                width: 2.5
-                height: (root.controller && root.controller.isPlaying) ? 12 : 3.5
-                radius: width / 2
-                color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
-                anchors.verticalCenter: parent.verticalCenter
-
-                Behavior on height {
-                    enabled: !(root.controller && root.controller.isPlaying)
-
-                    NumberAnimation {
-                        duration: 240
-                        easing.type: Easing.OutCubic
-                    }
-
-                }
-
-                Behavior on color {
-                    ColorAnimation {
-                        duration: 200
-                    }
-
-                }
-
-                SequentialAnimation on height {
-                    running: root.controller && root.controller.isPlaying
-                    loops: Animation.Infinite
-
-                    NumberAnimation {
-                        to: 14
-                        duration: 220
-                        easing.type: Easing.InOutQuad
-                    }
-
-                    NumberAnimation {
-                        to: 7
-                        duration: 270
-                        easing.type: Easing.InOutQuad
-                    }
-
-                    NumberAnimation {
-                        to: 13
-                        duration: 240
-                        easing.type: Easing.InOutQuad
-                    }
-
-                    NumberAnimation {
-                        to: 12
-                        duration: 250
-                        easing.type: Easing.InOutQuad
-                    }
-
-                }
-
-            }
-
-        }
-
-        // ── 2. Album / Media Name in Middle ───────────────────────────────
-        Text {
-            id: titleText
-
-            visible: !root.isVertical
-            x: miniArtBox.x + miniArtBox.width + 7
-            width: Math.max(0, visualizerRow.x - x - 7)
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.trackTitle
-            font.family: Fonts.uiFont
-            font.pixelSize: Fonts.scale(11)
-            font.weight: Fonts.weightBold
-            color: Theme.foreground
-            elide: Text.ElideRight
-            maximumLineCount: 1
-            horizontalAlignment: Text.AlignHCenter
         }
 
         MouseArea {
@@ -573,10 +413,6 @@ Item {
         anchorWindow: root.QsWindow ? root.QsWindow.window : null
         controller: root.controller
         audioService: root.audioService
-    }
-
-    controller: MediaController {
-        id: defaultCtrl
     }
 
     Behavior on implicitWidth {

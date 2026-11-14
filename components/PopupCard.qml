@@ -12,13 +12,13 @@ PanelWindow {
     property string title: ""
     property string icon: ""
     property bool open: false
+    property real animProgress: 0
     property int contentWidth: 320
     property int contentHeight: 280
     property bool showDefaultHeader: true
     property double lastClearedTime: 0
     property int keyboardFocus: WlrKeyboardFocus.None
-    property bool _animatingClose: false
-    readonly property bool isCardActive: root.open && !root._animatingClose
+    readonly property bool isCardActive: root.open
     default property alias content: bodyContainer.data
     // Calculate card position relative to anchorItem across all 4 bar edges
     readonly property point popupPos: {
@@ -37,20 +37,22 @@ PanelWindow {
         if (root.open) {
             root.closeAnimated();
         } else {
-            root._animatingClose = false;
             root.open = true;
+            closeAnim.stop();
+            openAnim.restart();
         }
     }
 
     function closeAnimated() {
-        if (!root.open || root._animatingClose)
+        if (!root.open && root.animProgress <= 0.001)
             return ;
 
-        root._animatingClose = true;
-        closeTimer.start();
+        root.open = false;
+        openAnim.stop();
+        closeAnim.restart();
     }
 
-    visible: root.open
+    visible: root.open || animProgress > 0.001
     color: "transparent"
     screen: (root.anchorItem && root.anchorItem.QsWindow && root.anchorItem.QsWindow.window) ? root.anchorItem.QsWindow.window.screen : null
     WlrLayershell.namespace: "quickshell-surface"
@@ -58,15 +60,27 @@ PanelWindow {
     WlrLayershell.keyboardFocus: root.open ? root.keyboardFocus : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
 
-    Timer {
-        id: closeTimer
+    NumberAnimation {
+        id: openAnim
 
-        interval: 180
-        repeat: false
-        onTriggered: {
-            root._animatingClose = false;
-            root.open = false;
-        }
+        target: root
+        property: "animProgress"
+        from: root.animProgress
+        to: 1
+        duration: 260
+        easing.type: Easing.OutBack
+        easing.overshoot: 1.08
+    }
+
+    NumberAnimation {
+        id: closeAnim
+
+        target: root
+        property: "animProgress"
+        from: root.animProgress
+        to: 0
+        duration: 180
+        easing.type: Easing.OutCubic
     }
 
     Connections {
@@ -121,15 +135,13 @@ PanelWindow {
     GlassPanel {
         id: cardRect
 
-        readonly property real slideOffset: root.isCardActive ? 0 : 12
-
         x: Math.round(root.cardX)
         y: Math.round(root.cardY)
         width: root.contentWidth
         height: root.contentHeight
         radius: Appearance.popupRadius > 0 ? Appearance.popupRadius : 14
-        opacity: root.isCardActive ? 1 : 0
-        scale: root.isCardActive ? 1 : 0.93
+        opacity: Math.min(1, root.animProgress * 1.5)
+        scale: 0.93 + 0.07 * root.animProgress
         transformOrigin: Appearance.barIsBottom ? Item.Bottom : (Appearance.barIsLeft ? Item.Left : (Appearance.barIsRight ? Item.Right : Item.Top))
 
         // Prevent clicks inside the card from closing the popup
@@ -200,42 +212,8 @@ PanelWindow {
         }
 
         transform: Translate {
-            x: Appearance.barIsLeft ? -cardRect.slideOffset : (Appearance.barIsRight ? cardRect.slideOffset : 0)
-            y: Appearance.barIsTop ? -cardRect.slideOffset : (Appearance.barIsBottom ? cardRect.slideOffset : 0)
-
-            Behavior on x {
-                NumberAnimation {
-                    duration: root.isCardActive ? 260 : 170
-                    easing.type: root.isCardActive ? Easing.OutCubic : Easing.InQuad
-                }
-
-            }
-
-            Behavior on y {
-                NumberAnimation {
-                    duration: root.isCardActive ? 260 : 170
-                    easing.type: root.isCardActive ? Easing.OutCubic : Easing.InQuad
-                }
-
-            }
-
-        }
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: root.isCardActive ? 220 : 160
-                easing.type: root.isCardActive ? Easing.OutCubic : Easing.InQuad
-            }
-
-        }
-
-        Behavior on scale {
-            NumberAnimation {
-                duration: root.isCardActive ? 260 : 170
-                easing.type: root.isCardActive ? Easing.OutBack : Easing.InQuad
-                easing.overshoot: root.isCardActive ? 1.08 : 1
-            }
-
+            x: (1 - root.animProgress) * (Appearance.barIsLeft ? -12 : (Appearance.barIsRight ? 12 : 0))
+            y: (1 - root.animProgress) * (Appearance.barIsTop ? -12 : (Appearance.barIsBottom ? 12 : 0))
         }
 
     }
