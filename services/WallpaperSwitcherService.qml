@@ -38,7 +38,6 @@ QtObject {
         // Execute wallpaper-switch script via helper
         Quickshell.execDetached([root.listScriptPath, "switch", wallpaperPath]);
         switchResetTimer.restart();
-        Theme.reloadWallpaperPalette();
     }
 
     function centerActiveWallpaper(list) {
@@ -113,7 +112,6 @@ QtObject {
             root.isSwitching = false;
             root.switchingTo = "";
             root.refresh();
-            Theme.reloadWallpaperPalette();
         }
     }
 

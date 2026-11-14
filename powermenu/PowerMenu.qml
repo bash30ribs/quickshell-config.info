@@ -1531,6 +1531,8 @@ PanelWindow {
 
                             width: 196
                             height: 110
+                            scale: wallCardMouse.pressed ? 0.965 : ((wallCardMouse.containsMouse || wallCardItem.isSelected) ? 1.03 : 1)
+                            antialiasing: true
 
                             // 1. Card Background
                             Rectangle {
@@ -1601,6 +1603,98 @@ PanelWindow {
 
                             }
 
+                            // 4. Subtle Title Scrim Overlay on Hover / Selection
+                            Rectangle {
+                                anchors.bottom: parent.bottom
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.margins: 1
+                                height: 28
+                                radius: Appearance.powerMenuRadiusActive - 1
+                                opacity: (wallCardMouse.containsMouse || wallCardItem.isSelected) ? 1 : 0
+                                visible: opacity > 0
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    anchors.verticalCenterOffset: 3
+                                    width: parent.width - 16
+                                    elide: Text.ElideRight
+                                    horizontalAlignment: Text.AlignHCenter
+                                    text: wallCardItem.modelData.name || ""
+                                    font.family: Fonts.uiFont
+                                    font.pixelSize: Fonts.scale(10.5)
+                                    font.weight: Fonts.weightDemiBold
+                                    color: Theme.bright_foreground
+                                }
+
+                                gradient: Gradient {
+                                    GradientStop {
+                                        position: 0
+                                        color: "transparent"
+                                    }
+
+                                    GradientStop {
+                                        position: 0.45
+                                        color: Qt.rgba(0, 0, 0, 0.5)
+                                    }
+
+                                    GradientStop {
+                                        position: 1
+                                        color: Qt.rgba(0, 0, 0, 0.88)
+                                    }
+
+                                }
+
+                                Behavior on opacity {
+                                    NumberAnimation {
+                                        duration: 140
+                                        easing.type: Easing.OutCubic
+                                    }
+
+                                }
+
+                            }
+
+                            // 5. Active Wallpaper Glass Pill Badge
+                            Rectangle {
+                                anchors.top: parent.top
+                                anchors.right: parent.right
+                                anchors.margins: 6
+                                height: 18
+                                radius: 9
+                                visible: wallCardItem.isActiveWall
+                                color: Theme.withAlpha(Theme.darker_background, 0.82)
+                                border.color: Theme.withAlpha(Theme.accent, 0.75)
+                                border.width: 1
+                                implicitWidth: activeContentRow.implicitWidth + 12
+
+                                Row {
+                                    id: activeContentRow
+
+                                    anchors.centerIn: parent
+                                    spacing: 4
+
+                                    Rectangle {
+                                        width: 5
+                                        height: 5
+                                        radius: 2.5
+                                        color: Theme.accent
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Text {
+                                        text: "ACTIVE"
+                                        font.family: Fonts.uiFont
+                                        font.pixelSize: Fonts.scale(8)
+                                        font.weight: Fonts.weightBold
+                                        color: Theme.bright_foreground
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                }
+
+                            }
+
                             // Fallback icon if image loading error
                             Item {
                                 anchors.fill: parent
@@ -1616,13 +1710,13 @@ PanelWindow {
 
                             }
 
-                            // 4. Border Overlay rendered on top so corner anti-aliasing is crisp
+                            // 6. Border Overlay rendered on top so corner anti-aliasing is crisp
                             Rectangle {
                                 anchors.fill: parent
                                 radius: Appearance.powerMenuRadiusActive
                                 color: "transparent"
-                                border.color: Appearance.wallpaperSwitcherCardBorder ? (wallCardItem.isSelected ? Theme.accent : (wallCardItem.isActiveWall ? Theme.withAlpha(Theme.green, 0.6) : Theme.withAlpha(Theme.selection, 0.6))) : "transparent"
-                                border.width: Appearance.wallpaperSwitcherCardBorder ? (wallCardItem.isSelected ? 2 : 1) : 0
+                                border.color: Appearance.wallpaperSwitcherCardBorder ? (wallCardItem.isSelected ? Theme.accent : (wallCardItem.isActiveWall ? Theme.withAlpha(Theme.accent, 0.75) : Theme.withAlpha(Theme.selection, 0.5))) : "transparent"
+                                border.width: Appearance.wallpaperSwitcherCardBorder ? (wallCardItem.isSelected ? 2 : (wallCardItem.isActiveWall ? 1.5 : 1)) : 0
 
                                 Behavior on border.color {
                                     ColorAnimation {
@@ -1633,7 +1727,7 @@ PanelWindow {
 
                             }
 
-                            // 5. Interactive Mouse Area
+                            // 7. Interactive Mouse Area
                             MouseArea {
                                 id: wallCardMouse
 
@@ -1646,6 +1740,15 @@ PanelWindow {
                                 onClicked: {
                                     root.applyWallpaper(wallCardItem.modelData.path);
                                 }
+                            }
+
+                            Behavior on scale {
+                                NumberAnimation {
+                                    duration: wallCardMouse.pressed ? 70 : 180
+                                    easing.type: wallCardMouse.pressed ? Easing.OutQuad : Easing.OutBack
+                                    easing.overshoot: wallCardMouse.pressed ? 1 : 1.2
+                                }
+
                             }
 
                         }
