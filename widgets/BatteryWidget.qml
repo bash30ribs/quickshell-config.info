@@ -96,114 +96,18 @@ Item {
                 styleColor: Qt.rgba(0, 0, 0, 0.65)
             }
 
-            // State 2: When CHARGING -> percentage "%" won't be shown, instead show animated electric_bolt
-            Item {
-                id: chargingBoltItem
+            // State 2: When CHARGING -> percentage "%" won't be shown, instead show static electric_bolt
+            Text {
+                id: boltGlyph
 
                 anchors.verticalCenter: parent.verticalCenter
-                width: 16
-                height: 16
                 visible: root.isCharging
-
-                // Radial energy aura ripple
-                Rectangle {
-                    id: auraRing
-
-                    anchors.centerIn: parent
-                    width: 16
-                    height: 16
-                    radius: 8
-                    color: Theme.withAlpha(Theme.accent, 0.28)
-                    visible: root.isCharging
-
-                    SequentialAnimation on scale {
-                        running: root.isCharging
-                        loops: Animation.Infinite
-
-                        NumberAnimation {
-                            to: 1.35
-                            duration: 800
-                            easing.type: Easing.InOutSine
-                        }
-
-                        NumberAnimation {
-                            to: 0.85
-                            duration: 800
-                            easing.type: Easing.InOutSine
-                        }
-
-                    }
-
-                    SequentialAnimation on opacity {
-                        running: root.isCharging
-                        loops: Animation.Infinite
-
-                        NumberAnimation {
-                            to: 0.15
-                            duration: 800
-                            easing.type: Easing.InOutSine
-                        }
-
-                        NumberAnimation {
-                            to: 0.7
-                            duration: 800
-                            easing.type: Easing.InOutSine
-                        }
-
-                    }
-
-                }
-
-                // Material Symbols Rounded electric_bolt
-                Text {
-                    id: boltGlyph
-
-                    anchors.centerIn: parent
-                    text: Icons.electricBolt
-                    font.family: Icons.effectiveFont(text)
-                    font.pixelSize: 16
-                    color: Theme.accent
-                    style: Text.Raised
-                    styleColor: Qt.rgba(0, 0, 0, 0.5)
-
-                    SequentialAnimation on scale {
-                        running: root.isCharging
-                        loops: Animation.Infinite
-
-                        NumberAnimation {
-                            to: 1.18
-                            duration: 500
-                            easing.type: Easing.InOutSine
-                        }
-
-                        NumberAnimation {
-                            to: 0.92
-                            duration: 500
-                            easing.type: Easing.InOutSine
-                        }
-
-                    }
-
-                    SequentialAnimation on opacity {
-                        running: root.isCharging
-                        loops: Animation.Infinite
-
-                        NumberAnimation {
-                            to: 1
-                            duration: 500
-                            easing.type: Easing.InOutSine
-                        }
-
-                        NumberAnimation {
-                            to: 0.72
-                            duration: 500
-                            easing.type: Easing.InOutSine
-                        }
-
-                    }
-
-                }
-
+                text: Icons.electricBolt
+                font.family: Icons.effectiveFont(text)
+                font.pixelSize: Fonts.sizeRegular + 1
+                color: Theme.accent
+                style: Text.Raised
+                styleColor: Qt.rgba(0, 0, 0, 0.5)
             }
 
         }
