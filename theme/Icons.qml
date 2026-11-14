@@ -64,6 +64,7 @@ QtObject {
     readonly property string display: root.useMaterialSymbols ? "monitor" : "󰍹"
     property string batteryFull: root.useMaterialSymbols ? "battery_android_full" : "󰁹"
     property string batteryCharging: root.useMaterialSymbols ? "battery_android_bolt" : "󰂄"
+    readonly property string electricBolt: root.useMaterialSymbols ? "electric_bolt" : "󱐋"
     property string batteryLow: root.useMaterialSymbols ? "battery_android_alert" : "󰂃"
     property string bluetooth: root.useMaterialSymbols ? "bluetooth" : "󰂯"
     property string bluetoothConnected: root.useMaterialSymbols ? "bluetooth_connected" : "󰂱"

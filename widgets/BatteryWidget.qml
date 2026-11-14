@@ -14,6 +14,8 @@ Item {
     property bool showHealth: Appearance.batteryShowHealth
     property int cycleOverride: Appearance.batteryCycleOverride
     property int iconSize: Appearance.batteryIconSize
+    readonly property bool isCharging: root.batteryService && (root.batteryService.isCharging === true || (root.batteryService.status && root.batteryService.status.toLowerCase().indexOf("charging") !== -1 && root.batteryService.status.toLowerCase().indexOf("not") === -1))
+    readonly property bool isVertical: Appearance.barIsVertical
 
     function toggle() {
         batPopup.toggle();
@@ -27,32 +29,215 @@ Item {
     width: implicitWidth
     height: implicitHeight
 
-    BarButton {
+    Rectangle {
         id: batButton
 
-        icon: ""
-        iconSize: 0
-        text: (root.batteryService ? root.batteryService.capacity : 0) + "%"
-        accentActive: root.batteryService && (root.batteryService.isCharging || root.batteryService.isPluggedIn)
-        customColor: {
-            if (!root.batteryService)
+        implicitHeight: Appearance.barButtonHeight
+        implicitWidth: root.isVertical ? Appearance.barButtonHeight : (root.isCharging ? Appearance.barButtonHeight : Math.max(Appearance.barButtonHeight, percentText.implicitWidth + (Appearance.buttonPadding * 2)))
+        width: implicitWidth
+        height: implicitHeight
+        radius: Appearance.buttonRadius > 0 ? (root.isVertical ? Appearance.radiusMedium : Appearance.buttonRadius) : 8
+        antialiasing: true
+        scale: batMouse.pressed ? 0.96 : (batMouse.containsMouse ? 1.025 : 1)
+        color: {
+            if (batPopup.open)
+                return Theme.withAlpha(Theme.accent, 0.18);
+
+            if (batMouse.containsMouse)
+                return Theme.withAlpha(Theme.accent, 0.1);
+
+            return "transparent";
+        }
+        border.width: 0
+        border.color: "transparent"
+
+        // ── State 1: When NOT charging -> Samsung-style Percentage Indicator ──
+        Text {
+            id: percentText
+
+            anchors.centerIn: parent
+            visible: !root.isCharging
+            opacity: root.isCharging ? 0 : 1
+            text: (root.batteryService ? root.batteryService.capacity : 0) + "%"
+            font.family: Fonts.uiFont
+            font.pixelSize: (root.isVertical && text.length > 3) ? Fonts.scale(9.5) : Fonts.sizeRegular
+            font.weight: Fonts.weightDemiBold
+            color: {
+                if (root.batteryService && root.batteryService.capacity <= 20)
+                    return Theme.red;
+
+                if (root.batteryService && root.batteryService.capacity <= 40)
+                    return Theme.yellow;
+
                 return Theme.bright_foreground;
+            }
+            style: Text.Raised
+            styleColor: Qt.rgba(0, 0, 0, 0.65)
 
-            if (root.batteryService.isCharging || root.batteryService.isPluggedIn)
-                return Theme.accent;
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 180
+                    easing.type: Easing.OutCubic
+                }
 
-            if (root.batteryService.capacity <= 20)
-                return Theme.red;
+            }
 
-            if (root.batteryService.capacity <= 40)
-                return Theme.yellow;
-
-            return Theme.bright_foreground;
         }
-        active: batPopup.open
-        onClicked: {
-            root.toggle();
+
+        // ── State 2: When CHARGING -> Pulsing Energy Aura & Material Symbol electric_bolt ──
+        Item {
+            id: chargingAnimContainer
+
+            anchors.centerIn: parent
+            width: parent.height
+            height: parent.height
+            visible: root.isCharging
+            opacity: root.isCharging ? 1 : 0
+
+            // Radial energy ripple aura
+            Rectangle {
+                id: auraRing
+
+                anchors.centerIn: parent
+                width: 20
+                height: 20
+                radius: 10
+                color: Theme.withAlpha(Theme.accent, 0.22)
+                visible: root.isCharging
+
+                SequentialAnimation on scale {
+                    running: root.isCharging
+                    loops: Animation.Infinite
+
+                    NumberAnimation {
+                        to: 1.35
+                        duration: 850
+                        easing.type: Easing.InOutSine
+                    }
+
+                    NumberAnimation {
+                        to: 0.85
+                        duration: 850
+                        easing.type: Easing.InOutSine
+                    }
+
+                }
+
+                SequentialAnimation on opacity {
+                    running: root.isCharging
+                    loops: Animation.Infinite
+
+                    NumberAnimation {
+                        to: 0.15
+                        duration: 850
+                        easing.type: Easing.InOutSine
+                    }
+
+                    NumberAnimation {
+                        to: 0.65
+                        duration: 850
+                        easing.type: Easing.InOutSine
+                    }
+
+                }
+
+            }
+
+            // Material Symbols Rounded electric_bolt
+            Text {
+                id: boltGlyph
+
+                anchors.centerIn: parent
+                text: Icons.electricBolt
+                font.family: Icons.effectiveFont(text)
+                font.pixelSize: 18
+                color: Theme.accent
+                style: Text.Raised
+                styleColor: Qt.rgba(0, 0, 0, 0.5)
+
+                SequentialAnimation on scale {
+                    running: root.isCharging
+                    loops: Animation.Infinite
+
+                    NumberAnimation {
+                        to: 1.15
+                        duration: 550
+                        easing.type: Easing.InOutSine
+                    }
+
+                    NumberAnimation {
+                        to: 0.92
+                        duration: 550
+                        easing.type: Easing.InOutSine
+                    }
+
+                }
+
+                SequentialAnimation on opacity {
+                    running: root.isCharging
+                    loops: Animation.Infinite
+
+                    NumberAnimation {
+                        to: 1
+                        duration: 550
+                        easing.type: Easing.InOutSine
+                    }
+
+                    NumberAnimation {
+                        to: 0.72
+                        duration: 550
+                        easing.type: Easing.InOutSine
+                    }
+
+                }
+
+            }
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 180
+                    easing.type: Easing.OutCubic
+                }
+
+            }
+
         }
+
+        MouseArea {
+            id: batMouse
+
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                root.toggle();
+            }
+        }
+
+        Behavior on implicitWidth {
+            NumberAnimation {
+                duration: 220
+                easing.type: Easing.OutCubic
+            }
+
+        }
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: batMouse.pressed ? 70 : 180
+                easing.type: batMouse.pressed ? Easing.OutQuad : Easing.OutBack
+                easing.overshoot: batMouse.pressed ? 1 : 1.25
+            }
+
+        }
+
+        Behavior on color {
+            ColorAnimation {
+                duration: Appearance.animDurationNormal
+            }
+
+        }
+
     }
 
     PopupCard {
