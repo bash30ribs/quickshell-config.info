@@ -14,7 +14,7 @@ Item {
     property bool showHealth: Appearance.batteryShowHealth
     property int cycleOverride: Appearance.batteryCycleOverride
     property int iconSize: Appearance.batteryIconSize
-    readonly property bool isCharging: root.batteryService && (root.batteryService.isCharging === true || (root.batteryService.status && root.batteryService.status.toLowerCase().indexOf("charging") !== -1 && root.batteryService.status.toLowerCase().indexOf("not") === -1))
+    readonly property bool isCharging: root.batteryService && (root.batteryService.isCharging || root.batteryService.isPluggedIn)
     readonly property bool isVertical: Appearance.barIsVertical
 
     function toggle() {
@@ -33,7 +33,7 @@ Item {
         id: batButton
 
         implicitHeight: Appearance.barButtonHeight
-        implicitWidth: root.isVertical ? Appearance.barButtonHeight : (root.isCharging ? Appearance.barButtonHeight : Math.max(Appearance.barButtonHeight, percentText.implicitWidth + (Appearance.buttonPadding * 2)))
+        implicitWidth: root.isVertical ? Appearance.barButtonHeight : Math.max(Appearance.barButtonHeight, contentContainer.implicitWidth + (Appearance.buttonPadding * 2))
         width: implicitWidth
         height: implicitHeight
         radius: Appearance.buttonRadius > 0 ? (root.isVertical ? Appearance.radiusMedium : Appearance.buttonRadius) : 8
@@ -51,152 +51,206 @@ Item {
         border.width: 0
         border.color: "transparent"
 
-        // ── State 1: When NOT charging -> Samsung-style Percentage Indicator ──
-        Text {
-            id: percentText
+        // ── Horizontal Layout ──
+        Row {
+            id: contentContainer
 
             anchors.centerIn: parent
-            visible: !root.isCharging
-            opacity: root.isCharging ? 0 : 1
-            text: (root.batteryService ? root.batteryService.capacity : 0) + "%"
-            font.family: Fonts.uiFont
-            font.pixelSize: (root.isVertical && text.length > 3) ? Fonts.scale(9.5) : Fonts.sizeRegular
-            font.weight: Fonts.weightDemiBold
-            color: {
-                if (root.batteryService && root.batteryService.capacity <= 20)
-                    return Theme.red;
+            visible: !root.isVertical
+            spacing: 2
 
-                if (root.batteryService && root.batteryService.capacity <= 40)
-                    return Theme.yellow;
+            // Battery Capacity Number
+            Text {
+                id: capText
 
-                return Theme.bright_foreground;
+                anchors.verticalCenter: parent.verticalCenter
+                text: (root.batteryService ? root.batteryService.capacity : 0)
+                font.family: Fonts.uiFont
+                font.pixelSize: Fonts.sizeRegular
+                font.weight: Fonts.weightDemiBold
+                color: {
+                    if (root.batteryService && root.batteryService.capacity <= 20)
+                        return Theme.red;
+
+                    if (root.batteryService && root.batteryService.capacity <= 40)
+                        return Theme.yellow;
+
+                    return Theme.bright_foreground;
+                }
+                style: Text.Raised
+                styleColor: Qt.rgba(0, 0, 0, 0.65)
             }
-            style: Text.Raised
-            styleColor: Qt.rgba(0, 0, 0, 0.65)
 
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: 180
-                    easing.type: Easing.OutCubic
+            // State 1: When NOT charging -> show "%" symbol next to battery number
+            Text {
+                id: percentSign
+
+                anchors.verticalCenter: parent.verticalCenter
+                visible: !root.isCharging
+                text: "%"
+                font.family: Fonts.uiFont
+                font.pixelSize: Fonts.sizeRegular
+                font.weight: Fonts.weightDemiBold
+                color: capText.color
+                style: Text.Raised
+                styleColor: Qt.rgba(0, 0, 0, 0.65)
+            }
+
+            // State 2: When CHARGING -> percentage "%" won't be shown, instead show animated electric_bolt
+            Item {
+                id: chargingBoltItem
+
+                anchors.verticalCenter: parent.verticalCenter
+                width: 16
+                height: 16
+                visible: root.isCharging
+
+                // Radial energy aura ripple
+                Rectangle {
+                    id: auraRing
+
+                    anchors.centerIn: parent
+                    width: 16
+                    height: 16
+                    radius: 8
+                    color: Theme.withAlpha(Theme.accent, 0.28)
+                    visible: root.isCharging
+
+                    SequentialAnimation on scale {
+                        running: root.isCharging
+                        loops: Animation.Infinite
+
+                        NumberAnimation {
+                            to: 1.35
+                            duration: 800
+                            easing.type: Easing.InOutSine
+                        }
+
+                        NumberAnimation {
+                            to: 0.85
+                            duration: 800
+                            easing.type: Easing.InOutSine
+                        }
+
+                    }
+
+                    SequentialAnimation on opacity {
+                        running: root.isCharging
+                        loops: Animation.Infinite
+
+                        NumberAnimation {
+                            to: 0.15
+                            duration: 800
+                            easing.type: Easing.InOutSine
+                        }
+
+                        NumberAnimation {
+                            to: 0.7
+                            duration: 800
+                            easing.type: Easing.InOutSine
+                        }
+
+                    }
+
+                }
+
+                // Material Symbols Rounded electric_bolt
+                Text {
+                    id: boltGlyph
+
+                    anchors.centerIn: parent
+                    text: Icons.electricBolt
+                    font.family: Icons.effectiveFont(text)
+                    font.pixelSize: 16
+                    color: Theme.accent
+                    style: Text.Raised
+                    styleColor: Qt.rgba(0, 0, 0, 0.5)
+
+                    SequentialAnimation on scale {
+                        running: root.isCharging
+                        loops: Animation.Infinite
+
+                        NumberAnimation {
+                            to: 1.18
+                            duration: 500
+                            easing.type: Easing.InOutSine
+                        }
+
+                        NumberAnimation {
+                            to: 0.92
+                            duration: 500
+                            easing.type: Easing.InOutSine
+                        }
+
+                    }
+
+                    SequentialAnimation on opacity {
+                        running: root.isCharging
+                        loops: Animation.Infinite
+
+                        NumberAnimation {
+                            to: 1
+                            duration: 500
+                            easing.type: Easing.InOutSine
+                        }
+
+                        NumberAnimation {
+                            to: 0.72
+                            duration: 500
+                            easing.type: Easing.InOutSine
+                        }
+
+                    }
+
                 }
 
             }
 
         }
 
-        // ── State 2: When CHARGING -> Pulsing Energy Aura & Material Symbol electric_bolt ──
-        Item {
-            id: chargingAnimContainer
+        // ── Vertical Bar Layout ──
+        Column {
+            id: contentContainerVertical
 
             anchors.centerIn: parent
-            width: parent.height
-            height: parent.height
-            visible: root.isCharging
-            opacity: root.isCharging ? 1 : 0
+            visible: root.isVertical
+            spacing: 0
 
-            // Radial energy ripple aura
-            Rectangle {
-                id: auraRing
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: (root.batteryService ? root.batteryService.capacity : 0)
+                font.family: Fonts.uiFont
+                font.pixelSize: (text.length > 2) ? Fonts.scale(9.5) : Fonts.sizeRegular
+                font.weight: Fonts.weightDemiBold
+                color: capText.color
+                style: Text.Raised
+                styleColor: Qt.rgba(0, 0, 0, 0.65)
+            }
 
-                anchors.centerIn: parent
-                width: 20
-                height: 20
-                radius: 10
-                color: Theme.withAlpha(Theme.accent, 0.22)
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: !root.isCharging
+                text: "%"
+                font.family: Fonts.uiFont
+                font.pixelSize: Fonts.scale(9)
+                font.weight: Fonts.weightDemiBold
+                color: capText.color
+                style: Text.Raised
+                styleColor: Qt.rgba(0, 0, 0, 0.65)
+            }
+
+            Item {
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 14
+                height: 14
                 visible: root.isCharging
 
-                SequentialAnimation on scale {
-                    running: root.isCharging
-                    loops: Animation.Infinite
-
-                    NumberAnimation {
-                        to: 1.35
-                        duration: 850
-                        easing.type: Easing.InOutSine
-                    }
-
-                    NumberAnimation {
-                        to: 0.85
-                        duration: 850
-                        easing.type: Easing.InOutSine
-                    }
-
-                }
-
-                SequentialAnimation on opacity {
-                    running: root.isCharging
-                    loops: Animation.Infinite
-
-                    NumberAnimation {
-                        to: 0.15
-                        duration: 850
-                        easing.type: Easing.InOutSine
-                    }
-
-                    NumberAnimation {
-                        to: 0.65
-                        duration: 850
-                        easing.type: Easing.InOutSine
-                    }
-
-                }
-
-            }
-
-            // Material Symbols Rounded electric_bolt
-            Text {
-                id: boltGlyph
-
-                anchors.centerIn: parent
-                text: Icons.electricBolt
-                font.family: Icons.effectiveFont(text)
-                font.pixelSize: 18
-                color: Theme.accent
-                style: Text.Raised
-                styleColor: Qt.rgba(0, 0, 0, 0.5)
-
-                SequentialAnimation on scale {
-                    running: root.isCharging
-                    loops: Animation.Infinite
-
-                    NumberAnimation {
-                        to: 1.15
-                        duration: 550
-                        easing.type: Easing.InOutSine
-                    }
-
-                    NumberAnimation {
-                        to: 0.92
-                        duration: 550
-                        easing.type: Easing.InOutSine
-                    }
-
-                }
-
-                SequentialAnimation on opacity {
-                    running: root.isCharging
-                    loops: Animation.Infinite
-
-                    NumberAnimation {
-                        to: 1
-                        duration: 550
-                        easing.type: Easing.InOutSine
-                    }
-
-                    NumberAnimation {
-                        to: 0.72
-                        duration: 550
-                        easing.type: Easing.InOutSine
-                    }
-
-                }
-
-            }
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: 180
-                    easing.type: Easing.OutCubic
+                Text {
+                    anchors.centerIn: parent
+                    text: Icons.electricBolt
+                    font.family: Icons.effectiveFont(text)
+                    font.pixelSize: 13
+                    color: Theme.accent
                 }
 
             }
