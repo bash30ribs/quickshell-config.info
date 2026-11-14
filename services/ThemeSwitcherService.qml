@@ -18,93 +18,11 @@ QtObject {
     readonly property string thumbScriptPath: Quickshell.env("HOME") + "/.config/quickshell/src/qdeck-wallpaper-thumbs.py"
     readonly property string currentThemeLink: Quickshell.env("HOME") + "/.config/themes/current"
     property Timer switchResetTimer
-
-    switchResetTimer: Timer {
-        interval: 3500
-        repeat: false
-        onTriggered: {
-            root.isSwitching = false;
-            root.switchingTo = "";
-            root.refresh();
-            Theme.reloadTheme();
-        }
-    }
-
     readonly property int middleIndex: root.themes ? Math.floor(root.themes.length / 2) : 0
     property Process thumbProc
-
-    thumbProc: Process {
-        id: thumbProc
-
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: {
-                var raw = text.trim();
-                if (!raw)
-                    return ;
-
-                try {
-                    var map = JSON.parse(raw);
-                    var updated = root.thumbMap || {
-                    };
-                    for (var k in map) {
-                        updated[k] = map[k];
-                    }
-                    root.thumbMap = updated;
-                    if (root.pendingList && root.pendingList.length > 0)
-                        root.applyWithThumbs(root.pendingList);
-
-                } catch (e) {
-                    console.warn("[ThemeSwitcherService] Failed to parse thumb map:", e);
-                }
-            }
-        }
-
-    }
-
     property Process listProc
-
-    listProc: Process {
-        id: listProc
-
-        command: [root.listScriptPath, "list"]
-
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: {
-                var raw = text.trim();
-                if (!raw)
-                    return ;
-
-                try {
-                    var parsed = JSON.parse(raw);
-                    if (Array.isArray(parsed)) {
-                        for (var i = 0; i < parsed.length; i++) {
-                            if (parsed[i].isCurrent) {
-                                root.currentTheme = parsed[i].id;
-                                break;
-                            }
-                        }
-                        root.applyWithThumbs(parsed);
-                    }
-                } catch (e) {
-                    console.warn("[ThemeSwitcherService] Failed to parse themes JSON:", e);
-                }
-            }
-        }
-
-    }
-
     // Automatically refresh themes when colors change in Theme.qml
     property Connections themeWatcher
-
-    themeWatcher: Connections {
-        function on_CChanged() {
-            root.refresh();
-        }
-
-        target: Theme
-    }
 
     function refresh() {
         if (!listProc.running)
@@ -160,7 +78,9 @@ QtObject {
         for (var i = 0; i < centered.length; i++) {
             var p = centered[i].wallpaper;
             if (p) {
-                if (root.thumbMap[p])
+                if (centered[i].thumbPath)
+                    root.thumbMap[p] = centered[i].thumbPath;
+                else if (root.thumbMap[p])
                     centered[i].thumbPath = root.thumbMap[p];
                 else
                     missing.push(p);
@@ -188,4 +108,84 @@ QtObject {
     Component.onCompleted: {
         root.refresh();
     }
+
+    switchResetTimer: Timer {
+        interval: 3500
+        repeat: false
+        onTriggered: {
+            root.isSwitching = false;
+            root.switchingTo = "";
+            root.refresh();
+            Theme.reloadTheme();
+        }
+    }
+
+    thumbProc: Process {
+        id: thumbProc
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                var raw = text.trim();
+                if (!raw)
+                    return ;
+
+                try {
+                    var map = JSON.parse(raw);
+                    var updated = root.thumbMap || {
+                    };
+                    for (var k in map) {
+                        updated[k] = map[k];
+                    }
+                    root.thumbMap = updated;
+                    if (root.pendingList && root.pendingList.length > 0)
+                        root.applyWithThumbs(root.pendingList);
+
+                } catch (e) {
+                    console.warn("[ThemeSwitcherService] Failed to parse thumb map:", e);
+                }
+            }
+        }
+
+    }
+
+    listProc: Process {
+        id: listProc
+
+        command: [root.listScriptPath, "list"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                var raw = text.trim();
+                if (!raw)
+                    return ;
+
+                try {
+                    var parsed = JSON.parse(raw);
+                    if (Array.isArray(parsed)) {
+                        for (var i = 0; i < parsed.length; i++) {
+                            if (parsed[i].isCurrent) {
+                                root.currentTheme = parsed[i].id;
+                                break;
+                            }
+                        }
+                        root.applyWithThumbs(parsed);
+                    }
+                } catch (e) {
+                    console.warn("[ThemeSwitcherService] Failed to parse themes JSON:", e);
+                }
+            }
+        }
+
+    }
+
+    themeWatcher: Connections {
+        function on_CChanged() {
+            root.refresh();
+        }
+
+        target: Theme
+    }
+
 }

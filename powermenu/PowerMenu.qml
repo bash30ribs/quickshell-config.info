@@ -1269,17 +1269,34 @@ PanelWindow {
                                     height: 110
                                     layer.enabled: true
 
+                                    // Placeholder behind thumbnail matching theme accent tone (no bare grey void)
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        color: cardItem.themeAccent ? Theme.withAlpha(cardItem.themeAccent, 0.15) : Theme.withAlpha(Theme.selection, 0.3)
+                                        visible: wallImg.status !== Image.Ready
+                                    }
+
                                     Image {
                                         id: wallImg
 
                                         anchors.fill: parent
                                         source: cardItem.modelData.thumbPath ? ("file://" + cardItem.modelData.thumbPath) : (cardItem.modelData.wallpaper ? ("file://" + cardItem.modelData.wallpaper) : "")
                                         fillMode: Image.PreserveAspectCrop
-                                        asynchronous: true
+                                        asynchronous: !cardItem.modelData.thumbPath
                                         cache: true
                                         smooth: true
                                         mipmap: true
                                         sourceSize: Qt.size(392, 220)
+                                        opacity: wallImg.status === Image.Ready ? 1 : 0
+
+                                        Behavior on opacity {
+                                            NumberAnimation {
+                                                duration: 140
+                                                easing.type: Easing.OutCubic
+                                            }
+
+                                        }
+
                                     }
 
                                     // Fallback icon if wallpaper missing
@@ -1544,6 +1561,15 @@ PanelWindow {
                                 visible: false
                             }
 
+                            // Placeholder fill behind thumbnail
+                            Rectangle {
+                                anchors.fill: parent
+                                anchors.margins: 1
+                                radius: Appearance.powerMenuRadiusActive - 1
+                                color: Theme.withAlpha(Theme.selection, 0.3)
+                                visible: previewImg.status !== Image.Ready
+                            }
+
                             // 3. Wallpaper Image Thumbnail (Masked to 16:9 widescreen ratio)
                             Image {
                                 id: previewImg
@@ -1552,12 +1578,21 @@ PanelWindow {
                                 anchors.margins: 1
                                 source: wallCardItem.modelData.thumbPath ? ("file://" + wallCardItem.modelData.thumbPath) : (wallCardItem.modelData.path ? ("file://" + wallCardItem.modelData.path) : "")
                                 fillMode: Image.PreserveAspectCrop
-                                asynchronous: true
+                                asynchronous: !wallCardItem.modelData.thumbPath
                                 cache: true
                                 smooth: true
                                 mipmap: true
                                 sourceSize: Qt.size(392, 220)
+                                opacity: previewImg.status === Image.Ready ? 1 : 0
                                 layer.enabled: true
+
+                                Behavior on opacity {
+                                    NumberAnimation {
+                                        duration: 140
+                                        easing.type: Easing.OutCubic
+                                    }
+
+                                }
 
                                 layer.effect: MultiEffect {
                                     maskEnabled: true
