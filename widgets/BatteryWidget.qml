@@ -30,11 +30,14 @@ Item {
     BarButton {
         id: batButton
 
-        icon: root.batteryService.icon
-        iconSize: root.iconSize
-        text: root.showPercentage ? (root.batteryService.capacity + "%") : ""
-        accentActive: root.batteryService.isCharging || root.batteryService.isPluggedIn
+        icon: ""
+        iconSize: 0
+        text: (root.batteryService ? root.batteryService.capacity : 0) + "%"
+        accentActive: root.batteryService && (root.batteryService.isCharging || root.batteryService.isPluggedIn)
         customColor: {
+            if (!root.batteryService)
+                return Theme.bright_foreground;
+
             if (root.batteryService.isCharging || root.batteryService.isPluggedIn)
                 return Theme.accent;
 
