@@ -281,8 +281,8 @@ PanelWindow {
         target: root
         property: "animProgress"
         to: 1
-        duration: 165
-        easing.type: Easing.OutQuart
+        duration: 240
+        easing.type: Easing.OutCubic
     }
 
     NumberAnimation {
@@ -291,8 +291,8 @@ PanelWindow {
         target: root
         property: "animProgress"
         to: 0
-        duration: 105
-        easing.type: Easing.InCubic
+        duration: 180
+        easing.type: Easing.OutCubic
         onFinished: {
             if (!root.isOpen) {
                 root.isVisibleSurface = false;

@@ -204,8 +204,9 @@ PanelWindow {
         property: "animProgress"
         from: root.animProgress
         to: 1
-        duration: 205
-        easing.type: Easing.OutQuart
+        duration: 260
+        easing.type: Easing.OutBack
+        easing.overshoot: 1.08
     }
 
     NumberAnimation {
@@ -215,8 +216,8 @@ PanelWindow {
         property: "animProgress"
         from: root.animProgress
         to: 0
-        duration: 125
-        easing.type: Easing.InCubic
+        duration: 180
+        easing.type: Easing.OutCubic
     }
 
     Connections {
@@ -275,9 +276,9 @@ PanelWindow {
         height: root.contentHeight
         radius: Appearance.mediaIslandRadius
         baseColor: Theme.barBackground
-        transformOrigin: Appearance.barIsBottom ? Item.BottomLeft : (Appearance.barIsRight ? Item.Right : (Appearance.barIsLeft ? Item.Left : Item.TopLeft))
-        scale: 0.36 + 0.64 * root.animProgress
-        opacity: Math.min(1, root.animProgress * 2.2)
+        transformOrigin: Appearance.barIsBottom ? Item.Bottom : (Appearance.barIsRight ? Item.Right : (Appearance.barIsLeft ? Item.Left : Item.Top))
+        scale: 0.93 + (0.07 * root.animProgress)
+        opacity: Math.min(1, root.animProgress * 1.5)
 
         MouseArea {
             anchors.fill: parent
@@ -292,7 +293,7 @@ PanelWindow {
             anchors.fill: parent
             anchors.margins: 16
             spacing: 14
-            opacity: Math.max(0, Math.min(1, (root.animProgress - 0.15) * 1.8))
+            opacity: Math.min(1, Math.max(0, (root.animProgress - 0.08) * 1.25))
 
             // 1. Album Artwork Thumbnail (Strictly Rounded Corners using MultiEffect Mask)
             Item {
@@ -699,8 +700,8 @@ PanelWindow {
         }
 
         transform: Translate {
-            x: (1 - root.animProgress) * (Appearance.barIsLeft ? -14 : (Appearance.barIsRight ? 14 : 0))
-            y: (1 - root.animProgress) * (Appearance.barIsTop ? -14 : (Appearance.barIsBottom ? 14 : 0))
+            y: Appearance.barIsTop ? Math.round(-10 * (1 - root.animProgress)) : (Appearance.barIsBottom ? Math.round(10 * (1 - root.animProgress)) : 0)
+            x: Appearance.barIsLeft ? Math.round(-10 * (1 - root.animProgress)) : (Appearance.barIsRight ? Math.round(10 * (1 - root.animProgress)) : 0)
         }
 
     }

@@ -61,7 +61,7 @@ PanelWindow {
     Timer {
         id: closeTimer
 
-        interval: 105
+        interval: 180
         repeat: false
         onTriggered: {
             root._animatingClose = false;
@@ -121,7 +121,7 @@ PanelWindow {
     GlassPanel {
         id: cardRect
 
-        readonly property real slideOffset: root.isCardActive ? 0 : 16
+        readonly property real slideOffset: root.isCardActive ? 0 : 12
 
         x: Math.round(root.cardX)
         y: Math.round(root.cardY)
@@ -129,7 +129,7 @@ PanelWindow {
         height: root.contentHeight
         radius: Appearance.popupRadius > 0 ? Appearance.popupRadius : 14
         opacity: root.isCardActive ? 1 : 0
-        scale: root.isCardActive ? 1 : 0.9
+        scale: root.isCardActive ? 1 : 0.93
         transformOrigin: Appearance.barIsBottom ? Item.Bottom : (Appearance.barIsLeft ? Item.Left : (Appearance.barIsRight ? Item.Right : Item.Top))
 
         // Prevent clicks inside the card from closing the popup
@@ -205,16 +205,16 @@ PanelWindow {
 
             Behavior on x {
                 NumberAnimation {
-                    duration: root.isCardActive ? 160 : 100
-                    easing.type: root.isCardActive ? Easing.OutQuart : Easing.InCubic
+                    duration: root.isCardActive ? 260 : 170
+                    easing.type: root.isCardActive ? Easing.OutCubic : Easing.InQuad
                 }
 
             }
 
             Behavior on y {
                 NumberAnimation {
-                    duration: root.isCardActive ? 160 : 100
-                    easing.type: root.isCardActive ? Easing.OutQuart : Easing.InCubic
+                    duration: root.isCardActive ? 260 : 170
+                    easing.type: root.isCardActive ? Easing.OutCubic : Easing.InQuad
                 }
 
             }
@@ -223,17 +223,17 @@ PanelWindow {
 
         Behavior on opacity {
             NumberAnimation {
-                duration: root.isCardActive ? 130 : 95
-                easing.type: root.isCardActive ? Easing.OutQuad : Easing.InCubic
+                duration: root.isCardActive ? 220 : 160
+                easing.type: root.isCardActive ? Easing.OutCubic : Easing.InQuad
             }
 
         }
 
         Behavior on scale {
             NumberAnimation {
-                duration: root.isCardActive ? 165 : 100
-                easing.type: root.isCardActive ? Easing.OutBack : Easing.InCubic
-                easing.overshoot: root.isCardActive ? 1.16 : 1
+                duration: root.isCardActive ? 260 : 170
+                easing.type: root.isCardActive ? Easing.OutBack : Easing.InQuad
+                easing.overshoot: root.isCardActive ? 1.08 : 1
             }
 
         }

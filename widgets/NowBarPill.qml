@@ -40,13 +40,12 @@ Item {
 
         anchors.fill: parent
         radius: Math.min(width, height) / 2
+        clip: true
         antialiasing: true
-        color: pillMouse.containsMouse ? Theme.withAlpha(Theme.glassCrest, 0.16) : Theme.withAlpha(Theme.glassCrest, 0.08)
-        border.color: pillMouse.containsMouse ? Theme.withAlpha(Theme.glassCrest, 0.35) : Theme.withAlpha(Theme.glassBorderColor, 0.2)
+        color: mediaPopup.open ? Theme.withAlpha(Theme.accent, 0.22) : (pillMouse.containsMouse ? Theme.withAlpha(Theme.glassCrest, 0.16) : Theme.withAlpha(Theme.glassCrest, 0.08))
+        border.color: mediaPopup.open ? Theme.withAlpha(Theme.accent, 0.55) : (pillMouse.containsMouse ? Theme.withAlpha(Theme.glassCrest, 0.35) : Theme.withAlpha(Theme.glassBorderColor, 0.2))
         border.width: 1
-        // Disappear smoothly when popup opens, bounce back into view when closed
-        opacity: mediaPopup.open ? 0 : 1
-        scale: mediaPopup.open ? 0.45 : 1
+        scale: pillMouse.pressed ? 0.965 : (pillMouse.containsMouse ? 1.025 : 1)
         transformOrigin: Item.Center
 
         // ── 1. Mini Rounded Album Art on Left Side ────────────────────────
@@ -131,14 +130,24 @@ Item {
             // Bar 0: Short (Base 6px)
             Rectangle {
                 width: 2.5
-                height: root.controller && root.controller.isPlaying ? 6 : 6
+                height: (root.controller && root.controller.isPlaying) ? 6 : 3.5
                 radius: width / 2
-                color: root.controller && root.controller.isPlaying ? Theme.accent : Theme.muted
+                color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
                 anchors.verticalCenter: parent.verticalCenter
 
                 Behavior on height {
+                    enabled: !(root.controller && root.controller.isPlaying)
+
                     NumberAnimation {
-                        duration: 150
+                        duration: 240
+                        easing.type: Easing.OutCubic
+                    }
+
+                }
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: 200
                     }
 
                 }
@@ -178,14 +187,24 @@ Item {
             // Bar 1: Medium-High (Base 11px)
             Rectangle {
                 width: 2.5
-                height: root.controller && root.controller.isPlaying ? 11 : 11
+                height: (root.controller && root.controller.isPlaying) ? 11 : 4.5
                 radius: width / 2
-                color: root.controller && root.controller.isPlaying ? Theme.accent : Theme.muted
+                color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
                 anchors.verticalCenter: parent.verticalCenter
 
                 Behavior on height {
+                    enabled: !(root.controller && root.controller.isPlaying)
+
                     NumberAnimation {
-                        duration: 150
+                        duration: 240
+                        easing.type: Easing.OutCubic
+                    }
+
+                }
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: 200
                     }
 
                 }
@@ -225,14 +244,24 @@ Item {
             // Bar 2: Highest Peak (Base 14px)
             Rectangle {
                 width: 2.5
-                height: root.controller && root.controller.isPlaying ? 14 : 14
+                height: (root.controller && root.controller.isPlaying) ? 14 : 5.5
                 radius: width / 2
-                color: root.controller && root.controller.isPlaying ? Theme.accent : Theme.muted
+                color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
                 anchors.verticalCenter: parent.verticalCenter
 
                 Behavior on height {
+                    enabled: !(root.controller && root.controller.isPlaying)
+
                     NumberAnimation {
-                        duration: 150
+                        duration: 240
+                        easing.type: Easing.OutCubic
+                    }
+
+                }
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: 200
                     }
 
                 }
@@ -272,14 +301,24 @@ Item {
             // Bar 3: Medium-Short (Base 8px)
             Rectangle {
                 width: 2.5
-                height: root.controller && root.controller.isPlaying ? 8 : 8
+                height: (root.controller && root.controller.isPlaying) ? 8 : 4.5
                 radius: width / 2
-                color: root.controller && root.controller.isPlaying ? Theme.accent : Theme.muted
+                color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
                 anchors.verticalCenter: parent.verticalCenter
 
                 Behavior on height {
+                    enabled: !(root.controller && root.controller.isPlaying)
+
                     NumberAnimation {
-                        duration: 150
+                        duration: 240
+                        easing.type: Easing.OutCubic
+                    }
+
+                }
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: 200
                     }
 
                 }
@@ -319,14 +358,24 @@ Item {
             // Bar 4: High (Base 12px)
             Rectangle {
                 width: 2.5
-                height: root.controller && root.controller.isPlaying ? 12 : 12
+                height: (root.controller && root.controller.isPlaying) ? 12 : 3.5
                 radius: width / 2
-                color: root.controller && root.controller.isPlaying ? Theme.accent : Theme.muted
+                color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
                 anchors.verticalCenter: parent.verticalCenter
 
                 Behavior on height {
+                    enabled: !(root.controller && root.controller.isPlaying)
+
                     NumberAnimation {
-                        duration: 150
+                        duration: 240
+                        easing.type: Easing.OutCubic
+                    }
+
+                }
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: 200
                     }
 
                 }
@@ -366,14 +415,24 @@ Item {
             // Bar 5: High (Base 12px)
             Rectangle {
                 width: 2.5
-                height: root.controller && root.controller.isPlaying ? 12 : 12
+                height: (root.controller && root.controller.isPlaying) ? 12 : 3.5
                 radius: width / 2
-                color: root.controller && root.controller.isPlaying ? Theme.accent : Theme.muted
+                color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
                 anchors.verticalCenter: parent.verticalCenter
 
                 Behavior on height {
+                    enabled: !(root.controller && root.controller.isPlaying)
+
                     NumberAnimation {
-                        duration: 150
+                        duration: 240
+                        easing.type: Easing.OutCubic
+                    }
+
+                }
+
+                Behavior on color {
+                    ColorAnimation {
+                        duration: 200
                     }
 
                 }
@@ -434,10 +493,31 @@ Item {
             id: pillMouse
 
             anchors.fill: parent
-            enabled: !mediaPopup.open && mediaPopup.animProgress < 0.05
             hoverEnabled: true
+            acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
             cursorShape: Qt.PointingHandCursor
-            onClicked: mediaPopup.toggle()
+            onClicked: function(mouse) {
+                if (mouse.button === Qt.LeftButton) {
+                    mediaPopup.toggle();
+                } else if (mouse.button === Qt.MiddleButton) {
+                    if (root.controller)
+                        root.controller.togglePlay();
+
+                } else if (mouse.button === Qt.RightButton) {
+                    if (root.controller)
+                        root.controller.next();
+
+                }
+            }
+            onWheel: function(event) {
+                if (!root.controller)
+                    return ;
+
+                if (event.angleDelta.y > 0)
+                    root.controller.next();
+                else if (event.angleDelta.y < 0)
+                    root.controller.previous();
+            }
         }
 
         Behavior on color {
@@ -454,19 +534,11 @@ Item {
 
         }
 
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 150
-                easing.type: Easing.OutQuad
-            }
-
-        }
-
         Behavior on scale {
             NumberAnimation {
-                duration: mediaPopup.open ? 160 : 280
-                easing.type: mediaPopup.open ? Easing.InBack : Easing.OutBack
-                easing.overshoot: 1.45
+                duration: pillMouse.pressed ? 70 : 180
+                easing.type: pillMouse.pressed ? Easing.OutQuad : Easing.OutBack
+                easing.overshoot: pillMouse.pressed ? 1 : 1.25
             }
 
         }
@@ -511,7 +583,7 @@ Item {
         enabled: !Appearance.barTransitioning
 
         NumberAnimation {
-            duration: 220
+            duration: 260
             easing.type: Easing.OutCubic
         }
 
@@ -521,7 +593,7 @@ Item {
         enabled: !Appearance.barTransitioning
 
         NumberAnimation {
-            duration: 220
+            duration: 260
             easing.type: Easing.OutCubic
         }
 
@@ -529,15 +601,17 @@ Item {
 
     Behavior on opacity {
         NumberAnimation {
-            duration: 200
+            duration: 220
+            easing.type: Easing.OutCubic
         }
 
     }
 
     Behavior on scale {
         NumberAnimation {
-            duration: 220
+            duration: 260
             easing.type: Easing.OutBack
+            easing.overshoot: 1.12
         }
 
     }
