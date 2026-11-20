@@ -271,7 +271,7 @@ qs ipc call audit status                # Query daemon running state
 │   └── OsdModel.js               # OSD state mapping logic
 ├── clipboard/
 │   ├── ClipboardDrawer.qml       # ClipBar: 3-stage pull-down workspace shelf (Screenshots, Text, Files)
-│   ├── ClipboardImageCard.qml    # Screenshot card with corner eyelets & metadata
+│   ├── ClipboardImageCard.qml    # Clean liquid glass screenshot card with metadata
 │   └── ClipboardTextCard.qml     # Text snippet card with syntax highlighting & click-to-paste
 ├── launcher/
 │   ├── AppLauncher.qml           # Spotlight-style 4-mode application launcher

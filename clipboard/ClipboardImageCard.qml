@@ -187,52 +187,6 @@ Item {
 
         }
 
-        // Corner thread eyelet (Top-Left)
-        Rectangle {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.margins: 7
-            width: 10
-            height: 10
-            radius: 5
-            color: "transparent"
-            border.width: 1
-            border.color: Theme.withAlpha(Theme.bright_foreground, 0.5)
-            z: 16
-
-            Rectangle {
-                anchors.centerIn: parent
-                width: 4
-                height: 4
-                radius: 2
-                color: Qt.rgba(0, 0, 0, 0.7)
-            }
-
-        }
-
-        // Corner thread eyelet (Top-Right)
-        Rectangle {
-            anchors.top: parent.top
-            anchors.right: parent.right
-            anchors.margins: 7
-            width: 10
-            height: 10
-            radius: 5
-            color: "transparent"
-            border.width: 1
-            border.color: Theme.withAlpha(Theme.bright_foreground, 0.5)
-            z: 16
-
-            Rectangle {
-                anchors.centerIn: parent
-                width: 4
-                height: 4
-                radius: 2
-                color: Qt.rgba(0, 0, 0, 0.7)
-            }
-
-        }
-
         // Crisp outermost rounded glass border
         Rectangle {
             anchors.fill: parent
