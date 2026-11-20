@@ -8,6 +8,7 @@ QtObject {
     property var items: []
     property int imageCount: 0
     property int textCount: 0
+    property int fileCount: 0
     property int pinnedCount: 0
     property string copiedFeedbackId: ""
     readonly property string scriptPath: Quickshell.env("HOME") + "/.config/quickshell/src/qdeck-clipboard.py"
@@ -27,10 +28,13 @@ QtObject {
             var arr = (parsed && Array.isArray(parsed.items)) ? parsed.items : (Array.isArray(parsed) ? parsed : []);
             var imgs = 0;
             var txts = 0;
+            var files = 0;
             var pins = 0;
             for (var i = 0; i < arr.length; i++) {
                 if (arr[i].type === "image")
                     imgs++;
+                else if (arr[i].type === "file")
+                    files++;
                 else
                     txts++;
                 if (arr[i].pinned)
@@ -39,6 +43,7 @@ QtObject {
             }
             root.imageCount = imgs;
             root.textCount = txts;
+            root.fileCount = files;
             root.pinnedCount = pins;
             root.items = arr;
         } catch (e) {
@@ -67,6 +72,9 @@ QtObject {
             if (mode === "text" && it.type !== "text")
                 continue;
 
+            if (mode === "file" && it.type !== "file")
+                continue;
+
             if (mode === "pinned" && !it.pinned)
                 continue;
 
@@ -74,6 +82,8 @@ QtObject {
                 var hay = "";
                 if (it.type === "image")
                     hay = String(it.title || "") + " " + String(it.path || "") + " " + String(it.width || "") + "x" + String(it.height || "");
+                else if (it.type === "file")
+                    hay = String(it.filename || "") + " " + String(it.path || "") + " " + String(it.extension || "");
                 else
                     hay = String(it.text || "");
                 if (hay.toLowerCase().indexOf(q) === -1)
@@ -83,6 +93,36 @@ QtObject {
             out.push(it);
         }
         return out;
+    }
+
+    function addFile(filePath) {
+        if (!filePath)
+            return ;
+
+        Quickshell.execDetached(["python3", root.scriptPath, "add-file", filePath]);
+        syncNow();
+    }
+
+    function addText(text) {
+        if (!text)
+            return ;
+
+        Quickshell.execDetached(["python3", root.scriptPath, "add-text", text]);
+        syncNow();
+    }
+
+    function openFile(filePath) {
+        if (!filePath)
+            return ;
+
+        Quickshell.execDetached(["xdg-open", filePath]);
+    }
+
+    function revealFile(filePath) {
+        if (!filePath)
+            return ;
+
+        Quickshell.execDetached(["nautilus", "--select", filePath]);
     }
 
     function copyItem(itemId) {

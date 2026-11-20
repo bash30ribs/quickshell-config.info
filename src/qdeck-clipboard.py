@@ -362,6 +362,50 @@ def upsert_text(text, ts=None):
         return True
 
 
+def upsert_file(path, pinned=False):
+    if not path:
+        return False
+    path = os.path.expanduser(str(path).strip())
+    if not os.path.exists(path):
+        return False
+
+    canon = os.path.realpath(path)
+    filename = os.path.basename(canon)
+    ext = os.path.splitext(filename)[1].lower().lstrip(".")
+    try:
+        st = os.stat(canon)
+    except OSError:
+        return False
+
+    sha_hex = hashlib.sha256(f"file:{canon}:{st.st_size}".encode("utf-8")).hexdigest()
+    item_id = f"file-{sha_hex[:16]}"
+    now = time.time()
+
+    with history_lock():
+        items = read_history_unlocked()
+        for it in items:
+            if it.get("id") == item_id:
+                it["timestamp"] = now
+                if pinned:
+                    it["pinned"] = True
+                write_history_unlocked(items)
+                return True
+
+        entry = {
+            "id": item_id,
+            "type": "file",
+            "path": canon,
+            "filename": filename,
+            "extension": ext,
+            "sizeBytes": st.st_size,
+            "timestamp": now,
+            "pinned": pinned,
+        }
+        items.insert(0, entry)
+        write_history_unlocked(items)
+        return True
+
+
 def capture_clipboard():
     try:
         res = subprocess.run(
@@ -499,6 +543,24 @@ def copy_item(item_id, promote=False):
         proc.stdin.write(data)
         proc.stdin.close()
         proc.wait(timeout=2.0)
+        return True
+    elif target.get("type") == "file":
+        path = target.get("path", "")
+        if not path or not os.path.exists(path):
+            return False
+        import urllib.parse
+        uri = f"file://{urllib.parse.quote(path)}\r\n"
+        proc = subprocess.Popen(
+            ["wl-copy", "--type", "text/uri-list"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        proc.stdin.write(uri.encode("utf-8"))
+        proc.stdin.close()
+        proc.wait(timeout=2.0)
+        subprocess.run(["wl-copy", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return True
     else:
         text = target.get("text", "")
@@ -700,6 +762,10 @@ def main():
         toggle_pin(sys.argv[2])
     elif cmd == "delete" and len(sys.argv) > 2:
         delete_item(sys.argv[2])
+    elif cmd == "add-file" and len(sys.argv) > 2:
+        upsert_file(sys.argv[2], pinned=True)
+    elif cmd == "add-text" and len(sys.argv) > 2:
+        upsert_text(" ".join(sys.argv[2:]))
     elif cmd == "clear":
         clear_unpinned()
     else:

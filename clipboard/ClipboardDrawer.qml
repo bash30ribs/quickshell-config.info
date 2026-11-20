@@ -2,6 +2,7 @@ import "../components"
 import "../services"
 import "../theme"
 import QtQuick
+import QtQuick.Dialogs
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Hyprland
@@ -16,35 +17,45 @@ PanelWindow {
     property bool isOpen: false
     property bool isVisibleSurface: false
     property bool isDragging: false
-    property int stage: 1 // 1 = Screenshots strip only, 2 = Copied Text + Search
+    property int stage: 1 // 1 = Screenshots (ss), 2 = Text, 3 = Files
     property bool searchOpen: false
     property string searchQuery: ""
+    property bool newNoteOpen: false
     property real animProgress: 0
     property real openedAtMs: 0
     property real stageChangedAtMs: 0
     property real stageCooldownUntil: 0
     property real gestureUpAccum: 0
     property real stageDownAccum: 0
-    property int autoCloseMs: 3000
+    property int autoCloseMs: 3500
     property point lastActivityPos: Qt.point(-1, -1)
-    readonly property bool searchFocused: searchInput.activeFocus
+    readonly property bool searchFocused: searchInput.activeFocus || noteInput.activeFocus
     readonly property var imageItems: root.clipboardService ? root.clipboardService.filteredItems("image", "") : []
     readonly property var textItems: root.clipboardService ? root.clipboardService.filteredItems("text", root.searchQuery) : []
+    readonly property var fileItems: root.clipboardService ? root.clipboardService.filteredItems("file", root.searchQuery) : []
     readonly property real targetDrawerHeight: {
         var topMargin = Appearance.clipboardPadding - 1;
         var bottomMargin = 8;
+        var headerH = 34;
         if (root.stage === 1) {
-            var headerH = 26;
             var bodyH = root.imageItems.length > 0 ? (Appearance.clipboardThumbHeight + 8) : 104;
             var trackH = root.imageItems.length > 4 ? 11 : 0;
             var handleH = 14;
             return Math.round(topMargin + headerH + 8 + 1 + 8 + bodyH + trackH + 8 + handleH + bottomMargin);
         }
-        var stage2Chrome = topMargin + 32 + 8 + 1 + 8 + 8 + 14 + bottomMargin;
-        if (root.textItems.length === 0)
-            return 220;
+        var stageChrome = topMargin + headerH + 8 + 1 + 8 + 8 + 14 + bottomMargin;
+        if (root.stage === 2) {
+            var noteH = root.newNoteOpen ? 46 : 0;
+            if (root.textItems.length === 0 && !root.newNoteOpen)
+                return 240;
 
-        return Math.max(220, Math.min(Appearance.clipboardHeight, Math.round(stage2Chrome + textListCol.implicitHeight + 6)));
+            return Math.max(240, Math.min(Appearance.clipboardHeight, Math.round(stageChrome + textListCol.implicitHeight + noteH + 6)));
+        }
+        // Stage 3: Files
+        if (root.fileItems.length === 0)
+            return 240;
+
+        return Math.max(240, Math.min(Appearance.clipboardHeight, Math.round(stageChrome + filesListCol.implicitHeight + 6)));
     }
 
     function touchActivity() {
@@ -62,8 +73,10 @@ PanelWindow {
         root.stage = 1;
         root.searchOpen = false;
         root.searchQuery = "";
+        root.newNoteOpen = false;
         searchInput.text = "";
         searchInput.focus = false;
+        noteInput.text = "";
         root.gestureUpAccum = 0;
         root.stageDownAccum = 0;
         root.lastActivityPos = Qt.point(-1, -1);
@@ -81,6 +94,24 @@ PanelWindow {
         idleCloseTimer.restart();
     }
 
+    function showScreenshotsStage() {
+        if (!root.isOpen)
+            root.open();
+
+        if (root.stage === 1) {
+            root.touchActivity();
+            return ;
+        }
+        var now = Date.now();
+        root.stage = 1;
+        root.gestureUpAccum = 0;
+        root.stageDownAccum = 0;
+        root.stageChangedAtMs = now;
+        root.stageCooldownUntil = now + 240;
+        stage1FadeAnim.restart();
+        root.touchActivity();
+    }
+
     function showTextStage() {
         if (!root.isOpen)
             root.open();
@@ -94,12 +125,49 @@ PanelWindow {
         root.gestureUpAccum = 0;
         root.stageDownAccum = 0;
         root.stageChangedAtMs = now;
-        root.stageCooldownUntil = now + 360;
+        root.stageCooldownUntil = now + 240;
         if (textScroll)
             textScroll.contentY = 0;
 
         stage2FadeAnim.restart();
         root.touchActivity();
+    }
+
+    function showFilesStage() {
+        if (!root.isOpen)
+            root.open();
+
+        if (root.stage === 3) {
+            root.touchActivity();
+            return ;
+        }
+        var now = Date.now();
+        root.stage = 3;
+        root.gestureUpAccum = 0;
+        root.stageDownAccum = 0;
+        root.stageChangedAtMs = now;
+        root.stageCooldownUntil = now + 240;
+        if (filesScroll)
+            filesScroll.contentY = 0;
+
+        stage3FadeAnim.restart();
+        root.touchActivity();
+    }
+
+    function stepBackOrClose() {
+        if (!root.isOpen)
+            return ;
+
+        if (root.stage === 3)
+            root.showTextStage();
+        else if (root.stage === 2)
+            root.showScreenshotsStage();
+        else
+            root.close();
+    }
+
+    function closeAtOnce() {
+        root.close();
     }
 
     function openSearch() {
@@ -116,6 +184,27 @@ PanelWindow {
         root.touchActivity();
     }
 
+    function toggleNewNote() {
+        root.newNoteOpen = !root.newNoteOpen;
+        if (root.newNoteOpen) {
+            noteInput.forceActiveFocus();
+        } else {
+            noteInput.text = "";
+            noteInput.focus = false;
+        }
+        root.touchActivity();
+    }
+
+    function submitNewNote() {
+        var t = noteInput.text.trim();
+        if (t.length > 0 && root.clipboardService)
+            root.clipboardService.addText(t);
+
+        noteInput.text = "";
+        root.newNoteOpen = false;
+        root.touchActivity();
+    }
+
     function close() {
         if (!root.isOpen && !root.isVisibleSurface)
             return ;
@@ -125,6 +214,7 @@ PanelWindow {
         root.gestureUpAccum = 0;
         root.stageDownAccum = 0;
         searchInput.focus = false;
+        noteInput.focus = false;
         root.isOpen = false;
         openAnim.stop();
         closeAnim.restart();
@@ -142,23 +232,23 @@ PanelWindow {
             return ;
 
         var now = Date.now();
-        if (now - root.openedAtMs < 240 || now < root.stageCooldownUntil)
+        if (now - root.openedAtMs < 200 || now < root.stageCooldownUntil)
             return ;
 
         if (negDelta < 0) {
             root.stageDownAccum = 0;
             root.gestureUpAccum += negDelta;
             gestureDecayTimer.restart();
-            if (root.gestureUpAccum <= -10) {
+            if (root.gestureUpAccum <= -7) {
                 root.gestureUpAccum = 0;
-                root.close();
+                root.stepBackOrClose();
             }
-        } else if (negDelta > 6) {
+        } else if (negDelta > 5) {
             root.gestureUpAccum = 0;
         }
     }
 
-    function handleStageWheel(event, allowAdvanceToStage2) {
+    function handleStageWheel(event, allowAdvance) {
         var dx = Theme.wheelDeltaX(event);
         var dy = Theme.wheelDeltaY(event);
         if (dx === 0 && dy === 0) {
@@ -176,15 +266,18 @@ PanelWindow {
             event.accepted = true;
             return ;
         }
-        if (inwardDelta > 0 && allowAdvanceToStage2 && root.stage === 1) {
-            if (Math.abs(inwardDelta) >= Math.abs(crossDelta) * 0.85 && (now - root.stageChangedAtMs) >= 220) {
+        if (inwardDelta > 0 && allowAdvance) {
+            if (Math.abs(inwardDelta) >= Math.abs(crossDelta) * 0.85 && (now - root.stageChangedAtMs) >= 200) {
                 root.gestureUpAccum = 0;
                 root.stageDownAccum += inwardDelta;
                 gestureDecayTimer.restart();
                 root.touchActivity();
                 if (root.stageDownAccum >= 4) {
                     root.stageDownAccum = 0;
-                    root.showTextStage();
+                    if (root.stage === 1)
+                        root.showTextStage();
+                    else if (root.stage === 2)
+                        root.showFilesStage();
                 }
             }
             event.accepted = true;
@@ -203,6 +296,7 @@ PanelWindow {
             return ;
 
         searchInput.focus = false;
+        noteInput.focus = false;
         root.close();
         root.clipboardService.pasteItem(itemId);
     }
@@ -220,6 +314,7 @@ PanelWindow {
             return ;
 
         searchInput.focus = false;
+        noteInput.focus = false;
         root.close();
         root.clipboardService.annotateImage(filePath);
     }
@@ -243,7 +338,7 @@ PanelWindow {
     implicitHeight: Appearance.barIsVertical ? Appearance.clipboardHeight : (Appearance.clipboardHeight + 28)
     WlrLayershell.namespace: "quickshell-clipbar"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: (root.isOpen && root.stage === 2 && (root.searchOpen || root.searchFocused)) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: (root.isOpen && (root.stage === 2 || root.stage === 3) && (root.searchOpen || root.searchFocused || root.newNoteOpen)) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
     screen: {
         if (!Quickshell.screens || Quickshell.screens.length === 0)
@@ -299,15 +394,39 @@ PanelWindow {
                 root.stage = 1;
                 root.searchOpen = false;
                 root.searchQuery = "";
+                root.newNoteOpen = false;
                 searchInput.text = "";
+                noteInput.text = "";
             }
         }
+    }
+
+    NumberAnimation {
+        id: stage1FadeAnim
+
+        target: stage1Container
+        property: "opacity"
+        from: 0.25
+        to: 1
+        duration: 150
+        easing.type: Easing.OutCubic
     }
 
     NumberAnimation {
         id: stage2FadeAnim
 
         target: stage2Container
+        property: "opacity"
+        from: 0.25
+        to: 1
+        duration: 150
+        easing.type: Easing.OutCubic
+    }
+
+    NumberAnimation {
+        id: stage3FadeAnim
+
+        target: stage3Container
         property: "opacity"
         from: 0.25
         to: 1
@@ -328,12 +447,14 @@ PanelWindow {
 
     Shortcut {
         sequence: "Escape"
-        enabled: root.isOpen && (root.searchOpen || root.searchFocused)
+        enabled: root.isOpen
         onActivated: {
-            if (root.searchQuery.length > 0 || root.searchOpen)
+            if (root.newNoteOpen)
+                root.toggleNewNote();
+            else if (root.searchQuery.length > 0 || root.searchOpen)
                 root.closeSearch();
             else
-                root.close();
+                root.stepBackOrClose();
         }
     }
 
@@ -362,11 +483,27 @@ PanelWindow {
             if (!root.isOpen)
                 return ;
 
-            if (root.isDragging) {
+            if (root.isDragging || root.searchFocused || root.newNoteOpen) {
                 idleCloseTimer.restart();
                 return ;
             }
             root.close();
+        }
+    }
+
+    // Native Wayland FileDialog for storing any file into drawer
+    FileDialog {
+        id: fileDialog
+
+        title: "Select file to store in drawer"
+        onAccepted: {
+            var raw = selectedFile.toString();
+            var path = raw.replace(/^file:\/\//, "");
+            path = decodeURIComponent(path);
+            if (root.clipboardService)
+                root.clipboardService.addFile(path);
+
+            root.touchActivity();
         }
     }
 
@@ -376,9 +513,29 @@ PanelWindow {
             return "opened";
         }
 
+        function showScreenshots() : string {
+            root.showScreenshotsStage();
+            return "screenshots";
+        }
+
         function showText() : string {
             root.showTextStage();
             return "text";
+        }
+
+        function showFiles() : string {
+            root.showFilesStage();
+            return "files";
+        }
+
+        function stepBack() : string {
+            root.stepBackOrClose();
+            return "ok";
+        }
+
+        function closeAtOnce() : string {
+            root.closeAtOnce();
+            return "closed";
         }
 
         function close() : string {
@@ -407,9 +564,29 @@ PanelWindow {
             return "opened";
         }
 
+        function showScreenshots() : string {
+            root.showScreenshotsStage();
+            return "screenshots";
+        }
+
         function showText() : string {
             root.showTextStage();
             return "text";
+        }
+
+        function showFiles() : string {
+            root.showFilesStage();
+            return "files";
+        }
+
+        function stepBack() : string {
+            root.stepBackOrClose();
+            return "ok";
+        }
+
+        function closeAtOnce() : string {
+            root.closeAtOnce();
+            return "closed";
         }
 
         function close() : string {
@@ -471,7 +648,7 @@ PanelWindow {
                 }
             }
 
-            // Fallback wheel & touchscreen two-finger gesture handler across all surface padding/gaps
+            // Fallback wheel gesture handler
             MouseArea {
                 anchors.fill: parent
                 z: 0
@@ -479,10 +656,11 @@ PanelWindow {
                 hoverEnabled: false
                 scrollGestureEnabled: true
                 onWheel: function(event) {
-                    root.handleStageWheel(event, root.stage === 1);
+                    root.handleStageWheel(event, root.stage < 3);
                 }
             }
 
+            // Two-finger touch gesture
             DragHandler {
                 id: drawerTwoFingerDrag
 
@@ -497,14 +675,39 @@ PanelWindow {
                         return ;
 
                     var inward = Appearance.barIsTop ? translation.y : (Appearance.barIsBottom ? -translation.y : (Appearance.barIsLeft ? translation.x : -translation.x));
-                    if (root.stage === 1 && inward >= 18)
-                        root.showTextStage();
-                    else if (inward <= -18)
-                        root.close();
+                    if (inward >= 18) {
+                        if (root.stage === 1)
+                            root.showTextStage();
+                        else if (root.stage === 2)
+                            root.showFilesStage();
+                    } else if (inward <= -18) {
+                        root.stepBackOrClose();
+                    }
                 }
             }
 
-            // Seamless borderless liquid-glass wash (keeps composite alpha >= 0.20 across entire surface)
+            // Three-finger swipe up gesture: closes back up at once
+            DragHandler {
+                id: drawerThreeFingerDrag
+
+                acceptedDevices: PointerDevice.TouchScreen | PointerDevice.TouchPad
+                minimumPointCount: 3
+                maximumPointCount: 3
+                target: null
+                xAxis.enabled: Appearance.barIsVertical
+                yAxis.enabled: Appearance.barIsHorizontal
+                onTranslationChanged: {
+                    if (!root.isOpen)
+                        return ;
+
+                    var inward = Appearance.barIsTop ? translation.y : (Appearance.barIsBottom ? -translation.y : (Appearance.barIsLeft ? translation.x : -translation.x));
+                    if (inward <= -12)
+                        root.closeAtOnce();
+
+                }
+            }
+
+            // Seamless borderless liquid-glass wash
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
@@ -541,6 +744,509 @@ PanelWindow {
                 spacing: 8
 
                 // ─────────────────────────────────────────────────────────────
+                // UNIFIED TOP NAVIGATION BAR (Segmented Tabs: SS, Text, File)
+                // ─────────────────────────────────────────────────────────────
+                Item {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 34
+
+                    MouseArea {
+                        anchors.fill: parent
+                        z: 50
+                        acceptedButtons: Qt.NoButton
+                        hoverEnabled: false
+                        scrollGestureEnabled: true
+                        onWheel: function(event) {
+                            root.handleStageWheel(event, root.stage < 3);
+                        }
+                    }
+
+                    // Left: 3 Segmented Pill Tabs [ SS | Text | Files ]
+                    Row {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 6
+                        z: 60
+
+                        // Tab 1: Screenshots (SS)
+                        Rectangle {
+                            height: 28
+                            width: ssTabRow.implicitWidth + 18
+                            radius: 14
+                            color: root.stage === 1 ? Theme.withAlpha(Theme.accent, 0.22) : (ssTabMouse.containsMouse ? Theme.withAlpha(Theme.bright_foreground, 0.08) : "transparent")
+                            border.width: root.stage === 1 ? 1 : 0
+                            border.color: Theme.withAlpha(Theme.accent, 0.5)
+
+                            Row {
+                                id: ssTabRow
+
+                                anchors.centerIn: parent
+                                spacing: 5
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: Icons.camera
+                                    font.family: Icons.effectiveFont(text)
+                                    font.pixelSize: 13
+                                    color: root.stage === 1 ? Theme.accent : Theme.muted
+                                }
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: "Screenshots (" + root.imageItems.length + ")"
+                                    font.family: Fonts.uiFont
+                                    font.pixelSize: 11
+                                    font.weight: root.stage === 1 ? Font.DemiBold : Font.Normal
+                                    color: root.stage === 1 ? Theme.bright_foreground : Theme.foreground
+                                }
+
+                            }
+
+                            MouseArea {
+                                id: ssTabMouse
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.showScreenshotsStage()
+                            }
+
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: 120
+                                }
+
+                            }
+
+                        }
+
+                        // Tab 2: Text
+                        Rectangle {
+                            height: 28
+                            width: txtTabRow.implicitWidth + 18
+                            radius: 14
+                            color: root.stage === 2 ? Theme.withAlpha(Theme.accent, 0.22) : (txtTabMouse.containsMouse ? Theme.withAlpha(Theme.bright_foreground, 0.08) : "transparent")
+                            border.width: root.stage === 2 ? 1 : 0
+                            border.color: Theme.withAlpha(Theme.accent, 0.5)
+
+                            Row {
+                                id: txtTabRow
+
+                                anchors.centerIn: parent
+                                spacing: 5
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: Icons.textDoc
+                                    font.family: Icons.effectiveFont(text)
+                                    font.pixelSize: 13
+                                    color: root.stage === 2 ? Theme.accent : Theme.muted
+                                }
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: "Text (" + root.textItems.length + ")"
+                                    font.family: Fonts.uiFont
+                                    font.pixelSize: 11
+                                    font.weight: root.stage === 2 ? Font.DemiBold : Font.Normal
+                                    color: root.stage === 2 ? Theme.bright_foreground : Theme.foreground
+                                }
+
+                            }
+
+                            MouseArea {
+                                id: txtTabMouse
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.showTextStage()
+                            }
+
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: 120
+                                }
+
+                            }
+
+                        }
+
+                        // Tab 3: Files
+                        Rectangle {
+                            height: 28
+                            width: fileTabRow.implicitWidth + 18
+                            radius: 14
+                            color: root.stage === 3 ? Theme.withAlpha(Theme.accent, 0.22) : (fileTabMouse.containsMouse ? Theme.withAlpha(Theme.bright_foreground, 0.08) : "transparent")
+                            border.width: root.stage === 3 ? 1 : 0
+                            border.color: Theme.withAlpha(Theme.accent, 0.5)
+
+                            Row {
+                                id: fileTabRow
+
+                                anchors.centerIn: parent
+                                spacing: 5
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: Icons.folder
+                                    font.family: Icons.effectiveFont(text)
+                                    font.pixelSize: 13
+                                    color: root.stage === 3 ? Theme.accent : Theme.muted
+                                }
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: "Files (" + root.fileItems.length + ")"
+                                    font.family: Fonts.uiFont
+                                    font.pixelSize: 11
+                                    font.weight: root.stage === 3 ? Font.DemiBold : Font.Normal
+                                    color: root.stage === 3 ? Theme.bright_foreground : Theme.foreground
+                                }
+
+                            }
+
+                            MouseArea {
+                                id: fileTabMouse
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.showFilesStage()
+                            }
+
+                            Behavior on color {
+                                ColorAnimation {
+                                    duration: 120
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                    // Right: Context-sensitive Action Buttons
+                    Row {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 6
+                        z: 60
+
+                        // In Stage 1: Snap button
+                        Rectangle {
+                            visible: root.stage === 1
+                            height: 28
+                            width: snapBtnRow.implicitWidth + 16
+                            radius: 14
+                            color: snapBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.22) : Qt.rgba(1, 1, 1, 0.08)
+                            border.width: 1
+                            border.color: snapBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.55) : Qt.rgba(1, 1, 1, 0.2)
+
+                            Row {
+                                id: snapBtnRow
+
+                                anchors.centerIn: parent
+                                spacing: 4
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: Icons.camera
+                                    font.family: Icons.effectiveFont(text)
+                                    font.pixelSize: 13
+                                    color: Theme.accent
+                                }
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: "Snap"
+                                    font.family: Fonts.uiFont
+                                    font.pixelSize: 11
+                                    font.weight: Font.Medium
+                                    color: Theme.bright_foreground
+                                }
+
+                            }
+
+                            MouseArea {
+                                id: snapBtnMouse
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (root.clipboardService)
+                                        root.clipboardService.captureSnap("region");
+
+                                }
+                            }
+
+                        }
+
+                        // In Stage 2: Add Note button
+                        Rectangle {
+                            visible: root.stage === 2 && !root.searchOpen
+                            height: 28
+                            width: noteBtnRow.implicitWidth + 16
+                            radius: 14
+                            color: root.newNoteOpen ? Theme.withAlpha(Theme.accent, 0.3) : (noteBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.2) : Qt.rgba(1, 1, 1, 0.08))
+                            border.width: 1
+                            border.color: root.newNoteOpen ? Theme.accent : Qt.rgba(1, 1, 1, 0.2)
+
+                            Row {
+                                id: noteBtnRow
+
+                                anchors.centerIn: parent
+                                spacing: 4
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: Icons.editBrush
+                                    font.family: Icons.effectiveFont(text)
+                                    font.pixelSize: 13
+                                    color: Theme.accent
+                                }
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: root.newNoteOpen ? "Cancel" : "+ Note"
+                                    font.family: Fonts.uiFont
+                                    font.pixelSize: 11
+                                    font.weight: Font.Medium
+                                    color: Theme.bright_foreground
+                                }
+
+                            }
+
+                            MouseArea {
+                                id: noteBtnMouse
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.toggleNewNote()
+                            }
+
+                        }
+
+                        // In Stage 3: Add File button
+                        Rectangle {
+                            visible: root.stage === 3 && !root.searchOpen
+                            height: 28
+                            width: addFileBtnRow.implicitWidth + 16
+                            radius: 14
+                            color: addFileBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.25) : Qt.rgba(1, 1, 1, 0.08)
+                            border.width: 1
+                            border.color: addFileBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.6) : Qt.rgba(1, 1, 1, 0.2)
+
+                            Row {
+                                id: addFileBtnRow
+
+                                anchors.centerIn: parent
+                                spacing: 4
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: Icons.fileAdd
+                                    font.family: Icons.effectiveFont(text)
+                                    font.pixelSize: 14
+                                    color: Theme.accent
+                                }
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: "+ Add File"
+                                    font.family: Fonts.uiFont
+                                    font.pixelSize: 11
+                                    font.weight: Font.Medium
+                                    color: Theme.bright_foreground
+                                }
+
+                            }
+
+                            MouseArea {
+                                id: addFileBtnMouse
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: fileDialog.open()
+                            }
+
+                        }
+
+                        // Search Button (Stages 2 & 3)
+                        Rectangle {
+                            visible: (root.stage === 2 || root.stage === 3) && !root.searchOpen
+                            height: 28
+                            width: searchBtnRow.implicitWidth + 16
+                            radius: 14
+                            color: searchBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.22) : Qt.rgba(1, 1, 1, 0.08)
+                            border.width: 1
+                            border.color: searchBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.55) : Qt.rgba(1, 1, 1, 0.2)
+
+                            Row {
+                                id: searchBtnRow
+
+                                anchors.centerIn: parent
+                                spacing: 4
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: Icons.search
+                                    font.family: Icons.effectiveFont(text)
+                                    font.pixelSize: 13
+                                    color: searchBtnMouse.containsMouse ? Theme.accent : Theme.foreground
+                                }
+
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: "Search"
+                                    font.family: Fonts.uiFont
+                                    font.pixelSize: 11
+                                    font.weight: Font.Medium
+                                    color: searchBtnMouse.containsMouse ? Theme.accent : Theme.foreground
+                                }
+
+                            }
+
+                            MouseArea {
+                                id: searchBtnMouse
+
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.openSearch()
+                            }
+
+                        }
+
+                        // Clear unpinned button
+                        GhostIconButton {
+                            glyph: Icons.clearSweep
+                            buttonSize: 28
+                            glyphSize: 14
+                            destructive: true
+                            onClicked: {
+                                if (root.clipboardService)
+                                    root.clipboardService.clearUnpinned();
+
+                            }
+                        }
+
+                    }
+
+                    // Expandable Search Capsule (shown across stages 2 & 3 when search is open)
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 16
+                        visible: root.searchOpen
+                        z: 70
+                        color: Qt.rgba(1, 1, 1, searchInput.activeFocus ? 0.11 : 0.075)
+                        border.width: 1
+                        border.color: searchInput.activeFocus ? Theme.withAlpha(Theme.accent, 0.6) : Qt.rgba(1, 1, 1, 0.22)
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 8
+                            spacing: 8
+
+                            Text {
+                                text: Icons.search
+                                font.family: Icons.effectiveFont(text)
+                                font.pixelSize: 14
+                                color: searchInput.activeFocus ? Theme.accent : Theme.muted
+                            }
+
+                            Item {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+
+                                Text {
+                                    anchors.fill: parent
+                                    verticalAlignment: Text.AlignVCenter
+                                    text: root.stage === 3 ? "Search stored files..." : "Search copied text..."
+                                    font.family: Fonts.uiFont
+                                    font.pixelSize: 12
+                                    color: Theme.withAlpha(Theme.foreground, 0.48)
+                                    visible: searchInput.text.length === 0
+                                }
+
+                                TextInput {
+                                    id: searchInput
+
+                                    anchors.fill: parent
+                                    verticalAlignment: TextInput.AlignVCenter
+                                    font.family: Fonts.uiFont
+                                    font.pixelSize: 12
+                                    color: Theme.bright_foreground
+                                    selectionColor: Theme.selection
+                                    selectedTextColor: Theme.bright_foreground
+                                    clip: true
+                                    onTextChanged: {
+                                        root.searchQuery = text;
+                                        root.touchActivity();
+                                    }
+                                    Keys.onPressed: root.touchActivity()
+                                    Keys.onReturnPressed: {
+                                        if (root.stage === 2 && root.textItems && root.textItems.length > 0)
+                                            root.pasteCard(root.textItems[0].id);
+                                        else if (root.stage === 3 && root.fileItems && root.fileItems.length > 0)
+                                            root.pasteCard(root.fileItems[0].id);
+                                    }
+                                    Keys.onEscapePressed: root.closeSearch()
+                                }
+
+                            }
+
+                            GhostIconButton {
+                                glyph: Icons.close
+                                buttonSize: 22
+                                glyphSize: 12
+                                cornerRadius: 11
+                                onClicked: root.closeSearch()
+                            }
+
+                        }
+
+                    }
+
+                }
+
+                // Subtle Luminous Horizontal Divider
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 1
+
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+
+                        GradientStop {
+                            position: 0
+                            color: "transparent"
+                        }
+
+                        GradientStop {
+                            position: 0.15
+                            color: Theme.withAlpha(Theme.bright_foreground, 0.1)
+                        }
+
+                        GradientStop {
+                            position: 0.85
+                            color: Theme.withAlpha(Theme.bright_foreground, 0.1)
+                        }
+
+                        GradientStop {
+                            position: 1
+                            color: "transparent"
+                        }
+
+                    }
+
+                }
+
+                // ─────────────────────────────────────────────────────────────
                 // STAGE 1: Screenshots Carousel Only
                 // ─────────────────────────────────────────────────────────────
                 ColumnLayout {
@@ -550,65 +1256,6 @@ PanelWindow {
                     Layout.fillHeight: true
                     spacing: 8
                     visible: root.stage === 1
-
-                    // Minimal Stage 1 Header (Centered Title Only)
-                    Item {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 26
-
-                        MouseArea {
-                            anchors.fill: parent
-                            z: 100
-                            acceptedButtons: Qt.NoButton
-                            hoverEnabled: false
-                            scrollGestureEnabled: true
-                            onWheel: function(event) {
-                                root.handleStageWheel(event, true);
-                            }
-                        }
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "Screenshots"
-                            font.family: Fonts.uiFont
-                            font.pixelSize: 12
-                            font.weight: Font.DemiBold
-                            color: Theme.bright_foreground
-                        }
-
-                    }
-
-                    // Subtle Luminous Horizontal Divider
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 1
-
-                        gradient: Gradient {
-                            orientation: Gradient.Horizontal
-
-                            GradientStop {
-                                position: 0
-                                color: "transparent"
-                            }
-
-                            GradientStop {
-                                position: 0.15
-                                color: Theme.withAlpha(Theme.bright_foreground, 0.1)
-                            }
-
-                            GradientStop {
-                                position: 0.85
-                                color: Theme.withAlpha(Theme.bright_foreground, 0.1)
-                            }
-
-                            GradientStop {
-                                position: 1
-                                color: "transparent"
-                            }
-
-                        }
-
-                    }
 
                     // Stage 1 Empty State
                     Item {
@@ -642,7 +1289,7 @@ PanelWindow {
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: "Two-finger glide ↓ for copied text"
+                                text: "Two-finger glide ↓ for text & files, or click Snap"
                                 font.family: Fonts.uiFont
                                 font.pixelSize: 11
                                 color: Theme.muted
@@ -697,16 +1344,8 @@ PanelWindow {
                                         event.accepted = true;
                                         return ;
                                     }
-                                    if (maxX > 0 && inward < 0 && Math.abs(dx) > Math.abs(dy) * 1.15 && imgStripList.contentX < maxX - 2 && imgStripList.contentX > 2) {
-                                        root.touchActivity();
-                                        var nextXH = Math.max(0, Math.min(maxX, imgStripList.contentX - (dx * 0.65)));
-                                        imgStripList.contentX = nextXH;
-                                        imgStripList.preservedX = nextXH;
-                                        event.accepted = true;
-                                        return ;
-                                    }
                                 }
-                                // Inward two-finger glide -> Stage 2 Text, outward -> Close
+                                // Inward glide -> Stage 2, outward -> Close
                                 root.handleStageWheel(event, true);
                             }
                         }
@@ -772,7 +1411,7 @@ PanelWindow {
 
                     }
 
-                    // Slim Horizontal Strip Progress Bar when more screenshots exist off-screen
+                    // Slim Horizontal Strip Progress Bar
                     Item {
                         id: stripProgressTrack
 
@@ -803,7 +1442,7 @@ PanelWindow {
                 }
 
                 // ─────────────────────────────────────────────────────────────
-                // STAGE 2: Copied Text History + Expandable Search Option
+                // STAGE 2: Copied Text History + Note Input
                 // ─────────────────────────────────────────────────────────────
                 ColumnLayout {
                     id: stage2Container
@@ -813,197 +1452,42 @@ PanelWindow {
                     spacing: 8
                     visible: root.stage === 2
 
-                    // Stage 2 Header (Centered Title + Search Pill in Right Corner)
-                    Item {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 32
-
-                        MouseArea {
-                            anchors.fill: parent
-                            z: 100
-                            acceptedButtons: Qt.NoButton
-                            hoverEnabled: false
-                            scrollGestureEnabled: true
-                            onWheel: function(event) {
-                                root.handleStageWheel(event, false);
-                            }
-                        }
-
-                        // Centered Title (hidden when search bar expands)
-                        Text {
-                            anchors.centerIn: parent
-                            visible: !root.searchOpen
-                            text: "Copied Text"
-                            font.family: Fonts.uiFont
-                            font.pixelSize: 12
-                            font.weight: Font.DemiBold
-                            color: Theme.bright_foreground
-                        }
-
-                        // Stage 2 Search Button Pill in Right Corner
-                        Rectangle {
-                            visible: !root.searchOpen
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            height: 28
-                            width: searchBtnRow.implicitWidth + 18
-                            radius: 14
-                            color: searchBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.22) : Qt.rgba(1, 1, 1, 0.08)
-                            border.width: 1
-                            border.color: searchBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.55) : Qt.rgba(1, 1, 1, 0.2)
-
-                            Row {
-                                id: searchBtnRow
-
-                                anchors.centerIn: parent
-                                spacing: 5
-
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: Icons.search
-                                    font.family: Icons.effectiveFont(text)
-                                    font.pixelSize: 13
-                                    color: searchBtnMouse.containsMouse ? Theme.accent : Theme.foreground
-                                }
-
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: "Search"
-                                    font.family: Fonts.uiFont
-                                    font.pixelSize: 11
-                                    font.weight: Font.Medium
-                                    color: searchBtnMouse.containsMouse ? Theme.accent : Theme.foreground
-                                }
-
-                            }
-
-                            MouseArea {
-                                id: searchBtnMouse
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.openSearch()
-                            }
-
-                            Behavior on color {
-                                ColorAnimation {
-                                    duration: 120
-                                }
-
-                            }
-
-                            Behavior on border.color {
-                                ColorAnimation {
-                                    duration: 120
-                                }
-
-                            }
-
-                        }
-
-                        // Expandable Search Capsule (only shown when Search button is toggled)
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: 16
-                            visible: root.searchOpen
-                            color: Qt.rgba(1, 1, 1, searchInput.activeFocus ? 0.11 : 0.075)
-                            border.width: 1
-                            border.color: searchInput.activeFocus ? Theme.withAlpha(Theme.accent, 0.6) : Qt.rgba(1, 1, 1, 0.22)
-
-                            RowLayout {
-                                anchors.fill: parent
-                                anchors.leftMargin: 12
-                                anchors.rightMargin: 8
-                                spacing: 8
-
-                                Text {
-                                    text: Icons.search
-                                    font.family: Icons.effectiveFont(text)
-                                    font.pixelSize: 14
-                                    color: searchInput.activeFocus ? Theme.accent : Theme.muted
-                                }
-
-                                Item {
-                                    Layout.fillWidth: true
-                                    Layout.fillHeight: true
-
-                                    Text {
-                                        anchors.fill: parent
-                                        verticalAlignment: Text.AlignVCenter
-                                        text: "Search copied text..."
-                                        font.family: Fonts.uiFont
-                                        font.pixelSize: 12
-                                        color: Theme.withAlpha(Theme.foreground, 0.48)
-                                        visible: searchInput.text.length === 0
-                                    }
-
-                                    TextInput {
-                                        id: searchInput
-
-                                        anchors.fill: parent
-                                        verticalAlignment: TextInput.AlignVCenter
-                                        font.family: Fonts.uiFont
-                                        font.pixelSize: 12
-                                        color: Theme.bright_foreground
-                                        selectionColor: Theme.selection
-                                        selectedTextColor: Theme.bright_foreground
-                                        clip: true
-                                        onTextChanged: {
-                                            root.searchQuery = text;
-                                            root.touchActivity();
-                                        }
-                                        Keys.onPressed: root.touchActivity()
-                                        Keys.onReturnPressed: {
-                                            if (root.textItems && root.textItems.length > 0)
-                                                root.pasteCard(root.textItems[0].id);
-
-                                        }
-                                        Keys.onEscapePressed: root.closeSearch()
-                                    }
-
-                                }
-
-                                GhostIconButton {
-                                    glyph: Icons.close
-                                    buttonSize: 22
-                                    glyphSize: 12
-                                    cornerRadius: 11
-                                    onClicked: root.closeSearch()
-                                }
-
-                            }
-
-                        }
-
-                    }
-
-                    // Subtle Luminous Horizontal Divider
+                    // Inline New Note Creator Bar (if opened)
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 1
+                        Layout.preferredHeight: 38
+                        radius: 12
+                        visible: root.newNoteOpen
+                        color: Qt.rgba(1, 1, 1, 0.08)
+                        border.width: 1
+                        border.color: Theme.withAlpha(Theme.accent, 0.5)
 
-                        gradient: Gradient {
-                            orientation: Gradient.Horizontal
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 8
+                            spacing: 8
 
-                            GradientStop {
-                                position: 0
-                                color: "transparent"
+                            TextInput {
+                                id: noteInput
+
+                                Layout.fillWidth: true
+                                verticalAlignment: TextInput.AlignVCenter
+                                font.family: Fonts.uiFont
+                                font.pixelSize: 12
+                                color: Theme.bright_foreground
+                                selectionColor: Theme.selection
+                                clip: true
+                                Keys.onReturnPressed: root.submitNewNote()
+                                Keys.onEscapePressed: root.toggleNewNote()
                             }
 
-                            GradientStop {
-                                position: 0.15
-                                color: Theme.withAlpha(Theme.bright_foreground, 0.1)
-                            }
-
-                            GradientStop {
-                                position: 0.85
-                                color: Theme.withAlpha(Theme.bright_foreground, 0.1)
-                            }
-
-                            GradientStop {
-                                position: 1
-                                color: "transparent"
+                            GhostIconButton {
+                                glyph: Icons.check
+                                buttonSize: 26
+                                glyphSize: 13
+                                active: true
+                                onClicked: root.submitNewNote()
                             }
 
                         }
@@ -1014,7 +1498,7 @@ PanelWindow {
                     Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        visible: root.textItems.length === 0
+                        visible: root.textItems.length === 0 && !root.newNoteOpen
 
                         MouseArea {
                             anchors.fill: parent
@@ -1023,7 +1507,7 @@ PanelWindow {
                             hoverEnabled: false
                             scrollGestureEnabled: true
                             onWheel: function(event) {
-                                root.handleStageWheel(event, false);
+                                root.handleStageWheel(event, true);
                             }
                         }
 
@@ -1042,7 +1526,7 @@ PanelWindow {
 
                             Text {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                text: root.searchQuery.length > 0 ? "Try a different keyword" : "Copied text, links, code, and colors appear here"
+                                text: root.searchQuery.length > 0 ? "Try a different keyword" : "Click '+ Note' or copy text in any app to store here"
                                 font.family: Fonts.uiFont
                                 font.pixelSize: 11
                                 color: Theme.muted
@@ -1076,15 +1560,17 @@ PanelWindow {
                                     return ;
                                 }
                                 var maxY = Math.max(0, textScroll.contentHeight - textScroll.height);
-                                if (maxY > 0)
+                                var inward = Appearance.barIsTop ? dy : (Appearance.barIsBottom ? -dy : (Appearance.barIsLeft ? dx : -dx));
+                                if (maxY > 0 && ((inward > 0 && textScroll.contentY < maxY) || (inward < 0 && textScroll.contentY > 0))) {
                                     textScroll.contentY = Math.max(0, Math.min(maxY, textScroll.contentY - (dy * 0.5)));
-
-                                root.touchActivity();
-                                event.accepted = true;
+                                    root.touchActivity();
+                                    event.accepted = true;
+                                    return ;
+                                }
+                                root.handleStageWheel(event, true);
                             }
                         }
 
-                        // Vertical scroll thumb when copied text list overflows
                         Rectangle {
                             readonly property real maxY: Math.max(0, textScroll.contentHeight - textScroll.height)
                             readonly property real ratio: textScroll.contentHeight > 0 ? Math.min(1, textScroll.height / textScroll.contentHeight) : 1
@@ -1147,7 +1633,201 @@ PanelWindow {
                 }
 
                 // ─────────────────────────────────────────────────────────────
-                // Tactile Pill Handle (Two-finger swipe up or click to close)
+                // STAGE 3: Stored Files Shelf
+                // ─────────────────────────────────────────────────────────────
+                ColumnLayout {
+                    id: stage3Container
+
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    spacing: 8
+                    visible: root.stage === 3
+
+                    // Stage 3 Empty State
+                    Item {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        visible: root.fileItems.length === 0
+
+                        MouseArea {
+                            anchors.fill: parent
+                            z: 100
+                            acceptedButtons: Qt.NoButton
+                            hoverEnabled: false
+                            scrollGestureEnabled: true
+                            onWheel: function(event) {
+                                root.handleStageWheel(event, false);
+                            }
+                        }
+
+                        Column {
+                            anchors.centerIn: parent
+                            spacing: 8
+
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: root.searchQuery.length > 0 ? "No matching files" : "No files stored yet"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: 13
+                                font.weight: Font.DemiBold
+                                color: Theme.bright_foreground
+                            }
+
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: root.searchQuery.length > 0 ? "Try a different search term" : "Click '+ Add File' to store any document, code, archive, or media"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: 11
+                                color: Theme.muted
+                            }
+
+                            Rectangle {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                height: 30
+                                width: emptyAddFileRow.implicitWidth + 20
+                                radius: 15
+                                color: emptyAddMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.3) : Theme.withAlpha(Theme.accent, 0.18)
+                                border.width: 1
+                                border.color: Theme.accent
+
+                                Row {
+                                    id: emptyAddFileRow
+
+                                    anchors.centerIn: parent
+                                    spacing: 5
+
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: Icons.fileAdd
+                                        font.family: Icons.effectiveFont(text)
+                                        font.pixelSize: 14
+                                        color: Theme.accent
+                                    }
+
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "Choose File to Store"
+                                        font.family: Fonts.uiFont
+                                        font.pixelSize: 11
+                                        font.weight: Font.DemiBold
+                                        color: Theme.bright_foreground
+                                    }
+
+                                }
+
+                                MouseArea {
+                                    id: emptyAddMouse
+
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: fileDialog.open()
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                    // Stage 3 Scrollable Stored Files List
+                    Item {
+                        id: filesScrollWrap
+
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        visible: root.fileItems.length > 0
+
+                        MouseArea {
+                            id: filesWheelArea
+
+                            anchors.fill: parent
+                            z: 100
+                            acceptedButtons: Qt.NoButton
+                            hoverEnabled: false
+                            scrollGestureEnabled: true
+                            onWheel: function(event) {
+                                var dx = Theme.wheelDeltaX(event);
+                                var dy = Theme.wheelDeltaY(event);
+                                if (dy === 0 || Math.abs(dy) < Math.abs(dx) * 0.5) {
+                                    event.accepted = false;
+                                    return ;
+                                }
+                                var maxY = Math.max(0, filesScroll.contentHeight - filesScroll.height);
+                                var inward = Appearance.barIsTop ? dy : (Appearance.barIsBottom ? -dy : (Appearance.barIsLeft ? dx : -dx));
+                                if (maxY > 0 && ((inward > 0 && filesScroll.contentY < maxY) || (inward < 0 && filesScroll.contentY > 0))) {
+                                    filesScroll.contentY = Math.max(0, Math.min(maxY, filesScroll.contentY - (dy * 0.5)));
+                                    root.touchActivity();
+                                    event.accepted = true;
+                                    return ;
+                                }
+                                root.handleStageWheel(event, false);
+                            }
+                        }
+
+                        Rectangle {
+                            readonly property real maxY: Math.max(0, filesScroll.contentHeight - filesScroll.height)
+                            readonly property real ratio: filesScroll.contentHeight > 0 ? Math.min(1, filesScroll.height / filesScroll.contentHeight) : 1
+
+                            anchors.right: parent.right
+                            anchors.rightMargin: -6
+                            width: 3
+                            radius: 1.5
+                            color: Theme.withAlpha(Theme.bright_foreground, 0.28)
+                            height: Math.max(24, filesScroll.height * ratio)
+                            y: maxY > 0 ? ((filesScroll.contentY / maxY) * Math.max(0, filesScroll.height - height)) : 0
+                            visible: maxY > 1
+                            z: 110
+                        }
+
+                        Flickable {
+                            id: filesScroll
+
+                            anchors.fill: parent
+                            clip: true
+                            contentWidth: width
+                            contentHeight: filesListCol.implicitHeight
+                            interactive: false
+                            boundsBehavior: Flickable.StopAtBounds
+
+                            ColumnLayout {
+                                id: filesListCol
+
+                                width: filesScroll.width
+                                spacing: 5
+
+                                Repeater {
+                                    model: root.fileItems
+
+                                    delegate: ClipboardFileRow {
+                                        clipboardService: root.clipboardService
+                                        onPasteRequested: function(id) {
+                                            root.pasteCard(id);
+                                        }
+                                        onCopyRequested: function(id) {
+                                            root.copyCard(id);
+                                        }
+                                        onDeleteRequested: function(id) {
+                                            root.deleteCard(id);
+                                        }
+                                        onDragStateChanged: function(dragging) {
+                                            root.isDragging = dragging;
+                                        }
+                                        onCloseDrawerRequested: root.close()
+                                    }
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+                // ─────────────────────────────────────────────────────────────
+                // Tactile Pill Handle (Swipe up to step back / click to close)
                 // ─────────────────────────────────────────────────────────────
                 Item {
                     Layout.fillWidth: true
@@ -1184,9 +1864,9 @@ PanelWindow {
                         hoverEnabled: true
                         scrollGestureEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: root.close()
+                        onClicked: root.stepBackOrClose()
                         onWheel: function(event) {
-                            root.handleStageWheel(event, true);
+                            root.handleStageWheel(event, root.stage < 3);
                         }
                     }
 

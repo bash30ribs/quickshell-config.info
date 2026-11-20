@@ -151,15 +151,21 @@ PanelWindow {
             root.glideCooldownUntil = Date.now() + 380;
             root.clipboardDrawer.open();
         } else if (root.clipboardDrawer.isOpen && root.clipboardDrawer.stage === 1 && root.glideAccum >= 8) {
-            if ((Date.now() - root.clipboardDrawer.stageChangedAtMs) >= 340) {
+            if ((Date.now() - root.clipboardDrawer.stageChangedAtMs) >= 300) {
                 root.glideAccum = 0;
                 root.glideCooldownUntil = Date.now() + 380;
                 root.clipboardDrawer.showTextStage();
             }
+        } else if (root.clipboardDrawer.isOpen && root.clipboardDrawer.stage === 2 && root.glideAccum >= 8) {
+            if ((Date.now() - root.clipboardDrawer.stageChangedAtMs) >= 300) {
+                root.glideAccum = 0;
+                root.glideCooldownUntil = Date.now() + 380;
+                root.clipboardDrawer.showFilesStage();
+            }
         } else if (root.clipboardDrawer.isOpen && root.glideAccum <= -4) {
             root.glideAccum = 0;
             root.glideCooldownUntil = Date.now() + 380;
-            root.clipboardDrawer.close();
+            root.clipboardDrawer.stepBackOrClose();
         }
         event.accepted = true;
     }
@@ -415,10 +421,36 @@ PanelWindow {
                         if (!root.clipboardDrawer.isOpen && inward >= 16) {
                             root.glideCooldownUntil = Date.now() + 280;
                             root.clipboardDrawer.open();
+                        } else if (root.clipboardDrawer.isOpen && root.clipboardDrawer.stage === 1 && inward >= 16) {
+                            root.glideCooldownUntil = Date.now() + 280;
+                            root.clipboardDrawer.showTextStage();
+                        } else if (root.clipboardDrawer.isOpen && root.clipboardDrawer.stage === 2 && inward >= 16) {
+                            root.glideCooldownUntil = Date.now() + 280;
+                            root.clipboardDrawer.showFilesStage();
                         } else if (root.clipboardDrawer.isOpen && inward <= -16) {
                             root.glideCooldownUntil = Date.now() + 280;
-                            root.clipboardDrawer.close();
+                            root.clipboardDrawer.stepBackOrClose();
                         }
+                    }
+                }
+
+                DragHandler {
+                    id: threeFingerBarDrag
+
+                    acceptedDevices: PointerDevice.TouchScreen | PointerDevice.TouchPad
+                    minimumPointCount: 3
+                    maximumPointCount: 3
+                    target: null
+                    xAxis.enabled: root.isVertical
+                    yAxis.enabled: root.isHorizontal
+                    onTranslationChanged: {
+                        if (!root.clipboardDrawer || !root.clipboardDrawer.isOpen)
+                            return ;
+
+                        var inward = Appearance.barIsTop ? translation.y : (Appearance.barIsBottom ? -translation.y : (Appearance.barIsLeft ? translation.x : -translation.x));
+                        if (inward <= -10)
+                            root.clipboardDrawer.close();
+
                     }
                 }
 

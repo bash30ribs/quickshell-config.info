@@ -101,6 +101,10 @@ QtObject {
     readonly property string editBrush: root.useMaterialSymbols ? "edit" : "󰏫"
     readonly property string linkIcon: root.useMaterialSymbols ? "link" : "󰌷"
     readonly property string codeIcon: root.useMaterialSymbols ? "code" : "󰅩"
+    readonly property string fileIconGlyph: root.useMaterialSymbols ? "draft" : "󰈔"
+    readonly property string fileAdd: root.useMaterialSymbols ? "note_add" : "󰮐"
+    readonly property string openInNew: root.useMaterialSymbols ? "open_in_new" : "󰅖"
+    readonly property string folderOpen: root.useMaterialSymbols ? "folder_open" : "󰝰"
     readonly property string chevronUp: root.useMaterialSymbols ? "keyboard_arrow_up" : "󰅃"
     // Workspaces
     property string workspace: ""
@@ -108,6 +112,29 @@ QtObject {
     property string workspaceInactive: ""
     property string workspaceOccupied: ""
     property string workspaceEmpty: ""
+
+    function fileIcon(ext) {
+        var e = String(ext || "").toLowerCase();
+        if (e === "png" || e === "jpg" || e === "jpeg" || e === "webp" || e === "svg" || e === "gif" || e === "bmp")
+            return root.photo;
+
+        if (e === "pdf" || e === "doc" || e === "docx" || e === "txt" || e === "md" || e === "rtf" || e === "odt")
+            return root.textDoc;
+
+        if (e === "mp3" || e === "flac" || e === "wav" || e === "ogg" || e === "m4a" || e === "aac")
+            return root.music;
+
+        if (e === "mp4" || e === "mkv" || e === "webm" || e === "mov" || e === "avi")
+            return root.useMaterialSymbols ? "movie" : "󰕼";
+
+        if (e === "zip" || e === "tar" || e === "gz" || e === "7z" || e === "rar" || e === "xz" || e === "bz2")
+            return root.useMaterialSymbols ? "archive" : "󰛫";
+
+        if (e === "py" || e === "qml" || e === "js" || e === "ts" || e === "sh" || e === "c" || e === "cpp" || e === "rs" || e === "go" || e === "json" || e === "html" || e === "css")
+            return root.codeIcon;
+
+        return root.useMaterialSymbols ? "draft" : "󰈔";
+    }
 
     // Battery icon resolver by capacity and charging state
     function battery(capacity, isCharging) {
