@@ -1527,7 +1527,6 @@ PanelWindow {
                             required property var modelData
                             required property int index
                             readonly property bool isSelected: (root.currentView === "wallpaper") && (root.wallpaperIndex === wallCardItem.index)
-                            readonly property bool isActiveWall: (modelData.isActive === true) || (modelData.path && root.activeWallpaper && modelData.path === root.activeWallpaper)
 
                             width: 196
                             height: 110
@@ -1655,46 +1654,6 @@ PanelWindow {
 
                             }
 
-                            // 5. Active Wallpaper Glass Pill Badge
-                            Rectangle {
-                                anchors.top: parent.top
-                                anchors.right: parent.right
-                                anchors.margins: 6
-                                height: 18
-                                radius: 9
-                                visible: wallCardItem.isActiveWall
-                                color: Theme.withAlpha(Theme.darker_background, 0.82)
-                                border.color: Theme.withAlpha(Theme.accent, 0.75)
-                                border.width: 1
-                                implicitWidth: activeContentRow.implicitWidth + 12
-
-                                Row {
-                                    id: activeContentRow
-
-                                    anchors.centerIn: parent
-                                    spacing: 4
-
-                                    Rectangle {
-                                        width: 5
-                                        height: 5
-                                        radius: 2.5
-                                        color: Theme.accent
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
-
-                                    Text {
-                                        text: "ACTIVE"
-                                        font.family: Fonts.uiFont
-                                        font.pixelSize: Fonts.scale(8)
-                                        font.weight: Fonts.weightBold
-                                        color: Theme.bright_foreground
-                                        anchors.verticalCenter: parent.verticalCenter
-                                    }
-
-                                }
-
-                            }
-
                             // Fallback icon if image loading error
                             Item {
                                 anchors.fill: parent
@@ -1710,13 +1669,13 @@ PanelWindow {
 
                             }
 
-                            // 6. Border Overlay rendered on top so corner anti-aliasing is crisp
+                            // 5. Border Overlay rendered on top so corner anti-aliasing is crisp
                             Rectangle {
                                 anchors.fill: parent
                                 radius: Appearance.powerMenuRadiusActive
                                 color: "transparent"
-                                border.color: Appearance.wallpaperSwitcherCardBorder ? (wallCardItem.isSelected ? Theme.accent : (wallCardItem.isActiveWall ? Theme.withAlpha(Theme.accent, 0.75) : Theme.withAlpha(Theme.selection, 0.5))) : "transparent"
-                                border.width: Appearance.wallpaperSwitcherCardBorder ? (wallCardItem.isSelected ? 2 : (wallCardItem.isActiveWall ? 1.5 : 1)) : 0
+                                border.color: Appearance.wallpaperSwitcherCardBorder ? (wallCardItem.isSelected ? Theme.accent : Theme.withAlpha(Theme.selection, 0.5)) : "transparent"
+                                border.width: Appearance.wallpaperSwitcherCardBorder ? (wallCardItem.isSelected ? 2 : 1) : 0
 
                                 Behavior on border.color {
                                     ColorAnimation {
