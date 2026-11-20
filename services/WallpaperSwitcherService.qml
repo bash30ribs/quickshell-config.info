@@ -106,7 +106,7 @@ QtObject {
     }
 
     switchResetTimer: Timer {
-        interval: 450
+        interval: Math.round((Appearance.wallpaperTransitionDuration || 1.2) * 1000) + 200
         repeat: false
         onTriggered: {
             root.isSwitching = false;
