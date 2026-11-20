@@ -23,8 +23,9 @@ Item {
     })
 
     function durationFor(urgency, expireTimeout) {
+        // Critical
+
         if (urgency === 2)
-            // Critical
             return 0;
 
         var timeoutMs = Number(expireTimeout || 0);
@@ -65,9 +66,7 @@ Item {
 
         }
         // Limit maximum concurrent visible toasts
-        while (popupModel.count >= 4)
-            root.dismissPopup(popupModel.count - 1);
-
+        while (popupModel.count >= 4)root.dismissPopup(popupModel.count - 1)
         // Add new notification to top of list
         snapshot.remainingLifetime = 1;
         popupModel.insert(0, snapshot);
@@ -154,9 +153,7 @@ Item {
     }
 
     function clearPopups() {
-        while (popupModel.count > 0)
-            dismissPopup(0);
-
+        while (popupModel.count > 0)dismissPopup(0)
     }
 
     function invokePopupDefault(index) {
@@ -232,7 +229,8 @@ Item {
     function focusApp(appName) {
         if (!appName)
             return ;
- // Focus window using hyprctl dispatch
+
+        // Focus window using hyprctl dispatch
         runProcess(["hyprctl", "dispatch", "focuswindow", "class:(?i)" + appName]);
     }
 
@@ -497,38 +495,202 @@ Item {
                         required property string actionsJson
                         required property real remainingLifetime
                         readonly property real lifetime: root.durationFor(cardSlot.urgency, cardSlot.expireTimeout)
+                        readonly property bool isScreenshot: app.toLowerCase().indexOf("screenshot") !== -1 || summary.toLowerCase().indexOf("screenshot") !== -1
 
                         Layout.preferredWidth: card.implicitWidth
                         Layout.alignment: Qt.AlignHCenter
-                        implicitHeight: card.implicitHeight
+                        implicitHeight: isScreenshot ? (card.implicitHeight + 36) : card.implicitHeight
 
-                        NotificationCard {
-                            id: card
+                        // ── Hanging Thread Rig (Visible for screenshot capture cards) ──
+                        Item {
+                            id: threadAssembly
 
+                            visible: cardSlot.isScreenshot
+                            anchors.top: parent.top
                             anchors.horizontalCenter: parent.horizontalCenter
-                            app: cardSlot.app
-                            appIcon: cardSlot.appIcon
-                            summary: cardSlot.summary
-                            body: cardSlot.body
-                            image: cardSlot.image
-                            glyph: cardSlot.glyph
-                            urgency: cardSlot.urgency
-                            timestamp: cardSlot.timestamp
-                            actionsJson: cardSlot.actionsJson
-                            progress: cardSlot.remainingLifetime !== undefined ? cardSlot.remainingLifetime : 1
-                            hasTimeout: cardSlot.lifetime > 0
-                            onCloseRequested: root.dismissPopup(cardSlot.index)
-                            onCardClicked: root.invokePopupDefault(cardSlot.index)
-                            onActionRequested: function(actionId) {
-                                root.invokePopupAction(cardSlot.index, actionId);
+                            width: card.implicitWidth
+                            height: 38
+                            z: 25
+
+                            // Top Mount Clasps (anchored directly beneath top bar)
+                            Rectangle {
+                                x: 26
+                                y: 0
+                                width: 8
+                                height: 5
+                                radius: 2.5
+                                color: Theme.withAlpha(Theme.bright_foreground, 0.75)
                             }
 
-                            Connections {
-                                function onHoveredChanged() {
-                                    root.setNotificationHovered(cardSlot.originalId, card.hovered);
+                            Rectangle {
+                                x: parent.width - 34
+                                y: 0
+                                width: 8
+                                height: 5
+                                radius: 2.5
+                                color: Theme.withAlpha(Theme.bright_foreground, 0.75)
+                            }
+
+                            // Left Taut String Line
+                            Rectangle {
+                                id: leftThread
+
+                                x: 30
+                                y: 3
+                                width: 1.5
+                                height: 36
+                                antialiasing: true
+                                color: Theme.withAlpha(Theme.bright_foreground, 0.65)
+                                rotation: -6.5
+                                transformOrigin: Item.Top
+                            }
+
+                            // Right Taut String Line
+                            Rectangle {
+                                id: rightThread
+
+                                x: parent.width - 30
+                                y: 3
+                                width: 1.5
+                                height: 36
+                                antialiasing: true
+                                color: Theme.withAlpha(Theme.bright_foreground, 0.65)
+                                rotation: 6.5
+                                transformOrigin: Item.Top
+                            }
+
+                        }
+
+                        // ── Suspended Card with Harmonic String Physics ──
+                        Item {
+                            id: cardHanger
+
+                            property real arrivalSway: 0
+                            property real mouseSway: 0
+
+                            anchors.top: cardSlot.isScreenshot ? threadAssembly.bottom : parent.top
+                            anchors.topMargin: cardSlot.isScreenshot ? -4 : 0
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: card.implicitWidth
+                            height: card.implicitHeight
+                            transformOrigin: Item.Top
+                            rotation: cardSlot.isScreenshot ? (arrivalSway + mouseSway) : 0
+
+                            SequentialAnimation {
+                                id: pendulumArrival
+
+                                running: cardSlot.isScreenshot
+
+                                ParallelAnimation {
+                                    NumberAnimation {
+                                        target: cardHanger
+                                        property: "y"
+                                        from: -36
+                                        to: 0
+                                        duration: 440
+                                        easing.type: Easing.OutBack
+                                        easing.overshoot: 1.35
+                                    }
+
+                                    SequentialAnimation {
+                                        NumberAnimation {
+                                            target: cardHanger
+                                            property: "arrivalSway"
+                                            from: 4
+                                            to: -2.8
+                                            duration: 360
+                                            easing.type: Easing.InOutQuad
+                                        }
+
+                                        NumberAnimation {
+                                            target: cardHanger
+                                            property: "arrivalSway"
+                                            to: 1.6
+                                            duration: 300
+                                            easing.type: Easing.InOutQuad
+                                        }
+
+                                        NumberAnimation {
+                                            target: cardHanger
+                                            property: "arrivalSway"
+                                            to: -0.8
+                                            duration: 250
+                                            easing.type: Easing.InOutQuad
+                                        }
+
+                                        NumberAnimation {
+                                            target: cardHanger
+                                            property: "arrivalSway"
+                                            to: 0.3
+                                            duration: 200
+                                            easing.type: Easing.InOutQuad
+                                        }
+
+                                        NumberAnimation {
+                                            target: cardHanger
+                                            property: "arrivalSway"
+                                            to: 0
+                                            duration: 160
+                                            easing.type: Easing.OutQuad
+                                        }
+
+                                    }
+
                                 }
 
-                                target: card
+                            }
+
+                            NotificationCard {
+                                id: card
+
+                                anchors.centerIn: parent
+                                isScreenshot: cardSlot.isScreenshot
+                                app: cardSlot.app
+                                appIcon: cardSlot.appIcon
+                                summary: cardSlot.summary
+                                body: cardSlot.body
+                                image: cardSlot.image
+                                glyph: cardSlot.glyph
+                                urgency: cardSlot.urgency
+                                timestamp: cardSlot.timestamp
+                                actionsJson: cardSlot.actionsJson
+                                progress: cardSlot.remainingLifetime !== undefined ? cardSlot.remainingLifetime : 1
+                                hasTimeout: cardSlot.lifetime > 0
+                                onCloseRequested: root.dismissPopup(cardSlot.index)
+                                onCardClicked: root.invokePopupDefault(cardSlot.index)
+                                onActionRequested: function(actionId) {
+                                    root.invokePopupAction(cardSlot.index, actionId);
+                                }
+                                onHoverPosChanged: function(relX) {
+                                    if (!cardSlot.isScreenshot)
+                                        return ;
+
+                                    var centerOffset = (relX - card.implicitWidth / 2) / (card.implicitWidth / 2);
+                                    cardHanger.mouseSway = Math.max(-3, Math.min(3, centerOffset * 3));
+                                }
+                                onHoverExited: {
+                                    if (!cardSlot.isScreenshot)
+                                        return ;
+
+                                    cardHanger.mouseSway = 0;
+                                }
+
+                                Connections {
+                                    function onHoveredChanged() {
+                                        root.setNotificationHovered(cardSlot.originalId, card.hovered);
+                                    }
+
+                                    target: card
+                                }
+
+                            }
+
+                            Behavior on mouseSway {
+                                NumberAnimation {
+                                    duration: 160
+                                    easing.type: Easing.OutQuad
+                                }
+
                             }
 
                         }
