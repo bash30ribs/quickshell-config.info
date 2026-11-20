@@ -72,7 +72,16 @@ The status bar supports 4 instant layout modes toggled via IPC or config:
 ## 🧩 Complete Desktop Shell Suite
 
 ### 📊 Status Modules & Popups
-- **🔋 Battery**: Real-time capacity indicator, charging wattage, health percentage, cycle counts, and an interactive power profile selector (`Power-saver`, `Balanced`, `Performance`).
+- **⚡ Minimalist Performance Mode & Governor Controller**:
+  - **What It Is**: An ultra-compact (260px) Mornye Liquid Glass power management and real-time hardware telemetry dashboard.
+  - **Why We Built It**: Traditional system monitors consume excessive screen space with bulky ASCII graphs or heavy dialogs. Power users need instantaneous, distraction-free governor management and rapid answers to why their machine is working hard without launching a heavy GUI or terminal.
+  - **How It Helps You**:
+    - **Zero-Menu Bar Controls**: Right-click the bar icon to toggle Turbo boost instantly with an animated OSD toast; scroll your mouse wheel or swipe the icon to cycle `Saver` $\rightarrow$ `Balanced` $\rightarrow$ `Turbo` on the fly.
+    - **One-Tap Governor Switcher**: Fluid segmented pill switcher (`[ 🌱 Saver ]`, `[ ⚖️ Bal ]`, `[ ⚡ Turbo ]`) backed natively by `powerprofilesctl`.
+    - **Slim Telemetry Tracks**: High-contrast, 4px progress tracks for CPU Load, Memory (used / total GB), and Core Temperature with dynamic color alerting (Green $\rightarrow$ Amber $\rightarrow$ Red).
+    - **🔥 Real-Time Top Task Detection**: Live background monitoring dynamically detects the single highest CPU-consuming task (e.g. `Top Task: chrome · 14%`), providing immediate diagnostic clarity.
+    - **Integrated System Monitor Shortcut**: A discreet `[ 󰆍 System Monitor (btop) ]` quick action to launch a terminal monitor whenever deep inspection is required.
+- **🔋 Battery**: Real-time capacity indicator with persistent percentage readout, charging wattage, health percentage, cycle counts, and an interactive power profile selector.
 - **🔊 PipeWire Audio Mixer**: Master volume slider, mute toggle, default sink/source selector, and individual per-application audio stream controls.
 - **🌐 Network & Wi-Fi**: Instant DNS provider selector (`DHCP`, `Cloudflare`, `Google`), live Wi-Fi network scanner with inline password entry, and Wi-Fi QR code generator.
 - **📶 Bluetooth Manager**: Device discovery, pairing, connection toggling, and battery level telemetry.
@@ -94,12 +103,38 @@ Volume, brightness, caps lock, and refresh rate adjustments display through a de
 
 ---
 
-### 📋 Pull-Down Gesture Clipboard & Screenshot Drawer
-Move your pointer to the top bar and glide two fingers downward (trackpad natural scroll or 2-finger touch drag) to drop a spring-animated liquid glass clipboard tray; glide two fingers upward on the bar or tray to slide it away:
-- **Unified Screenshot & Text Stream**: Automatically records copied text, URLs, code snippets, hex color swatches (with live color preview), clipboard-only screenshots, and captures from `~/Pictures/Screenshot` with SHA-256 deduplication and cached Lanczos thumbnails.
-- **Click-to-Paste**: Clicking any card copies it cleanly to the Wayland clipboard and injects `Ctrl+V` (`Ctrl+Shift+V` for terminal windows) directly into your focused window via Hyprland `send_shortcut`.
-- **Re-Copy, Pin, Annotate & Clear**: Dedicated inline pills to copy back to clipboard (`Copied ✓` feedback), pin entries persistently, annotate screenshots with `swappy`, take a quick region `Snap`, filter (`All` | `SS` | `Text` | `Pinned`), or live-search.
-- **Native Wayland Drag & Drop**: Dragging any screenshot (`text/uri-list` + live thumbnail cursor preview) or text snippet (`text/plain`) past `8px` initiates native Qt/Wayland `Drag.Automatic` onto browsers, editors, file managers, or terminals.
+### 📋 3-Stage Gesture Shelf & Drag-and-Drop Drawer (ClipBar)
+Move your pointer to the top bar and glide two fingers downward (trackpad natural scroll or 2-finger touch drag) to drop a spring-animated liquid glass workspace shelf:
+- **What It Is**: A multi-stage pull-down workspace shelf integrating screenshot captures, clipboard text history, and local file staging into one fluid surface.
+- **Why We Built It**: Modern creative and coding workflows require constant juggling between taking screenshots, copying code snippets, and dragging files between apps. Opening separate file managers or clipboard utilities interrupts cognitive flow.
+- **How It Helps You**:
+  - **3-Stage Unified Organization**: Seamlessly switch between dedicated stages:
+    - `Screenshots`: Captures from `~/Pictures/Screenshots` and clipboard images with Lanczos thumbnails.
+    - `Text`: Clipboard text history, URLs, and code snippets with click-to-paste into focused windows.
+    - `Files`: Dedicated file staging shelf for rapid drag-and-drop.
+  - **Progressive Upward Gesture Navigation**: Swiping upward on `Files` moves back to `Text`, then to `Screenshots`, then smoothly dismisses the drawer.
+  - **3-Finger Quick Dismiss**: An outward 3-finger upward swipe dismisses the drawer immediately from any active stage (`closeAtOnce`).
+  - **Wayland Drag-and-Drop**: Drag any file or screenshot past `8px` to initiate native Wayland `text/uri-list` drag-and-drop into chat apps, browsers, or code editors.
+  - **Self-Healing Storage**: Automatically prunes deleted screenshot records and gracefully falls back to placeholder cards so the UI never crashes or shows broken images.
+
+---
+
+### 🧵 Suspended Screenshot Notifications & Hanging Thread Physics
+- **What It Is**: A tactile notification presentation that renders new screenshot captures as physical cards suspended from top bar clasps with metallic eyelets and dual thread lines.
+- **Why We Built It**: Standard notification toasts are flat, generic, and easily dismissed by accident. A screenshot is an active, tactile creative asset that deserves distinct visual importance and physical presence.
+- **How It Helps You**:
+  - **Damped Pendulum Dynamics**: New captures swing into view with a physical $-3.2^\circ$ release oscillation and subtle spring rebound, responding dynamically to mouse hover gestures.
+  - **Corner Grommet Architecture**: Authentic liquid glass surface detailed with metallic perimeter eyelets and top-bar mounting clasps.
+  - **Inline Workflow Actions**: Instant access to `[ Open ]`, `[ Annotate ]` (via `swappy`), and `[ Copy ]` directly from the suspended card.
+
+---
+
+### 🖐️ Continuous Touchpad Gestures
+- **What It Is**: Deep Wayland continuous touchpad gesture integration powered by Hyprland and QuickShell IPC.
+- **Why We Built It**: Reaching for hardware function keys or memorizing complex modifier keybinds takes hands away from the typing flow. Continuous trackpad swipes provide instantaneous physical control over desktop environment parameters.
+- **How It Helps You**:
+  - **4-Finger Horizontal Brightness Control**: Swipe left-to-right to smoothly raise display brightness, or right-to-left to lower it, with finely calibrated sensitivity (`THRESHOLD = 9`) matched to volume adjustments.
+  - **3-Finger Vertical Drawer Navigation**: Pull down on the top bar to reveal the shelf; swipe up to progress through stages or dismiss at once.
 
 ---
 
@@ -135,7 +170,10 @@ Native Wayland polkit agent rendered as a centered liquid glass dialog, featurin
 Bottom modal dashboard combining:
 - **Power Session Actions**: Shutdown, Reboot, Suspend, Lock, and Logout with confirmation overlays.
 - **Theme Switcher**: Instant switching between system color schemes with live wallpaper updates.
-- **Wallpaper Switcher**: Grid carousel of available wallpapers with instant dynamic palette harmonization.
+- **Wallpaper Switcher & Transition Bloom**: Grid carousel of available wallpapers featuring:
+  - **Circular Bloom Reveal**: Smooth radial shader transition eliminating abrupt cuts on wallpaper change.
+  - **Surface Cache Optimization**: Pre-cached background surfaces eliminating grey-tint loading flicker.
+  - **Clean Immersive Gallery**: Streamlined wallpaper cards without distracting badge overlays.
 
 ---
 
@@ -151,6 +189,8 @@ qs ipc call barpopups toggle network    # Toggle network popup
 qs ipc call barpopups toggle bluetooth  # Toggle bluetooth popup
 qs ipc call barpopups toggle battery    # Toggle battery popup
 qs ipc call barpopups toggle monitor    # Toggle display popup
+qs ipc call barpopups toggleControlCenter # Toggle minimalist performance card
+qs ipc call bar toggle perf              # Alternate performance toggle
 
 qs ipc call barpopups setMode floating  # Switch to floating bar
 qs ipc call barpopups setMode islands   # Switch to islands bar
@@ -169,14 +209,20 @@ qs ipc call osd outputVolume lower      # Lower volume (-5%)
 qs ipc call osd outputVolume mute-toggle# Toggle mute
 qs ipc call osd brightness raise        # Raise brightness (+5%)
 qs ipc call osd brightness lower        # Lower brightness (-5%)
+qs ipc call osd brightness raise-fine   # Fine brightness raise (+2%)
+qs ipc call osd brightness lower-fine   # Fine brightness lower (-2%)
+qs ipc call osd trigger "⚡" "Turbo"    # Display custom OSD toast notification
 qs ipc call osd refreshRate 60Hz        # Display refresh rate confirmation
 
-# ── Launcher, Power & Clipboard Drawer ───────────────────────────────────────
-qs ipc call launcher toggle             # Toggle application launcher
-qs ipc call powermenu toggle            # Toggle power & unified menu
-qs ipc call clipboard toggle            # Pull down or dismiss clipboard & screenshot drawer
-qs ipc call barpopups toggle clipboard  # Alternate clipboard drawer toggle
+# ── Multi-Stage Workspace Shelf & Clipboard Drawer ───────────────────────────
+qs ipc call clipboard toggle            # Pull down or dismiss workspace shelf
+qs ipc call clipboard showScreenshots   # Switch directly to Screenshots stage
+qs ipc call clipboard showText          # Switch directly to Text history stage
+qs ipc call clipboard showFiles         # Switch directly to Files shelf stage
+qs ipc call clipboard stepBack          # Progressive outward navigation step
+qs ipc call clipboard closeAtOnce       # Instant 3-finger drawer dismissal
 qs ipc call clipboard refresh           # Sync latest clipboard and screenshot entries
+qs ipc call barpopups toggle clipboard  # Alternate clipboard drawer toggle
 
 # ── Theme & Dynamic Wallpaper ─────────────────────────────────────────────────
 qs ipc call theme reload                # Reload theme colors.toml
@@ -209,7 +255,8 @@ qs ipc call audit status                # Query daemon running state
 │   ├── Slider.qml                # Tactile glass slider
 │   └── ToggleSwitch.qml          # Smooth fluid toggle switch
 ├── widgets/
-│   ├── BatteryWidget.qml         # Battery telemetry & power profiles
+│   ├── BatteryWidget.qml         # Battery telemetry & persistent percentage
+│   ├── ControlCenterWidget.qml   # Minimalist performance mode, governor switcher & top task monitor
 │   ├── MonitorWidget.qml         # Brightness, display scale, refresh rate
 │   ├── AudioWidget.qml           # PipeWire volume & stream mixer
 │   ├── NetworkWidget.qml         # NetworkManager Wi-Fi & DNS manager
@@ -223,7 +270,9 @@ qs ipc call audit status                # Query daemon running state
 │   ├── OsdService.qml            # Volume & brightness rate-limiting service
 │   └── OsdModel.js               # OSD state mapping logic
 ├── clipboard/
-│   └── ClipboardDrawer.qml       # ClipBar: 2-stage pull-down liquid glass screenshot & text drawer
+│   ├── ClipboardDrawer.qml       # ClipBar: 3-stage pull-down workspace shelf (Screenshots, Text, Files)
+│   ├── ClipboardImageCard.qml    # Screenshot card with corner eyelets & metadata
+│   └── ClipboardTextCard.qml     # Text snippet card with syntax highlighting & click-to-paste
 ├── launcher/
 │   ├── AppLauncher.qml           # Spotlight-style 4-mode application launcher
 │   └── LauncherModel.js          # Desktop entry parsing & search index
@@ -232,7 +281,9 @@ qs ipc call audit status                # Query daemon running state
 ├── polkit/
 │   └── Polkit.qml                # Centered polkit authentication dialog
 ├── notifications/
-│   └── Notifications.qml         # Desktop notification manager
+│   ├── Notifications.qml         # Desktop notification manager
+│   ├── NotificationCard.qml      # Suspended screenshot card with hanging string physics & eyelets
+│   └── NotificationLogic.js      # Notification snapshotting & lifetime logic
 ├── services/                     # Backend communication layer
 │   ├── AudioService.qml          # PipeWire native integration
 │   ├── AuditService.qml          # Audit protocol IPC bridge
@@ -240,6 +291,7 @@ qs ipc call audit status                # Query daemon running state
 │   ├── BluetoothService.qml      # BlueZ D-Bus integration
 │   ├── BrightnessService.qml     # Backlight / brightnessctl integration
 │   ├── ClipboardService.qml      # Wayland clipboard & screenshot history state service
+│   ├── HardwareService.qml       # Hardware telemetry, power profile switcher & top CPU detector
 │   ├── NetworkService.qml        # NetworkManager D-Bus service
 │   ├── PowerService.qml          # systemd login1 power actions
 │   ├── ThemeSwitcherService.qml  # Theme management service
