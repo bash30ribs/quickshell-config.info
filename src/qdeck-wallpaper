@@ -1,0 +1,224 @@
+#!/usr/bin/env bash
+# QDeck: Wallpaper discovery, listing, and switching helper (qdeck-wallpaper / qdeck wallpaper)
+set -euo pipefail
+
+CURRENT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/themes/current"
+if [[ ! -d "$CURRENT_DIR" && -d "$HOME/themes/current" ]]; then
+    CURRENT_DIR="$HOME/themes/current"
+fi
+export CURRENT_DIR
+
+SWITCH_BIN="$HOME/.local/bin/wallpaper-switch"
+
+get_active_wallpaper() {
+    # 1. First check awww if running
+    if command -v awww >/dev/null 2>&1 && (pgrep -x awww-daemon >/dev/null 2>&1); then
+        local awww_cur
+        awww_cur="$(awww query 2>/dev/null | grep -oP 'currently displaying: image: \K.*' | head -n1 || true)"
+        if [[ -n "$awww_cur" && -f "$awww_cur" ]]; then
+            readlink -f "$awww_cur" 2>/dev/null || echo "$awww_cur"
+            return 0
+        fi
+    fi
+
+    # 2. Check default.png symlink
+    local default_link="$CURRENT_DIR/default.png"
+    if [[ -L "$default_link" || -f "$default_link" ]]; then
+        readlink -f "$default_link" 2>/dev/null || echo ""
+    else
+        echo ""
+    fi
+}
+
+list_wallpapers_json() {
+    python3 -c "
+import os, sys, json, hashlib
+from concurrent.futures import ThreadPoolExecutor
+
+bg_dir = os.path.join(os.environ.get('CURRENT_DIR', ''), 'backgrounds')
+if not os.path.isdir(bg_dir):
+    print('[]')
+    sys.exit(0)
+
+thumb_dir = os.path.expanduser('~/.cache/qdeck/thumbs')
+os.makedirs(thumb_dir, exist_ok=True)
+THUMB_SIZE = (392, 220)
+
+# Active wallpaper detection
+active_target = ''
+try:
+    import subprocess
+    out = subprocess.check_output(['awww', 'query'], stderr=subprocess.DEVNULL, text=True)
+    for line in out.splitlines():
+        if 'image:' in line:
+            active_target = os.path.realpath(line.split('image:')[-1].strip())
+            break
+except Exception:
+    pass
+
+if not active_target:
+    default_link = os.path.join(os.environ.get('CURRENT_DIR', ''), 'default.png')
+    if os.path.exists(default_link):
+        active_target = os.path.realpath(default_link)
+
+items = []
+missing_jobs = []
+valid_exts = {'.png', '.jpg', '.jpeg', '.webp', '.avif', '.bmp'}
+
+for entry in os.scandir(bg_dir):
+    if not entry.is_file():
+        continue
+    ext = os.path.splitext(entry.name)[1].lower()
+    if ext not in valid_exts:
+        continue
+    
+    canon = os.path.realpath(entry.path)
+    base = os.path.splitext(entry.name)[0]
+    clean_name = base.lstrip('0123456789-_').replace('-', ' ').replace('_', ' ').title() or base
+    
+    try:
+        st = entry.stat()
+        key_str = f'{canon}:{int(st.st_mtime)}:{st.st_size}'
+        digest = hashlib.md5(key_str.encode('utf-8')).hexdigest()
+        thumb = os.path.join(thumb_dir, f'{digest}.jpg')
+        has_thumb = os.path.isfile(thumb)
+    except OSError:
+        thumb = ''
+        has_thumb = False
+    
+    item = {
+        'path': entry.path,
+        'name': clean_name,
+        'filename': entry.name,
+        'isActive': (canon == active_target),
+        'thumbPath': thumb if has_thumb else ''
+    }
+    items.append(item)
+    if not has_thumb:
+        missing_jobs.append((canon, thumb, item))
+
+if missing_jobs:
+    try:
+        from PIL import Image, ImageOps
+        def make_thumb(job):
+            src, dst, it = job
+            try:
+                with Image.open(src) as img:
+                    if img.mode != 'RGB':
+                        img = img.convert('RGB')
+                    fitted = ImageOps.fit(img, THUMB_SIZE, method=Image.Resampling.BICUBIC)
+                    tmp = dst + '.tmp'
+                    fitted.save(tmp, format='JPEG', quality=82, optimize=False)
+                    os.replace(tmp, dst)
+                    it['thumbPath'] = dst
+            except Exception:
+                pass
+        with ThreadPoolExecutor(max_workers=min(8, len(missing_jobs))) as ex:
+            list(ex.map(make_thumb, missing_jobs))
+    except Exception:
+        pass
+
+items.sort(key=lambda x: x['filename'].lower())
+print(json.dumps(items))
+"
+}
+
+switch_wallpaper() {
+    local img="${1:-}"
+    if [[ -z "$img" ]]; then
+        echo "error: missing wallpaper path" >&2
+        exit 1
+    fi
+
+    if [[ "$img" != /* ]]; then
+        # If relative or just filename, resolve inside current theme backgrounds
+        if [[ -f "$CURRENT_DIR/backgrounds/$img" ]]; then
+            img="$CURRENT_DIR/backgrounds/$img"
+        elif [[ -f "$PWD/$img" ]]; then
+            img="$PWD/$img"
+        fi
+    fi
+
+    if [[ ! -f "$img" ]]; then
+        echo "error: wallpaper file '$img' does not exist" >&2
+        exit 1
+    fi
+
+    # 1. Update active theme default.png symlink
+    if [[ -d "$CURRENT_DIR" ]]; then
+        ln -sfn "$img" "$CURRENT_DIR/default.png"
+    fi
+
+    # 2. Prefer wallpaper-switch if available
+    if command -v wallpaper-switch >/dev/null 2>&1; then
+        wallpaper-switch "$img"
+        return 0
+    elif [[ -x "$SWITCH_BIN" ]]; then
+        "$SWITCH_BIN" "$img"
+        return 0
+    fi
+
+    # 3. Direct awww support with animated circular center transition
+    if command -v awww >/dev/null 2>&1; then
+        if ! pgrep -x awww-daemon >/dev/null 2>&1; then
+            awww-daemon &
+            sleep 0.2
+        fi
+        local trans_type="${AWWW_TRANSITION:-center}"
+        local trans_dur="${AWWW_TRANSITION_DURATION:-1.2}"
+        local trans_fps="${AWWW_TRANSITION_FPS:-165}"
+        local trans_bezier="${AWWW_TRANSITION_BEZIER:-.25,1,.5,1}"
+        local trans_filter="${AWWW_TRANSITION_FILTER:-Mitchell}"
+        if awww img --transition-type "$trans_type" --transition-duration "$trans_dur" --transition-fps "$trans_fps" --transition-bezier "$trans_bezier" --filter "$trans_filter" "$img" >/dev/null 2>&1 || \
+           awww img "$img" >/dev/null 2>&1; then
+            echo "Wallpaper changed to: $(basename "$img")"
+            return 0
+        fi
+    fi
+
+    # 4. Direct swww support
+    if command -v swww >/dev/null 2>&1; then
+        if ! pgrep -x swww-daemon >/dev/null 2>&1; then
+            swww init >/dev/null 2>&1 || true
+            sleep 0.2
+        fi
+        local trans_type="${AWWW_TRANSITION:-center}"
+        local trans_dur="${AWWW_TRANSITION_DURATION:-1.2}"
+        local trans_fps="${AWWW_TRANSITION_FPS:-165}"
+        local trans_bezier="${AWWW_TRANSITION_BEZIER:-.25,1,.5,1}"
+        if swww img "$img" --transition-type "$trans_type" --transition-duration "$trans_dur" --transition-fps "$trans_fps" --transition-bezier "$trans_bezier" >/dev/null 2>&1 || \
+           swww img "$img" >/dev/null 2>&1; then
+            echo "Wallpaper changed to: $(basename "$img")"
+            return 0
+        fi
+    fi
+
+    # 5. Direct hyprpaper support
+    if command -v hyprpaper >/dev/null 2>&1 && command -v hyprctl >/dev/null 2>&1; then
+        hyprctl hyprpaper preload "$img" >/dev/null 2>&1 || true
+        hyprctl hyprpaper wallpaper ",$img" >/dev/null 2>&1 || true
+        echo "Wallpaper changed to: $(basename "$img")"
+        return 0
+    fi
+
+    echo "error: no wallpaper backend available" >&2
+    exit 1
+}
+
+CMD="${1:-list}"
+case "$CMD" in
+    list|get)
+        list_wallpapers_json
+        ;;
+    current)
+        get_active_wallpaper
+        ;;
+    switch|apply)
+        shift
+        switch_wallpaper "$@"
+        ;;
+    *)
+        echo "Usage: $0 {list|current|switch <path>}" >&2
+        exit 1
+        ;;
+esac

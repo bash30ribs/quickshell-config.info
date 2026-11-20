@@ -1330,7 +1330,7 @@ PanelWindow {
                                     radius: Appearance.powerMenuRadiusActive - 1
                                     color: "black"
                                     layer.enabled: true
-                                    visible: false
+                                    opacity: 0
                                 }
 
                                 // Hairline separator below thumbnail
@@ -1500,7 +1500,7 @@ PanelWindow {
                         orientation: ListView.Horizontal
                         spacing: 12
                         clip: true
-                        cacheBuffer: 600
+                        cacheBuffer: 1600
                         snapMode: ListView.SnapToItem
                         model: root.wallpapers
                         currentIndex: root.wallpaperIndex
@@ -1533,13 +1533,13 @@ PanelWindow {
                             scale: wallCardMouse.pressed ? 0.965 : ((wallCardMouse.containsMouse || wallCardItem.isSelected) ? 1.03 : 1)
                             antialiasing: true
 
-                            // 1. Card Background
+                            // 1. Card Background (Dark subtle glass, no grey tint)
                             Rectangle {
                                 id: wallCardBg
 
                                 anchors.fill: parent
                                 radius: Appearance.powerMenuRadiusActive
-                                color: wallCardItem.isSelected ? Theme.withAlpha(Theme.lighter_background, 0.95) : (wallCardMouse.containsMouse ? Theme.withAlpha(Theme.lighter_background, 0.45) : Theme.withAlpha(Theme.darker_background, 0.45))
+                                color: wallCardItem.isSelected ? Theme.withAlpha(Theme.lighter_background, 0.3) : (wallCardMouse.containsMouse ? Theme.withAlpha(Theme.lighter_background, 0.15) : Qt.rgba(0, 0, 0, 0.25))
 
                                 Behavior on color {
                                     ColorAnimation {
@@ -1550,7 +1550,7 @@ PanelWindow {
 
                             }
 
-                            // 2. Direct Mask for Rounded Wallpaper Corners
+                            // 2. Direct Mask for Rounded Wallpaper Corners (opacity: 0 preserves layer texture)
                             Rectangle {
                                 id: wallMask
 
@@ -1559,16 +1559,7 @@ PanelWindow {
                                 radius: Appearance.powerMenuRadiusActive - 1
                                 color: "black"
                                 layer.enabled: true
-                                visible: false
-                            }
-
-                            // Placeholder fill behind thumbnail
-                            Rectangle {
-                                anchors.fill: parent
-                                anchors.margins: 1
-                                radius: Appearance.powerMenuRadiusActive - 1
-                                color: Theme.withAlpha(Theme.selection, 0.3)
-                                visible: previewImg.status !== Image.Ready
+                                opacity: 0
                             }
 
                             // 3. Wallpaper Image Thumbnail (Masked to 16:9 widescreen ratio)
@@ -1579,21 +1570,12 @@ PanelWindow {
                                 anchors.margins: 1
                                 source: (wallCardItem.modelData && wallCardItem.modelData.thumbPath) ? ("file://" + wallCardItem.modelData.thumbPath) : ((wallCardItem.modelData && wallCardItem.modelData.path) ? ("file://" + wallCardItem.modelData.path) : "")
                                 fillMode: Image.PreserveAspectCrop
-                                asynchronous: !(wallCardItem.modelData && wallCardItem.modelData.thumbPath)
+                                asynchronous: true
                                 cache: true
                                 smooth: true
                                 mipmap: true
                                 sourceSize: Qt.size(392, 220)
-                                opacity: previewImg.status === Image.Ready ? 1 : 0
                                 layer.enabled: true
-
-                                Behavior on opacity {
-                                    NumberAnimation {
-                                        duration: 140
-                                        easing.type: Easing.OutCubic
-                                    }
-
-                                }
 
                                 layer.effect: MultiEffect {
                                     maskEnabled: true
