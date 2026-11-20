@@ -102,10 +102,28 @@ def read_history_unlocked():
     try:
         with open(HISTORY_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
+        raw_items = []
         if isinstance(data, dict) and isinstance(data.get("items"), list):
-            return data["items"]
-        if isinstance(data, list):
-            return data
+            raw_items = data["items"]
+        elif isinstance(data, list):
+            raw_items = data
+        valid_items = []
+        for it in raw_items:
+            if not isinstance(it, dict):
+                continue
+            itype = it.get("type")
+            if itype in ("image", "screenshot"):
+                p = it.get("path")
+                tp = it.get("thumbPath")
+                if (p and os.path.exists(p)) or (tp and os.path.exists(tp)):
+                    valid_items.append(it)
+            elif itype == "file":
+                p = it.get("path")
+                if p and os.path.exists(p):
+                    valid_items.append(it)
+            else:
+                valid_items.append(it)
+        return valid_items
     except Exception:
         pass
     return []

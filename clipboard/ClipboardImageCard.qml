@@ -144,6 +144,23 @@ Item {
 
         }
 
+        // Placeholder fallback if image is missing from filesystem
+        Rectangle {
+            anchors.fill: parent
+            visible: imgThumb.status === Image.Error || !imgCard.thumbUrl
+            color: Theme.withAlpha(Theme.foreground, 0.08)
+            radius: 12
+
+            Text {
+                anchors.centerIn: parent
+                text: Icons.photo
+                font.family: Icons.effectiveFont(text)
+                font.pixelSize: 24
+                color: Theme.muted
+            }
+
+        }
+
         // Subtle top glass rim sheen inside thumbnail
         Rectangle {
             anchors.top: parent.top
