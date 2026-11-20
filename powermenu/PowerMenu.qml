@@ -1577,9 +1577,9 @@ PanelWindow {
 
                                 anchors.fill: parent
                                 anchors.margins: 1
-                                source: wallCardItem.modelData.thumbPath ? ("file://" + wallCardItem.modelData.thumbPath) : (wallCardItem.modelData.path ? ("file://" + wallCardItem.modelData.path) : "")
+                                source: (wallCardItem.modelData && wallCardItem.modelData.thumbPath) ? ("file://" + wallCardItem.modelData.thumbPath) : ((wallCardItem.modelData && wallCardItem.modelData.path) ? ("file://" + wallCardItem.modelData.path) : "")
                                 fillMode: Image.PreserveAspectCrop
-                                asynchronous: !wallCardItem.modelData.thumbPath
+                                asynchronous: !(wallCardItem.modelData && wallCardItem.modelData.thumbPath)
                                 cache: true
                                 smooth: true
                                 mipmap: true
@@ -1619,7 +1619,7 @@ PanelWindow {
                                     width: parent.width - 16
                                     elide: Text.ElideRight
                                     horizontalAlignment: Text.AlignHCenter
-                                    text: wallCardItem.modelData.name || ""
+                                    text: (wallCardItem.modelData && wallCardItem.modelData.name) ? wallCardItem.modelData.name : ""
                                     font.family: Fonts.uiFont
                                     font.pixelSize: Fonts.scale(10.5)
                                     font.weight: Fonts.weightDemiBold
@@ -1657,7 +1657,7 @@ PanelWindow {
                             // Fallback icon if image loading error
                             Item {
                                 anchors.fill: parent
-                                visible: !wallCardItem.modelData.path || previewImg.status === Image.Error
+                                visible: !wallCardItem.modelData || !wallCardItem.modelData.path || previewImg.status === Image.Error
 
                                 Text {
                                     anchors.centerIn: parent
