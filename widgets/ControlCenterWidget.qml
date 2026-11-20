@@ -2,7 +2,7 @@ import "../components"
 import "../services"
 import "../theme"
 import QtQuick
-import QtQuick.Layouts
+import Quickshell
 
 Item {
     id: root
@@ -10,63 +10,36 @@ Item {
     required property HardwareService hardwareService
     required property PowerService powerService
     property int iconSize: Appearance.barIconSize
-    // ── btop / Arch Linux Color Tokens ─────────────────────────────────────────
-    readonly property color btopBg: "#1e2326"
-    readonly property color btopBoxBg: "#232a2e"
-    readonly property color btopBorder: "#3d484d"
-    readonly property color btopFg: "#d3c6aa"
-    readonly property color btopMuted: "#9da9a0"
-    readonly property color btopArchTeal: "#7fbbb3"
-    readonly property color btopSage: "#a7c080"
-    readonly property color btopAmber: "#dbbc7f"
-    readonly property color btopRed: "#f85552"
-    // Dynamic CPU palette (btop cpu meter)
-    readonly property color cpuStartColor: {
-        var c = root.hardwareService.cpuPercent;
-        if (c > 75)
-            return btopAmber;
+    readonly property string profile: root.hardwareService.powerProfile
+    readonly property bool isPerf: root.profile === "performance"
+    readonly property bool isSaver: root.profile === "power-saver"
+    readonly property bool isBalanced: root.profile === "balanced"
+    readonly property color profileColor: {
+        if (root.isPerf)
+            return Theme.red;
 
-        return btopSage;
+        if (root.isSaver)
+            return Theme.green;
+
+        return Theme.cyan;
     }
-    readonly property color cpuEndColor: {
-        var c = root.hardwareService.cpuPercent;
-        if (c > 75)
-            return btopRed;
+    readonly property string profileIcon: {
+        if (root.isPerf)
+            return Icons.useMaterialSymbols ? "bolt" : "󰓅";
 
-        if (c > 40)
-            return btopAmber;
+        if (root.isSaver)
+            return Icons.useMaterialSymbols ? "eco" : "󰌪";
 
-        return btopSage;
+        return Icons.useMaterialSymbols ? "speed" : "󰓅";
     }
-    // Dynamic RAM palette (btop memory meter)
-    readonly property color ramStartColor: btopArchTeal
-    readonly property color ramEndColor: {
-        var r = root.hardwareService.ramPercent;
-        if (r > 80)
-            return btopRed;
+    readonly property string profileLabelText: {
+        if (root.isPerf)
+            return "TURBO";
 
-        if (r > 60)
-            return btopAmber;
+        if (root.isSaver)
+            return "SAVER";
 
-        return "#83c092";
-    }
-    // Dynamic Temperature palette (btop temp graph)
-    readonly property color tempStartColor: {
-        var t = root.hardwareService.tempCelsius;
-        if (t > 72)
-            return btopAmber;
-
-        return btopSage;
-    }
-    readonly property color tempEndColor: {
-        var t = root.hardwareService.tempCelsius;
-        if (t > 72)
-            return btopRed;
-
-        if (t > 54)
-            return btopAmber;
-
-        return btopSage;
+        return "BALANCED";
     }
 
     function toggle() {
@@ -76,147 +49,321 @@ Item {
 
     }
 
+    function cycleProfile() {
+        root.hardwareService.cyclePowerProfile();
+        showProfileToast();
+    }
+
+    function toggleTurbo() {
+        if (root.isPerf)
+            root.hardwareService.setPowerProfile("balanced");
+        else
+            root.hardwareService.setPowerProfile("performance");
+        showProfileToast();
+    }
+
+    function showProfileToast() {
+        var icon = root.isPerf ? "⚡" : (root.isSaver ? "🌱" : "⚖️");
+        var name = root.isPerf ? "Turbo Performance" : (root.isSaver ? "Power Saver" : "Balanced Profile");
+        Quickshell.execDetached(["qs", "ipc", "call", "osd", "trigger", icon, name]);
+    }
+
     implicitWidth: usageButton.implicitWidth
     implicitHeight: usageButton.implicitHeight
     width: implicitWidth
     height: implicitHeight
 
+    // ── Bar Button with Quick Controls ─────────────────────────────────────────
     BarButton {
         id: usageButton
 
-        icon: Icons.useMaterialSymbols ? "speed" : "󰓅"
+        icon: root.profileIcon
         iconSize: root.iconSize
         active: usagePopup.open
-        accentActive: root.hardwareService.powerProfile === "performance"
+        accentActive: root.isPerf
         customColor: {
             if (usagePopup.open)
-                return root.btopArchTeal;
+                return Theme.accent;
 
-            if (root.hardwareService.powerProfile === "performance")
-                return root.btopRed;
+            if (root.isPerf)
+                return Theme.red;
 
-            if (root.hardwareService.powerProfile === "power-saver")
-                return root.btopSage;
+            if (root.isSaver)
+                return Theme.green;
 
-            return root.btopFg;
+            return Theme.bright_foreground;
         }
-        onClicked: {
-            root.toggle();
+        onClicked: root.toggle()
+
+        // Right click: instant Turbo toggle
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.RightButton
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.toggleTurbo()
         }
+
+        // Scroll wheel: instant cycle profile
+        WheelHandler {
+            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+            onWheel: function(event) {
+                if (event.angleDelta.y !== 0)
+                    root.cycleProfile();
+
+            }
+        }
+
     }
 
+    // ── Minimalist Mornye Liquid Glass Popup ──────────────────────────────────
     PopupCard {
         id: usagePopup
 
         anchorItem: usageButton
         showDefaultHeader: false
-        contentWidth: 350
-        contentHeight: mainCol.implicitHeight + 24
+        contentWidth: 260
+        contentHeight: root.hardwareService.topProcess !== "" ? 276 : 248
 
         Column {
             id: mainCol
 
             anchors.fill: parent
-            spacing: 12
+            spacing: 10
 
-            // ── 1. Terminal Header ────────────────────────────────────────────
+            // 1. Sleek Header
             Item {
                 width: parent.width
-                height: 34
+                height: 28
 
                 Row {
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 8
 
-                    // Terminal prompt icon
                     Rectangle {
-                        width: 28
-                        height: 28
+                        width: 22
+                        height: 22
                         radius: 6
-                        color: root.btopBoxBg
-                        border.color: root.btopBorder
+                        color: Theme.withAlpha(root.profileColor, 0.16)
                         border.width: 1
-                        anchors.verticalCenter: parent.verticalCenter
+                        border.color: Theme.withAlpha(root.profileColor, 0.35)
 
                         Text {
                             anchors.centerIn: parent
-                            text: Icons.useMaterialSymbols ? "terminal" : "󰆍"
+                            text: root.profileIcon
                             font.family: Icons.effectiveFont(text)
-                            font.pixelSize: Fonts.scale(14)
-                            color: root.btopArchTeal
+                            font.pixelSize: 12
+                            color: root.profileColor
                         }
 
                     }
 
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 1
+                        spacing: 0
 
                         Text {
-                            text: "SYS::TELEMETRY"
-                            font.family: Fonts.monoFont
-                            font.pixelSize: Fonts.scale(12)
-                            font.bold: true
-                            color: root.btopFg
+                            text: "PERFORMANCE"
+                            font.family: Fonts.uiFont
+                            font.pixelSize: 11
+                            font.weight: Font.DemiBold
+                            color: Theme.bright_foreground
                         }
 
                         Text {
-                            text: root.powerService.uptime ? ("uptime: " + root.powerService.uptime) : "btop core monitor"
-                            font.family: Fonts.monoFont
-                            font.pixelSize: Fonts.scale(9.5)
-                            color: root.btopMuted
+                            text: {
+                                if (!root.powerService.uptime)
+                                    return "System Profile";
+
+                                var u = root.powerService.uptime.replace(/^up\s*/i, "").replace(/,\s*/g, " ").replace(/hours?/i, "h").replace(/minutes?/i, "m").replace(/seconds?/i, "s").replace(/days?/i, "d");
+                                return "Up " + u.trim();
+                            }
+                            font.family: Fonts.uiFont
+                            font.pixelSize: 9
+                            color: Theme.muted
                         }
 
                     }
 
                 }
 
-                // Profile Indicator Capsule
+                // Profile Badge Pill
                 Rectangle {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    width: profileLabel.implicitWidth + 18
-                    height: 24
-                    radius: 4
-                    color: root.btopBoxBg
-                    border.color: {
-                        if (root.hardwareService.powerProfile === "performance")
-                            return root.btopRed;
-
-                        if (root.hardwareService.powerProfile === "power-saver")
-                            return root.btopSage;
-
-                        return root.btopArchTeal;
-                    }
+                    height: 18
+                    width: badgeText.implicitWidth + 12
+                    radius: 9
+                    color: Theme.withAlpha(root.profileColor, 0.15)
                     border.width: 1
+                    border.color: Theme.withAlpha(root.profileColor, 0.4)
 
-                    Row {
+                    Text {
+                        id: badgeText
+
                         anchors.centerIn: parent
-                        spacing: 5
+                        text: root.profileLabelText
+                        font.family: Fonts.uiFont
+                        font.pixelSize: 9
+                        font.weight: Font.Bold
+                        color: root.profileColor
+                    }
 
-                        Text {
-                            text: "●"
-                            font.pixelSize: Fonts.scale(8)
-                            color: {
-                                if (root.hardwareService.powerProfile === "performance")
-                                    return root.btopRed;
+                }
 
-                                if (root.hardwareService.powerProfile === "power-saver")
-                                    return root.btopSage;
+            }
 
-                                return root.btopArchTeal;
+            // 2. Segmented Governor Switcher Pill
+            Rectangle {
+                width: parent.width
+                height: 32
+                radius: 8
+                color: Qt.rgba(1, 1, 1, 0.05)
+                border.width: 1
+                border.color: Qt.rgba(1, 1, 1, 0.08)
+
+                Row {
+                    anchors.fill: parent
+                    anchors.margins: 2
+                    spacing: 2
+
+                    // Saver Pill
+                    Rectangle {
+                        width: (parent.width - 4) / 3
+                        height: parent.height
+                        radius: 6
+                        color: root.isSaver ? Theme.withAlpha(Theme.green, 0.22) : (saverHover.hovered ? Qt.rgba(1, 1, 1, 0.06) : "transparent")
+                        border.width: root.isSaver ? 1 : 0
+                        border.color: Theme.withAlpha(Theme.green, 0.45)
+
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: 4
+
+                            Text {
+                                text: Icons.useMaterialSymbols ? "eco" : "󰌪"
+                                font.family: Icons.effectiveFont(text)
+                                font.pixelSize: 11
+                                color: root.isSaver ? Theme.green : Theme.muted
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Text {
+                                text: "Saver"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: 10
+                                font.weight: root.isSaver ? Font.Bold : Font.Normal
+                                color: root.isSaver ? Theme.bright_foreground : Theme.muted
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                        }
+
+                        HoverHandler {
+                            id: saverHover
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.hardwareService.setPowerProfile("power-saver");
+                                root.showProfileToast();
                             }
                         }
 
-                        Text {
-                            id: profileLabel
+                    }
 
-                            text: root.hardwareService.powerProfile.toUpperCase()
-                            font.family: Fonts.monoFont
-                            font.pixelSize: Fonts.scale(9)
-                            font.bold: true
-                            color: root.btopFg
+                    // Balanced Pill
+                    Rectangle {
+                        width: (parent.width - 4) / 3
+                        height: parent.height
+                        radius: 6
+                        color: root.isBalanced ? Theme.withAlpha(Theme.cyan, 0.22) : (balHover.hovered ? Qt.rgba(1, 1, 1, 0.06) : "transparent")
+                        border.width: root.isBalanced ? 1 : 0
+                        border.color: Theme.withAlpha(Theme.cyan, 0.45)
+
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: 4
+
+                            Text {
+                                text: Icons.useMaterialSymbols ? "balance" : "󰈐"
+                                font.family: Icons.effectiveFont(text)
+                                font.pixelSize: 11
+                                color: root.isBalanced ? Theme.cyan : Theme.muted
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Text {
+                                text: "Bal"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: 10
+                                font.weight: root.isBalanced ? Font.Bold : Font.Normal
+                                color: root.isBalanced ? Theme.bright_foreground : Theme.muted
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                        }
+
+                        HoverHandler {
+                            id: balHover
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.hardwareService.setPowerProfile("balanced");
+                                root.showProfileToast();
+                            }
+                        }
+
+                    }
+
+                    // Turbo / Performance Pill
+                    Rectangle {
+                        width: (parent.width - 4) / 3
+                        height: parent.height
+                        radius: 6
+                        color: root.isPerf ? Theme.withAlpha(Theme.red, 0.26) : (perfHover.hovered ? Qt.rgba(1, 1, 1, 0.06) : "transparent")
+                        border.width: root.isPerf ? 1 : 0
+                        border.color: Theme.withAlpha(Theme.red, 0.5)
+
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: 4
+
+                            Text {
+                                text: Icons.useMaterialSymbols ? "bolt" : "󰓅"
+                                font.family: Icons.effectiveFont(text)
+                                font.pixelSize: 12
+                                color: root.isPerf ? Theme.red : Theme.muted
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Text {
+                                text: "Turbo"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: 10
+                                font.weight: root.isPerf ? Font.Bold : Font.Normal
+                                color: root.isPerf ? Theme.bright_foreground : Theme.muted
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                        }
+
+                        HoverHandler {
+                            id: perfHover
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.hardwareService.setPowerProfile("performance");
+                                root.showProfileToast();
+                            }
                         }
 
                     }
@@ -225,124 +372,253 @@ Item {
 
             }
 
-            // ── 2. Real-Time Resource Telemetry Box ───────────────────────────
+            // 3. Compact Resource Telemetry Rows
             Rectangle {
                 width: parent.width
-                height: 160
+                height: root.hardwareService.topProcess !== "" ? 138 : 112
                 radius: 8
-                antialiasing: true
-                color: root.btopBoxBg
-                border.color: root.btopBorder
+                color: Qt.rgba(1, 1, 1, 0.035)
                 border.width: 1
+                border.color: Qt.rgba(1, 1, 1, 0.07)
 
                 Column {
                     anchors.fill: parent
-                    anchors.margins: 10
-                    spacing: 10
+                    anchors.margins: 8
+                    spacing: 7
 
-                    // Box Section Title
+                    // CPU Meter Row
+                    Column {
+                        width: parent.width
+                        spacing: 2
+
+                        Item {
+                            width: parent.width
+                            height: 14
+
+                            Text {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "CPU Load"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: 10
+                                color: Theme.muted
+                            }
+
+                            Text {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: root.hardwareService.cpuPercent + "%"
+                                font.family: Fonts.monoFont
+                                font.pixelSize: 10
+                                font.weight: Font.DemiBold
+                                color: root.hardwareService.cpuPercent > 75 ? Theme.red : (root.hardwareService.cpuPercent > 40 ? Theme.yellow : Theme.bright_foreground)
+                            }
+
+                        }
+
+                        Rectangle {
+                            width: parent.width
+                            height: 4
+                            radius: 2
+                            color: Qt.rgba(1, 1, 1, 0.1)
+
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                width: Math.max(3, parent.width * (root.hardwareService.cpuPercent / 100))
+                                radius: 2
+                                color: root.hardwareService.cpuPercent > 75 ? Theme.red : (root.hardwareService.cpuPercent > 40 ? Theme.yellow : Theme.accent)
+                                antialiasing: true
+
+                                Behavior on width {
+                                    NumberAnimation {
+                                        duration: 250
+                                        easing.type: Easing.OutCubic
+                                    }
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                    // Memory Meter Row
+                    Column {
+                        width: parent.width
+                        spacing: 2
+
+                        Item {
+                            width: parent.width
+                            height: 14
+
+                            Text {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "Memory"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: 10
+                                color: Theme.muted
+                            }
+
+                            Text {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: root.hardwareService.ramUsedGb + " / " + root.hardwareService.ramTotalGb + " GB"
+                                font.family: Fonts.monoFont
+                                font.pixelSize: 10
+                                font.weight: Font.DemiBold
+                                color: root.hardwareService.ramPercent > 85 ? Theme.red : Theme.bright_foreground
+                            }
+
+                        }
+
+                        Rectangle {
+                            width: parent.width
+                            height: 4
+                            radius: 2
+                            color: Qt.rgba(1, 1, 1, 0.1)
+
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                width: Math.max(3, parent.width * (root.hardwareService.ramPercent / 100))
+                                radius: 2
+                                color: root.hardwareService.ramPercent > 85 ? Theme.red : Theme.cyan
+                                antialiasing: true
+
+                                Behavior on width {
+                                    NumberAnimation {
+                                        duration: 300
+                                        easing.type: Easing.OutCubic
+                                    }
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                    // Temperature Row
+                    Column {
+                        width: parent.width
+                        spacing: 2
+
+                        Item {
+                            width: parent.width
+                            height: 14
+
+                            Text {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "Core Temperature"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: 10
+                                color: Theme.muted
+                            }
+
+                            Text {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: root.hardwareService.tempCelsius + "°C"
+                                font.family: Fonts.monoFont
+                                font.pixelSize: 10
+                                font.weight: Font.DemiBold
+                                color: root.hardwareService.tempCelsius > 75 ? Theme.red : (root.hardwareService.tempCelsius > 55 ? Theme.yellow : Theme.green)
+                            }
+
+                        }
+
+                        Rectangle {
+                            width: parent.width
+                            height: 4
+                            radius: 2
+                            color: Qt.rgba(1, 1, 1, 0.1)
+
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.top: parent.top
+                                anchors.bottom: parent.bottom
+                                width: Math.max(3, Math.min(parent.width, parent.width * (root.hardwareService.tempCelsius / 100)))
+                                radius: 2
+                                color: root.hardwareService.tempCelsius > 75 ? Theme.red : (root.hardwareService.tempCelsius > 55 ? Theme.yellow : Theme.green)
+                                antialiasing: true
+
+                                Behavior on width {
+                                    NumberAnimation {
+                                        duration: 300
+                                        easing.type: Easing.OutCubic
+                                    }
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                    // Divider
+                    Rectangle {
+                        width: parent.width
+                        height: 1
+                        color: Qt.rgba(1, 1, 1, 0.06)
+                        visible: root.hardwareService.topProcess !== ""
+                    }
+
+                    // Top Consumer Task
                     Item {
                         width: parent.width
                         height: 14
+                        visible: root.hardwareService.topProcess !== ""
 
-                        Text {
+                        Row {
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "┌─ [ METRICS ]"
-                            font.family: Fonts.monoFont
-                            font.pixelSize: Fonts.scale(9.5)
-                            font.bold: true
-                            color: root.btopArchTeal
+                            spacing: 5
+
+                            Text {
+                                text: Icons.useMaterialSymbols ? "local_fire_department" : "󰈸"
+                                font.family: Icons.effectiveFont(text)
+                                font.pixelSize: 11
+                                color: Theme.yellow
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Text {
+                                text: "Top Task:"
+                                font.family: Fonts.uiFont
+                                font.pixelSize: 9
+                                color: Theme.muted
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Text {
+                                text: root.hardwareService.topProcess
+                                font.family: Fonts.monoFont
+                                font.pixelSize: 9
+                                font.weight: Font.Medium
+                                color: Theme.bright_foreground
+                                elide: Text.ElideRight
+                                width: Math.min(implicitWidth, 120)
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
                         }
 
                         Text {
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            text: root.hardwareService.ramUsedGb + " GiB / " + root.hardwareService.ramTotalGb + " GiB"
+                            text: root.hardwareService.topProcessCpu
                             font.family: Fonts.monoFont
-                            font.pixelSize: Fonts.scale(9)
-                            font.bold: true
-                            color: root.btopMuted
-                        }
-
-                    }
-
-                    // 3 Precision Telemetry Gauges
-                    Row {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        spacing: 18
-
-                        // CPU Gauge (Sage -> Amber -> Red)
-                        GlassCircularGauge {
-                            value: root.hardwareService.cpuPercent
-                            maxValue: 100
-                            label: "CPU"
-                            unit: "%"
-                            accentColor: root.cpuStartColor
-                            gradientEndColor: root.cpuEndColor
-                            gaugeSize: 86
-                            strokeWidth: 5
-                        }
-
-                        // RAM Gauge (Arch Teal -> Aqua)
-                        GlassCircularGauge {
-                            value: root.hardwareService.ramPercent
-                            maxValue: 100
-                            label: "MEM"
-                            unit: "%"
-                            accentColor: root.ramStartColor
-                            gradientEndColor: root.ramEndColor
-                            gaugeSize: 86
-                            strokeWidth: 5
-                        }
-
-                        // Temperature Gauge (btop thermal progression)
-                        GlassCircularGauge {
-                            value: root.hardwareService.tempCelsius
-                            maxValue: 100
-                            label: "TEMP"
-                            unit: "°"
-                            accentColor: root.tempStartColor
-                            gradientEndColor: root.tempEndColor
-                            gaugeSize: 86
-                            strokeWidth: 5
-                        }
-
-                    }
-
-                    // Precision Memory Bar
-                    Item {
-                        width: parent.width
-                        height: 6
-
-                        // Recessed Track
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: 2
-                            color: "#1e2326"
-                            border.color: root.btopBorder
-                            border.width: 1
-                        }
-
-                        // Memory Fill (Arch Teal)
-                        Rectangle {
-                            anchors.left: parent.left
-                            anchors.top: parent.top
-                            anchors.bottom: parent.bottom
-                            anchors.margins: 1
-                            width: Math.max(0, Math.min(parent.width - 2, (parent.width - 2) * (root.hardwareService.ramPercent / 100)))
-                            radius: 1
-                            color: root.btopArchTeal
-                            antialiasing: true
-
-                            Behavior on width {
-                                NumberAnimation {
-                                    duration: 350
-                                    easing.type: Easing.OutCubic
-                                }
-
-                            }
-
+                            font.pixelSize: 9
+                            font.weight: Font.DemiBold
+                            color: Theme.muted
                         }
 
                     }
@@ -351,230 +627,49 @@ Item {
 
             }
 
-            // ── 3. Energy & Power Governor Box ────────────────────────────────
+            // 4. Quick Action Button (Open Activity Monitor)
             Rectangle {
                 width: parent.width
-                height: 76
-                radius: 8
-                antialiasing: true
-                color: root.btopBoxBg
-                border.color: root.btopBorder
+                height: 28
+                radius: 7
+                color: btopHover.hovered ? Theme.withAlpha(Theme.accent, 0.2) : Qt.rgba(1, 1, 1, 0.05)
                 border.width: 1
+                border.color: btopHover.hovered ? Theme.withAlpha(Theme.accent, 0.45) : Qt.rgba(1, 1, 1, 0.1)
 
-                Column {
-                    anchors.fill: parent
-                    anchors.margins: 10
-                    spacing: 8
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 6
 
                     Text {
-                        text: "┌─ [ POWER GOVERNOR ]"
-                        font.family: Fonts.monoFont
-                        font.pixelSize: Fonts.scale(9.5)
-                        font.bold: true
-                        color: root.btopSage
+                        text: Icons.useMaterialSymbols ? "terminal" : "󰆍"
+                        font.family: Icons.effectiveFont(text)
+                        font.pixelSize: 12
+                        color: btopHover.hovered ? Theme.bright_foreground : Theme.muted
+                        anchors.verticalCenter: parent.verticalCenter
                     }
 
-                    Row {
-                        width: parent.width
-                        spacing: 8
-
-                        // ── Power Saver Button ──
-                        Rectangle {
-                            width: (parent.width - 16) / 3
-                            height: 32
-                            radius: 4
-                            color: root.hardwareService.powerProfile === "power-saver" ? "#2d353b" : "#1e2326"
-                            border.color: root.hardwareService.powerProfile === "power-saver" ? root.btopSage : root.btopBorder
-                            border.width: 1
-                            scale: psMouse.pressed ? 0.97 : (psMouse.containsMouse ? 1.02 : 1)
-
-                            Row {
-                                anchors.centerIn: parent
-                                spacing: 5
-
-                                Text {
-                                    text: Icons.useMaterialSymbols ? "eco" : "󰌪"
-                                    font.family: Icons.effectiveFont(text)
-                                    font.pixelSize: Fonts.scale(12)
-                                    color: root.hardwareService.powerProfile === "power-saver" ? root.btopSage : root.btopMuted
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                Text {
-                                    text: "saver"
-                                    font.family: Fonts.monoFont
-                                    font.pixelSize: Fonts.scale(10)
-                                    font.bold: root.hardwareService.powerProfile === "power-saver"
-                                    color: root.hardwareService.powerProfile === "power-saver" ? root.btopFg : root.btopMuted
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                            }
-
-                            MouseArea {
-                                id: psMouse
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.hardwareService.setPowerProfile("power-saver")
-                            }
-
-                            Behavior on scale {
-                                NumberAnimation {
-                                    duration: 120
-                                }
-
-                            }
-
-                            Behavior on color {
-                                ColorAnimation {
-                                    duration: 140
-                                }
-
-                            }
-
-                            Behavior on border.color {
-                                ColorAnimation {
-                                    duration: 140
-                                }
-
-                            }
-
-                        }
-
-                        // ── Balanced Button ──
-                        Rectangle {
-                            width: (parent.width - 16) / 3
-                            height: 32
-                            radius: 4
-                            color: root.hardwareService.powerProfile === "balanced" ? "#2d353b" : "#1e2326"
-                            border.color: root.hardwareService.powerProfile === "balanced" ? root.btopArchTeal : root.btopBorder
-                            border.width: 1
-                            scale: balMouse.pressed ? 0.97 : (balMouse.containsMouse ? 1.02 : 1)
-
-                            Row {
-                                anchors.centerIn: parent
-                                spacing: 5
-
-                                Text {
-                                    text: Icons.useMaterialSymbols ? "balance" : "󰈐"
-                                    font.family: Icons.effectiveFont(text)
-                                    font.pixelSize: Fonts.scale(12)
-                                    color: root.hardwareService.powerProfile === "balanced" ? root.btopArchTeal : root.btopMuted
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                Text {
-                                    text: "balanced"
-                                    font.family: Fonts.monoFont
-                                    font.pixelSize: Fonts.scale(10)
-                                    font.bold: root.hardwareService.powerProfile === "balanced"
-                                    color: root.hardwareService.powerProfile === "balanced" ? root.btopFg : root.btopMuted
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                            }
-
-                            MouseArea {
-                                id: balMouse
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.hardwareService.setPowerProfile("balanced")
-                            }
-
-                            Behavior on scale {
-                                NumberAnimation {
-                                    duration: 120
-                                }
-
-                            }
-
-                            Behavior on color {
-                                ColorAnimation {
-                                    duration: 140
-                                }
-
-                            }
-
-                            Behavior on border.color {
-                                ColorAnimation {
-                                    duration: 140
-                                }
-
-                            }
-
-                        }
-
-                        // ── Performance Button ──
-                        Rectangle {
-                            width: (parent.width - 16) / 3
-                            height: 32
-                            radius: 4
-                            color: root.hardwareService.powerProfile === "performance" ? "#2d353b" : "#1e2326"
-                            border.color: root.hardwareService.powerProfile === "performance" ? root.btopRed : root.btopBorder
-                            border.width: 1
-                            scale: perfMouse.pressed ? 0.97 : (perfMouse.containsMouse ? 1.02 : 1)
-
-                            Row {
-                                anchors.centerIn: parent
-                                spacing: 5
-
-                                Text {
-                                    text: Icons.useMaterialSymbols ? "bolt" : "󰓅"
-                                    font.family: Icons.effectiveFont(text)
-                                    font.pixelSize: Fonts.scale(12)
-                                    color: root.hardwareService.powerProfile === "performance" ? root.btopRed : root.btopMuted
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                Text {
-                                    text: "perf"
-                                    font.family: Fonts.monoFont
-                                    font.pixelSize: Fonts.scale(10)
-                                    font.bold: root.hardwareService.powerProfile === "performance"
-                                    color: root.hardwareService.powerProfile === "performance" ? root.btopFg : root.btopMuted
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                            }
-
-                            MouseArea {
-                                id: perfMouse
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.hardwareService.setPowerProfile("performance")
-                            }
-
-                            Behavior on scale {
-                                NumberAnimation {
-                                    duration: 120
-                                }
-
-                            }
-
-                            Behavior on color {
-                                ColorAnimation {
-                                    duration: 140
-                                }
-
-                            }
-
-                            Behavior on border.color {
-                                ColorAnimation {
-                                    duration: 140
-                                }
-
-                            }
-
-                        }
-
+                    Text {
+                        text: "System Monitor (btop)"
+                        font.family: Fonts.uiFont
+                        font.pixelSize: 10
+                        font.weight: Font.DemiBold
+                        color: btopHover.hovered ? Theme.bright_foreground : Theme.muted
+                        anchors.verticalCenter: parent.verticalCenter
                     }
 
+                }
+
+                HoverHandler {
+                    id: btopHover
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        Quickshell.execDetached(["qdeck", "terminal", "btop"]);
+                        root.toggle();
+                    }
                 }
 
             }

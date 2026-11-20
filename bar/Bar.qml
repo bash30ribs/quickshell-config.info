@@ -621,6 +621,8 @@ PanelWindow {
                 monitorWidget.toggle();
             else if (name === "battery")
                 batteryWidget.toggle();
+            else if (name === "hardware" || name === "controlcenter" || name === "perf" || name === "performance")
+                controlCenterWidget.toggle();
             else if (name === "network")
                 networkWidget.toggle();
             else if (name === "audio")

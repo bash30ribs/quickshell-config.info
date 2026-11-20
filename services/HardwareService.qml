@@ -13,16 +13,46 @@ QtObject {
     property int tempCelsius: 40
     // System Optimization Profile (powerprofilesctl)
     property string powerProfile: "balanced"
+    // Top CPU consumer telemetry
+    property string topProcess: ""
+    property string topProcessCpu: ""
     // Internal delta tracking for CPU calculation
     property real _lastIdle: 0
     property real _lastTotal: 0
     property bool _hasFirstCpuSample: false
     property Process telemetryProc
+    property Timer refreshTimer
+    property Timer pollTimer
+
+    function refresh() {
+        if (!telemetryProc.running)
+            telemetryProc.running = true;
+
+    }
+
+    function setPowerProfile(profile) {
+        root.powerProfile = profile;
+        Quickshell.execDetached(["powerprofilesctl", "set", profile]);
+        refreshTimer.restart();
+    }
+
+    function cyclePowerProfile() {
+        var next = "balanced";
+        if (root.powerProfile === "balanced")
+            next = "performance";
+        else if (root.powerProfile === "performance")
+            next = "power-saver";
+        else
+            next = "balanced";
+        root.setPowerProfile(next);
+    }
+
+    Component.onCompleted: root.refresh()
 
     telemetryProc: Process {
         id: telemetryProc
 
-        command: ["sh", "-c", "head -n 1 /proc/stat; " + "grep -E 'MemTotal|MemAvailable' /proc/meminfo; " + "cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 0; " + "powerprofilesctl get 2>/dev/null || echo 'balanced'"]
+        command: ["sh", "-c", "head -n 1 /proc/stat; " + "grep -E 'MemTotal|MemAvailable' /proc/meminfo; " + "cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null || echo 0; " + "powerprofilesctl get 2>/dev/null || echo 'balanced'; " + "ps -eo comm,%cpu --sort=-%cpu --no-headers 2>/dev/null | head -n 1 || echo ''"]
 
         stdout: StdioCollector {
             waitForEnd: true
@@ -87,13 +117,20 @@ QtObject {
                     if (prof)
                         root.powerProfile = prof;
 
+                    nextIdx++;
+                }
+                // 5. Top CPU consumer line
+                if (nextIdx < lines.length) {
+                    var topParts = lines[nextIdx].trim().split(/\s+/);
+                    if (topParts.length >= 2) {
+                        root.topProcess = topParts[0];
+                        root.topProcessCpu = topParts[1] + "%";
+                    }
                 }
             }
         }
 
     }
-
-    property Timer refreshTimer
 
     refreshTimer: Timer {
         id: refreshTimer
@@ -103,8 +140,6 @@ QtObject {
         onTriggered: root.refresh()
     }
 
-    property Timer pollTimer
-
     pollTimer: Timer {
         interval: 2000
         repeat: true
@@ -112,28 +147,4 @@ QtObject {
         onTriggered: root.refresh()
     }
 
-    function refresh() {
-        if (!telemetryProc.running)
-            telemetryProc.running = true;
-
-    }
-
-    function setPowerProfile(profile) {
-        root.powerProfile = profile;
-        Quickshell.execDetached(["powerprofilesctl", "set", profile]);
-        refreshTimer.restart();
-    }
-
-    function cyclePowerProfile() {
-        var next = "balanced";
-        if (root.powerProfile === "balanced")
-            next = "performance";
-        else if (root.powerProfile === "performance")
-            next = "power-saver";
-        else
-            next = "balanced";
-        root.setPowerProfile(next);
-    }
-
-    Component.onCompleted: root.refresh()
 }
