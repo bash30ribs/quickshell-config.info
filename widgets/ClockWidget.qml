@@ -61,8 +61,8 @@ Item {
         return h + "\n" + m;
     }
 
-    implicitWidth: Appearance.barIsVertical ? Math.max(36, Appearance.barThickness - 10) : clockButton.implicitWidth
-    implicitHeight: Appearance.barIsVertical ? Math.max(38, vertClockCol.implicitHeight + 12) : clockButton.implicitHeight
+    implicitWidth: Appearance.barIsVertical ? Math.max(28, Appearance.barThickness - 10) : clockButton.implicitWidth
+    implicitHeight: Appearance.barIsVertical ? Math.max(34, vertClockCol.implicitHeight + 8) : clockButton.implicitHeight
     width: implicitWidth
     height: implicitHeight
 
@@ -128,30 +128,27 @@ Item {
             id: vertClockCol
 
             anchors.centerIn: parent
-            spacing: 2
-            width: parent.width - 4
+            spacing: 1
 
-            // Top row: Day of week + Date (e.g. "FRI 13")
+            // Hour
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: Qt.formatDate(root.now, "ddd d").toUpperCase()
-                color: (clockPopup.open || vertClockMouse.containsMouse) ? Theme.accent : Theme.glassLabel
+                text: String(root.now.getHours()).padStart(2, "0")
+                color: Theme.bright_foreground
                 font.family: Fonts.uiFont
-                font.pixelSize: Math.max(9, Fonts.scale(9))
-                font.weight: Font.DemiBold
-                font.letterSpacing: 0.5
+                font.pixelSize: 12
+                font.weight: Font.Bold
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            // Bottom row: Digital Time (e.g. "13:30")
+            // Minute
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: root.formatTime(root.now)
-                color: Theme.bright_foreground
+                text: String(root.now.getMinutes()).padStart(2, "0")
+                color: (clockPopup.open || vertClockMouse.containsMouse) ? Theme.accent : Theme.withAlpha(Theme.bright_foreground, 0.72)
                 font.family: Fonts.uiFont
-                font.pixelSize: Math.max(11, Fonts.scale(11))
+                font.pixelSize: 12
                 font.weight: Font.Bold
-                font.letterSpacing: 0.5
                 horizontalAlignment: Text.AlignHCenter
             }
 

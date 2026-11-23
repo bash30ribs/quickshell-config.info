@@ -32,8 +32,8 @@ Item {
     Rectangle {
         id: batButton
 
-        implicitHeight: Appearance.barButtonHeight
-        implicitWidth: root.isVertical ? Appearance.barButtonHeight : Math.max(Appearance.barButtonHeight, contentContainer.implicitWidth + (Appearance.buttonPadding * 2))
+        implicitHeight: root.isVertical ? Math.max(28, Appearance.barThickness - 10) : Appearance.barButtonHeight
+        implicitWidth: root.isVertical ? Math.max(28, Appearance.barThickness - 10) : Math.max(Appearance.barButtonHeight, contentContainer.implicitWidth + (Appearance.buttonPadding * 2))
         width: implicitWidth
         height: implicitHeight
         radius: Appearance.buttonRadius > 0 ? (root.isVertical ? Appearance.radiusMedium : Appearance.buttonRadius) : 8
@@ -107,46 +107,31 @@ Item {
         }
 
         // ── Vertical Bar Layout ──
-        Column {
+        Item {
             id: contentContainerVertical
 
             anchors.centerIn: parent
             visible: root.isVertical
-            spacing: 0
+            width: 18
+            height: 18
 
             Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: (root.batteryService ? root.batteryService.capacity : 0)
-                font.family: Fonts.uiFont
-                font.pixelSize: (text.length > 2) ? Fonts.scale(9.5) : Fonts.sizeRegular
-                font.weight: Fonts.weightDemiBold
-                color: capText.color
-            }
+                anchors.centerIn: parent
+                text: root.isCharging ? Icons.electricBolt : (root.batteryService ? root.batteryService.icon : Icons.batteryFull)
+                font.family: Icons.effectiveFont(text)
+                font.pixelSize: 15
+                color: {
+                    if (root.isCharging)
+                        return Theme.accent;
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: !root.isCharging
-                text: "%"
-                font.family: Fonts.uiFont
-                font.pixelSize: Fonts.scale(9)
-                font.weight: Fonts.weightDemiBold
-                color: capText.color
-            }
+                    if (root.batteryService && root.batteryService.capacity <= 20)
+                        return Theme.red;
 
-            Item {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: 14
-                height: 14
-                visible: root.isCharging
+                    if (root.batteryService && root.batteryService.capacity <= 40)
+                        return Theme.yellow;
 
-                Text {
-                    anchors.centerIn: parent
-                    text: Icons.electricBolt
-                    font.family: Icons.effectiveFont(text)
-                    font.pixelSize: 13
-                    color: Theme.accent
+                    return Theme.bright_foreground;
                 }
-
             }
 
         }

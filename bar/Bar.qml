@@ -171,28 +171,28 @@ PanelWindow {
     }
 
     visible: root.isVisibleSurface
-    implicitHeight: root.isHorizontal ? Appearance.barHeight : (root.isCompact ? Math.round(root.totalContentWidth + (Appearance.barMarginHorizontal * 4) + 24) : (root.isWide ? Math.round(root.screenHeight * 0.72) : Math.round(root.screenHeight - (Appearance.barMarginHorizontal * 2))))
+    implicitHeight: root.isHorizontal ? Appearance.barHeight : root.screenHeight
     implicitWidth: root.isVertical ? Appearance.barThickness : (root.isCompact ? Math.round(root.totalContentWidth + (Appearance.barMarginHorizontal * 2)) : (root.isWide ? Math.round(root.screenWidth * 0.72) : Math.round(root.screenWidth - (Appearance.barMarginHorizontal * 2))))
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "quickshell-bar"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-    exclusionMode: root.isCompact ? ExclusionMode.Ignore : ExclusionMode.Auto
+    exclusionMode: ExclusionMode.Auto
 
     // Panel anchors adapt cleanly across top, bottom, left, and right screen edges
     anchors {
-        top: root.isHorizontal ? Appearance.barIsTop : root.hasSideAnchors
-        bottom: root.isHorizontal ? Appearance.barIsBottom : root.hasSideAnchors
-        left: root.isVertical ? Appearance.barIsLeft : root.hasSideAnchors
-        right: root.isVertical ? Appearance.barIsRight : root.hasSideAnchors
+        top: root.isHorizontal ? Appearance.barIsTop : true
+        bottom: root.isHorizontal ? Appearance.barIsBottom : true
+        left: root.isVertical ? Appearance.barIsLeft : (root.isCompact ? false : root.hasSideAnchors)
+        right: root.isVertical ? Appearance.barIsRight : (root.isCompact ? false : root.hasSideAnchors)
     }
 
     // Outer screen margins for floating appearance (docked and inward edges sit flush at 0)
     margins {
-        left: root.isVertical ? 0 : (root.hasSideAnchors ? Appearance.barMarginHorizontal : 0)
-        right: root.isVertical ? 0 : (root.hasSideAnchors ? Appearance.barMarginHorizontal : 0)
-        top: root.isHorizontal ? 0 : (root.hasSideAnchors ? Appearance.barMarginHorizontal : 0)
-        bottom: root.isHorizontal ? 0 : (root.hasSideAnchors ? Appearance.barMarginHorizontal : 0)
+        left: 0
+        right: 0
+        top: 0
+        bottom: 0
     }
 
     Connections {
@@ -312,8 +312,15 @@ PanelWindow {
         id: edgeSurface
 
         readonly property real reveal: root.edgeProgress * root.showProgress
+        readonly property bool isVertCompact: root.isVertical && root.isCompact
+        readonly property bool isVertFloating: root.isVertical && !root.isCompact
 
-        anchors.fill: parent
+        anchors.fill: isVertCompact ? undefined : (isVertFloating ? undefined : parent)
+        anchors.horizontalCenter: (isVertCompact || isVertFloating) ? parent.horizontalCenter : undefined
+        x: 0
+        y: isVertCompact ? Math.round((parent.height - height) / 2) : (isVertFloating ? Appearance.barMarginHorizontal : 0)
+        width: (isVertCompact || isVertFloating) ? Appearance.barThickness : parent.width
+        height: isVertCompact ? Math.min(parent.height - 32, Math.round(root.totalContentWidth + 24)) : (isVertFloating ? Math.round(parent.height - (Appearance.barMarginHorizontal * 2)) : parent.height)
         opacity: Math.max(0, Math.min(1, reveal))
         scale: 0.96 + (0.04 * reveal)
         transformOrigin: Appearance.barIsBottom ? Item.Bottom : (Appearance.barIsLeft ? Item.Left : (Appearance.barIsRight ? Item.Right : Item.Top))
@@ -323,13 +330,15 @@ PanelWindow {
             id: barBackground
 
             readonly property int cornerRadius: Appearance.barRadius > 0 ? Appearance.barRadius : 16
+            readonly property bool allCornersRounded: root.isCompact || root.isIslands
 
             visible: !root.isIslands
             anchors.fill: parent
-            topLeftRadius: (Appearance.barIsTop || Appearance.barIsLeft) ? 0 : cornerRadius
-            topRightRadius: (Appearance.barIsTop || Appearance.barIsRight) ? 0 : cornerRadius
-            bottomLeftRadius: (Appearance.barIsBottom || Appearance.barIsLeft) ? 0 : cornerRadius
-            bottomRightRadius: (Appearance.barIsBottom || Appearance.barIsRight) ? 0 : cornerRadius
+            radius: allCornersRounded ? cornerRadius : 0
+            topLeftRadius: allCornersRounded ? cornerRadius : ((Appearance.barIsTop || Appearance.barIsLeft) ? 0 : cornerRadius)
+            topRightRadius: allCornersRounded ? cornerRadius : ((Appearance.barIsTop || Appearance.barIsRight) ? 0 : cornerRadius)
+            bottomLeftRadius: allCornersRounded ? cornerRadius : ((Appearance.barIsBottom || Appearance.barIsLeft) ? 0 : cornerRadius)
+            bottomRightRadius: allCornersRounded ? cornerRadius : ((Appearance.barIsBottom || Appearance.barIsRight) ? 0 : cornerRadius)
             lightEdge: root.barLightEdge
             baseColor: Theme.barBackground
             accentTint: Theme.accent

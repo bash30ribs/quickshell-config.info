@@ -25,8 +25,8 @@ Item {
     }
     readonly property bool isVertical: Appearance.barIsVertical
 
-    implicitHeight: root.isVertical ? (hasMedia ? 54 : 0) : Appearance.mediaPillHeight
-    implicitWidth: root.isVertical ? (hasMedia ? Math.max(Appearance.mediaPillHeight, Appearance.barThickness - 10) : 0) : (hasMedia ? Math.min(195, Math.max(110, titleMeasure.implicitWidth + 56)) : 0)
+    implicitHeight: root.isVertical ? (hasMedia ? Math.max(28, Appearance.barThickness - 10) : 0) : Appearance.mediaPillHeight
+    implicitWidth: root.isVertical ? (hasMedia ? Math.max(28, Appearance.barThickness - 10) : 0) : (hasMedia ? Math.min(195, Math.max(110, titleMeasure.implicitWidth + 56)) : 0)
     height: implicitHeight
     width: implicitWidth
     visible: (width > 0 && height > 0) || opacity > 0
@@ -70,7 +70,7 @@ Item {
                 width: 20
                 height: 20
                 x: root.isVertical ? Math.round((parent.width - width) / 2) : 5
-                y: root.isVertical ? 5 : Math.round((parent.height - height) / 2)
+                y: Math.round((parent.height - height) / 2)
 
                 Rectangle {
                     id: miniArtBg
@@ -145,8 +145,9 @@ Item {
             Row {
                 id: visualizerRow
 
-                x: root.isVertical ? Math.round((parent.width - width) / 2) : Math.round(parent.width - width - 8)
-                y: root.isVertical ? Math.round(parent.height - height - 6) : Math.round((parent.height - height) / 2)
+                visible: !root.isVertical
+                x: Math.round(parent.width - width - 8)
+                y: Math.round((parent.height - height) / 2)
                 spacing: 2
                 height: 14
 
