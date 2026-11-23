@@ -77,8 +77,6 @@ Item {
 
                     return Theme.bright_foreground;
                 }
-                style: Text.Raised
-                styleColor: Qt.rgba(0, 0, 0, 0.65)
             }
 
             // State 1: When NOT charging -> show "%" symbol next to battery number
@@ -92,8 +90,6 @@ Item {
                 font.pixelSize: Fonts.sizeRegular
                 font.weight: Fonts.weightDemiBold
                 color: capText.color
-                style: Text.Raised
-                styleColor: Qt.rgba(0, 0, 0, 0.65)
             }
 
             // State 2: When CHARGING -> percentage "%" won't be shown, instead show static electric_bolt
@@ -106,8 +102,6 @@ Item {
                 font.family: Icons.effectiveFont(text)
                 font.pixelSize: Fonts.sizeRegular + 1
                 color: Theme.accent
-                style: Text.Raised
-                styleColor: Qt.rgba(0, 0, 0, 0.5)
             }
 
         }
@@ -127,8 +121,6 @@ Item {
                 font.pixelSize: (text.length > 2) ? Fonts.scale(9.5) : Fonts.sizeRegular
                 font.weight: Fonts.weightDemiBold
                 color: capText.color
-                style: Text.Raised
-                styleColor: Qt.rgba(0, 0, 0, 0.65)
             }
 
             Text {
@@ -139,8 +131,6 @@ Item {
                 font.pixelSize: Fonts.scale(9)
                 font.weight: Fonts.weightDemiBold
                 color: capText.color
-                style: Text.Raised
-                styleColor: Qt.rgba(0, 0, 0, 0.65)
             }
 
             Item {
@@ -267,9 +257,9 @@ Item {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.batteryService.capacity + "%"
-                    font.family: Fonts.monoFont
+                    font.family: Fonts.uiFont
                     font.pixelSize: 28
-                    font.bold: true
+                    font.weight: Font.Bold
                     color: Theme.bright_foreground
                 }
 
@@ -281,7 +271,7 @@ Item {
                 height: 8
                 radius: Appearance.radiusSmall
                 color: Qt.rgba(0, 0, 0, 0.35)
-                border.color: Qt.rgba(255, 255, 255, 0.1)
+                border.color: Qt.rgba(1, 1, 1, 0.1)
                 border.width: 1
 
                 Rectangle {
@@ -348,9 +338,9 @@ Item {
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: root.batteryService.batterySize
-                                font.family: Fonts.monoFont
+                                font.family: Fonts.uiFont
                                 font.pixelSize: Fonts.sizeSmall
-                                font.bold: true
+                                font.weight: Font.DemiBold
                                 color: Theme.bright_foreground
                             }
 
@@ -375,9 +365,9 @@ Item {
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: root.batteryService.batteryHealth
-                                font.family: Fonts.monoFont
+                                font.family: Fonts.uiFont
                                 font.pixelSize: Fonts.sizeSmall
-                                font.bold: true
+                                font.weight: Font.DemiBold
                                 color: Theme.bright_foreground
                             }
 
@@ -402,9 +392,9 @@ Item {
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: (root.cycleOverride > 0) ? String(root.cycleOverride) : root.batteryService.cycleCount
-                                font.family: Fonts.monoFont
+                                font.family: Fonts.uiFont
                                 font.pixelSize: Fonts.sizeSmall
-                                font.bold: true
+                                font.weight: Font.DemiBold
                                 color: Theme.bright_foreground
                             }
 
@@ -435,9 +425,9 @@ Item {
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: (root.batteryService.timeToFull === "-" || !root.batteryService.timeToFull) ? "Idle" : root.batteryService.timeToFull
-                                font.family: Fonts.monoFont
+                                font.family: Fonts.uiFont
                                 font.pixelSize: Fonts.sizeSmall
-                                font.bold: true
+                                font.weight: Font.DemiBold
                                 color: Theme.bright_foreground
                             }
 
@@ -462,9 +452,9 @@ Item {
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: root.batteryService.powerSource
-                                font.family: Fonts.monoFont
+                                font.family: Fonts.uiFont
                                 font.pixelSize: Fonts.sizeSmall
-                                font.bold: true
+                                font.weight: Font.DemiBold
                                 color: Theme.bright_foreground
                             }
 
@@ -488,9 +478,9 @@ Item {
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: (root.batteryService.chargingRate === "-" || !root.batteryService.chargingRate) ? "Idle" : root.batteryService.chargingRate
-                                font.family: Fonts.monoFont
+                                font.family: Fonts.uiFont
                                 font.pixelSize: Fonts.sizeSmall
-                                font.bold: true
+                                font.weight: Font.DemiBold
                                 color: Theme.bright_foreground
                             }
 

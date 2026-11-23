@@ -227,8 +227,6 @@ Item {
                     text: root.icon
                     font.family: Icons.effectiveFont(root.icon)
                     font.pixelSize: Fonts.sizeTitle
-                    style: Text.Raised
-                    styleColor: Qt.rgba(0, 0, 0, 0.7)
                     color: {
                         if (root.isMuted)
                             return Theme.red;
@@ -285,8 +283,6 @@ Item {
                     font.family: Fonts.uiFont
                     font.pixelSize: Fonts.sizeRegular
                     font.weight: Fonts.weightDemiBold
-                    style: Text.Raised
-                    styleColor: Qt.rgba(0, 0, 0, 0.7)
                     color: {
                         if (root.isMuted)
                             return Theme.red;

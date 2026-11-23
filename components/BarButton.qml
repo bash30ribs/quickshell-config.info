@@ -64,8 +64,6 @@ Rectangle {
 
                 return Theme.bright_foreground;
             }
-            style: Text.Raised
-            styleColor: Qt.rgba(0, 0, 0, 0.65)
 
             Behavior on color {
                 ColorAnimation {
@@ -82,12 +80,11 @@ Rectangle {
             font.family: Fonts.uiFont
             font.pixelSize: (root.vertical && root.icon.length > 0) ? Math.max(9, Fonts.scale(9)) : root.textSize
             font.bold: root.active
-            font.weight: (root.vertical && !root.active) ? Font.DemiBold : (root.active ? Font.Bold : Font.Normal)
+            font.weight: (root.vertical && !root.active) ? Font.DemiBold : (root.active ? Font.Bold : Font.Medium)
+            font.letterSpacing: 0.15
             lineHeight: (root.vertical && root.text.indexOf("\n") >= 0) ? 0.9 : 1
             horizontalAlignment: Text.AlignHCenter
             color: root.active ? Theme.accent : Theme.bright_foreground
-            style: Text.Raised
-            styleColor: Qt.rgba(0, 0, 0, 0.65)
 
             Behavior on color {
                 ColorAnimation {

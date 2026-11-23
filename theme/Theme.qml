@@ -46,8 +46,8 @@ QtObject {
     readonly property color bright_magenta: _c.bright_magenta || _c.color13 || root.magenta
     // High-Contrast Glass Typography Tokens
     readonly property color glassText: root.bright_foreground
-    readonly property color glassLabel: root.withAlpha(root.foreground, 0.72)
-    readonly property color glassSubtext: root.withAlpha(root.foreground, 0.58)
+    readonly property color glassLabel: Qt.rgba(1, 1, 1, 0.82)
+    readonly property color glassSubtext: Qt.rgba(1, 1, 1, 0.58)
     // ─────────────────────────────────────────────────────────────────────────
     // Dynamic Wallpaper & Harmony Palette
     // Harmonizes wallpaper tones with theme colors for the bar & widgets
@@ -75,20 +75,20 @@ QtObject {
     // ─────────────────────────────────────────────────────────────────────────
     // Glassmorphism & Frosted Glass Tokens (Apple-grade Smoked Liquid Glass)
     // ─────────────────────────────────────────────────────────────────────────
-    readonly property real glassOpacity: 0.42
-    readonly property real glassPillOpacity: 0.16
-    readonly property color glassBorder: root.hasWallpaperColors ? Qt.tint(Qt.rgba(255, 255, 255, 0.2), root.withAlpha(root.glassBorderColor, 0.28)) : Qt.rgba(255, 255, 255, 0.2)
-    readonly property color glassBorderLight: Qt.rgba(255, 255, 255, 0.26)
-    readonly property color glassSpecular: Qt.rgba(255, 255, 255, 0.28)
-    readonly property color glassInnerSheen: Qt.rgba(255, 255, 255, 0.08)
-    readonly property color glassBounce: Qt.rgba(255, 255, 255, 0.04)
-    readonly property color glassWidgetBg: Qt.rgba(0, 0, 0, 0.25)
-    readonly property color glassWidgetBorder: Qt.rgba(255, 255, 255, 0.08)
-    readonly property color glassHover: root.withAlpha(root.accent, 0.12)
-    readonly property color glassHoverBorder: root.withAlpha(root.accent, 0.35)
-    readonly property color glassActive: root.withAlpha(root.accent, 0.25)
+    readonly property real glassOpacity: 0.45
+    readonly property real glassPillOpacity: 0.18
+    readonly property color glassBorder: Qt.rgba(1, 1, 1, 0.16)
+    readonly property color glassBorderLight: Qt.rgba(1, 1, 1, 0.28)
+    readonly property color glassSpecular: Qt.rgba(1, 1, 1, 0.5)
+    readonly property color glassInnerSheen: Qt.rgba(1, 1, 1, 0.1)
+    readonly property color glassBounce: Qt.rgba(1, 1, 1, 0.06)
+    readonly property color glassWidgetBg: Qt.rgba(0, 0, 0, 0.28)
+    readonly property color glassWidgetBorder: Qt.rgba(1, 1, 1, 0.12)
+    readonly property color glassHover: root.withAlpha(root.accent, 0.14)
+    readonly property color glassHoverBorder: root.withAlpha(root.accent, 0.42)
+    readonly property color glassActive: root.withAlpha(root.accent, 0.24)
     readonly property color glassActiveBorder: root.accent
-    readonly property real glassPopupOpacity: 0.46
+    readonly property real glassPopupOpacity: 0.5
     // ─────────────────────────────────────────────────────────────────────────
     // Dual Alpha + Compositor Blur Architecture
     // ─────────────────────────────────────────────────────────────────────────

@@ -55,7 +55,7 @@ Built natively on top of the **QuickShell** engine and deeply integrated with th
 
 ### 2. Universal Dynamic Wallpaper Harmony
 - **Intelligent Color Engine (`qdeck-wallpaper-palette.py`)**: Quantizes thumbnail samples of the active wallpaper using weighted HSV perceptual scoring ($V \ge 0.88, S \ge 0.58$), extracting vibrant accents while strictly eliminating muddy browns.
-- **Luminance Adaptivity**: Analyzes top-edge wallpaper luminance. When running over light skies or bright wallpapers, it dynamically reinforces text drop shadows (`Text.Raised`) and adapts glass opacity, ensuring 100% legibility with zero text blindness.
+- **Luminance Adaptivity**: Analyzes top-edge wallpaper luminance. When running over light skies or bright wallpapers, it dynamically adapts glass opacity and reinforces optical rim contrast, ensuring 100% legibility with zero text blindness.
 - **Zero-Latency State Synchronization**: Color tokens are written atomically to `~/.local/state/qdeck/wallpaper-palette.json` and consumed via native QuickShell `FileView` watchers, providing instantaneous palette updates across all themes (Gruvbox, Everforest, Tokyo-Night, Nord, Catppuccin).
 
 ---
@@ -95,7 +95,7 @@ The status bar supports 4 instant layout modes toggled via IPC or config:
 Volume, brightness, caps lock, and refresh rate adjustments display through a dedicated translucent liquid glass OSD engineered for zero visual distortion:
 - **Pill Squircle Geometry & Specular Sheen Clipping**: Implements adaptive corner geometry (`isPill: effectiveTopLeftRadius >= height * 0.42`) with `clip: true` on the master glass surface. Automatically suppresses flat horizontal specular sheens on pill structures to eliminate corner protrusions, rendering a 100% mathematically continuous perimeter rim.
 - **Authentic Liquid Glass Translucency**: Calibrated multi-stop lens gradient (`0.18` / `0.22` / `0.28` alpha density) allowing Hyprland dual-kawase compositor blur to shine through vibrantly without muddy brown opaque backings.
-- **High-Contrast Raised Typography**: Icons and numerical readouts use `Text.Raised` drop-shadow styling (`Qt.rgba(0, 0, 0, 0.70)`), ensuring razor-sharp legibility over both dark wallpapers and luminous skies.
+- **High-Contrast Optical Typography**: Crisp sub-pixel anti-aliased Inter typography with calibrated weights and optical letter spacing, ensuring razor-sharp legibility over both dark wallpapers and luminous glass surfaces without artificial drop-shadow distortion.
 - **Volume & Mute OSD**: Real-time percentage track and volume level glyphs with mute state alerts.
 - **Brightness OSD**: Smooth hardware backlight adjustment bar with fine-step tuning.
 - **Lock-State Toasts**: Zero-latency status toasts for Caps Lock, Num Lock, and Touchpad states powered by the native `qdeck-lockstate-monitor` daemon (0.0% CPU overhead).

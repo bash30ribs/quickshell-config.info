@@ -1,16 +1,22 @@
+import "../components"
+import "../services"
+import "../theme"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
-import "../theme"
-import "../components"
-import "../services"
 
 Item {
     id: root
 
     required property BrightnessService service
-
     property int iconSize: Appearance.monitorIconSize
+
+    function toggle() {
+        monPopup.toggle();
+        if (monPopup.open)
+            root.service.refresh();
+
+    }
 
     implicitWidth: monButton.implicitWidth
     implicitHeight: monButton.implicitHeight
@@ -19,34 +25,31 @@ Item {
 
     BarButton {
         id: monButton
+
         icon: root.service.icon
         iconSize: root.iconSize
         accentActive: false
         active: monPopup.open
         onClicked: {
-            root.toggle()
+            root.toggle();
         }
-    }
-
-    function toggle() {
-        monPopup.toggle()
-        if (monPopup.open) root.service.refresh()
     }
 
     Connections {
-        target: monPopup
         function onOpenChanged() {
-            root.service.menuOpen = monPopup.open
-            if (monPopup.open) {
-                root.service.inhibitOsd(2500)
-            } else {
-                root.service.inhibitOsd(1500)
-            }
+            root.service.menuOpen = monPopup.open;
+            if (monPopup.open)
+                root.service.inhibitOsd(2500);
+            else
+                root.service.inhibitOsd(1500);
         }
+
+        target: monPopup
     }
 
     PopupCard {
         id: monPopup
+
         anchorItem: monButton
         showDefaultHeader: false
         contentWidth: 350
@@ -54,6 +57,7 @@ Item {
 
         Column {
             id: mainCol
+
             anchors.fill: parent
             spacing: 12
 
@@ -93,8 +97,11 @@ Item {
                             font.pixelSize: 11
                             color: Theme.glassLabel
                         }
+
                     }
+
                 }
+
             }
 
             // Divider
@@ -120,7 +127,7 @@ Item {
                         font.family: Fonts.uiFont
                         font.pixelSize: 10
                         font.bold: true
-                        font.letterSpacing: 1.0
+                        font.letterSpacing: 1
                         color: Theme.glassLabel
                     }
 
@@ -128,21 +135,24 @@ Item {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
                         text: root.service.brightness + "%"
-                        font.family: Fonts.monoFont
-                        font.pixelSize: 12
-                        font.bold: true
+                        font.family: Fonts.uiFont
+                        font.pixelSize: 11
+                        font.weight: Font.DemiBold
                         color: Theme.bright_foreground
                     }
+
                 }
 
                 // Continuous Slider
                 Item {
                     id: brightSliderItem
+
                     width: parent.width
                     height: 24
 
                     Rectangle {
                         id: bTrack
+
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
@@ -154,53 +164,78 @@ Item {
                             anchors.left: parent.left
                             anchors.top: parent.top
                             anchors.bottom: parent.bottom
-                            width: Math.max(0, Math.min(parent.width, parent.width * (root.service.brightness / 100.0)))
+                            width: Math.max(0, Math.min(parent.width, parent.width * (root.service.brightness / 100)))
                             radius: Appearance.radiusXs
                             color: Theme.accent
 
                             Behavior on width {
                                 enabled: !bMouse.pressed
-                                NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+
+                                NumberAnimation {
+                                    duration: 100
+                                    easing.type: Easing.OutCubic
+                                }
+
                             }
+
                         }
+
                     }
 
                     Rectangle {
                         id: bKnob
+
                         width: 14
                         height: 14
                         radius: 7
                         color: Theme.bright_foreground
                         anchors.verticalCenter: parent.verticalCenter
-                        x: Math.max(0, Math.min(brightSliderItem.width - width, (brightSliderItem.width * (root.service.brightness / 100.0)) - (width / 2)))
+                        x: Math.max(0, Math.min(brightSliderItem.width - width, (brightSliderItem.width * (root.service.brightness / 100)) - (width / 2)))
+                        scale: bMouse.containsMouse || bMouse.pressed ? 1.15 : 1
 
-                        scale: bMouse.containsMouse || bMouse.pressed ? 1.15 : 1.0
-                        Behavior on scale { NumberAnimation { duration: 100 } }
+                        Behavior on scale {
+                            NumberAnimation {
+                                duration: 100
+                            }
+
+                        }
 
                         Behavior on x {
                             enabled: !bMouse.pressed
-                            NumberAnimation { duration: 100; easing.type: Easing.OutCubic }
+
+                            NumberAnimation {
+                                duration: 100
+                                easing.type: Easing.OutCubic
+                            }
+
                         }
+
                     }
 
                     MouseArea {
                         id: bMouse
+
+                        function updateFromPos(mouseX) {
+                            root.service.inhibitOsd(2000);
+                            var pct = Math.max(1, Math.min(100, Math.round((mouseX / brightSliderItem.width) * 100)));
+                            root.service.setBrightness(pct);
+                        }
+
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-
-                        function updateFromPos(mouseX) {
-                            root.service.inhibitOsd(2000)
-                            var pct = Math.max(1, Math.min(100, Math.round((mouseX / brightSliderItem.width) * 100)))
-                            root.service.setBrightness(pct)
+                        onPressed: function(mouse) {
+                            updateFromPos(mouse.x);
                         }
-
-                        onPressed: function(mouse) { updateFromPos(mouse.x) }
                         onPositionChanged: function(mouse) {
-                            if (pressed) updateFromPos(mouse.x)
+                            if (pressed)
+                                updateFromPos(mouse.x);
+
                         }
                     }
+
                 }
+
             }
 
             // Divider
@@ -226,7 +261,7 @@ Item {
                         font.family: Fonts.uiFont
                         font.pixelSize: 10
                         font.bold: true
-                        font.letterSpacing: 1.0
+                        font.letterSpacing: 1
                         color: Theme.glassLabel
                     }
 
@@ -234,33 +269,37 @@ Item {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
                         text: root.service.textSize + "px"
-                        font.family: Fonts.monoFont
-                        font.pixelSize: 12
-                        font.bold: true
+                        font.family: Fonts.uiFont
+                        font.pixelSize: 11
+                        font.weight: Font.DemiBold
                         color: Theme.bright_foreground
                     }
+
                 }
 
                 Item {
                     id: textSliderItem
-                    width: parent.width
-                    height: 24
 
                     readonly property var stops: root.service.textSizeStops
                     readonly property int activeIndex: {
-                        var idx = stops.indexOf(root.service.textSize)
-                        if (idx >= 0) return idx
-                        var best = 0
-                        var bestDiff = 1e9
+                        var idx = stops.indexOf(root.service.textSize);
+                        if (idx >= 0)
+                            return idx;
+
+                        var best = 0;
+                        var bestDiff = 1e+09;
                         for (var i = 0; i < stops.length; i++) {
-                            var d = Math.abs(stops[i] - root.service.textSize)
+                            var d = Math.abs(stops[i] - root.service.textSize);
                             if (d < bestDiff) {
-                                bestDiff = d
-                                best = i
+                                bestDiff = d;
+                                best = i;
                             }
                         }
-                        return best
+                        return best;
                     }
+
+                    width: parent.width
+                    height: 24
 
                     // Stepped Segments Track
                     Row {
@@ -274,59 +313,81 @@ Item {
 
                             Rectangle {
                                 required property int index
+
                                 width: (textSliderItem.width - (4 * (textSliderItem.stops.length - 2))) / (textSliderItem.stops.length - 1)
                                 height: 4
                                 radius: Appearance.radiusXs
                                 color: (index < textSliderItem.activeIndex) ? Theme.accent : Qt.rgba(1, 1, 1, 0.12)
                             }
+
                         }
+
                     }
 
                     // Stepped Knob Handle
                     Rectangle {
                         id: tKnob
+
                         width: 14
                         height: 14
                         radius: 7
                         color: Theme.bright_foreground
                         anchors.verticalCenter: parent.verticalCenter
                         x: {
-                            var count = textSliderItem.stops.length
-                            if (count <= 1) return 0
-                            var ratio = textSliderItem.activeIndex / (count - 1)
-                            return Math.max(0, Math.min(textSliderItem.width - width, (ratio * (textSliderItem.width - width))))
-                        }
+                            var count = textSliderItem.stops.length;
+                            if (count <= 1)
+                                return 0;
 
-                        scale: tMouse.containsMouse || tMouse.pressed ? 1.15 : 1.0
-                        Behavior on scale { NumberAnimation { duration: 100 } }
+                            var ratio = textSliderItem.activeIndex / (count - 1);
+                            return Math.max(0, Math.min(textSliderItem.width - width, (ratio * (textSliderItem.width - width))));
+                        }
+                        scale: tMouse.containsMouse || tMouse.pressed ? 1.15 : 1
+
+                        Behavior on scale {
+                            NumberAnimation {
+                                duration: 100
+                            }
+
+                        }
 
                         Behavior on x {
-                            NumberAnimation { duration: 120; easing.type: Easing.OutQuad }
+                            NumberAnimation {
+                                duration: 120
+                                easing.type: Easing.OutQuad
+                            }
+
                         }
+
                     }
 
                     MouseArea {
                         id: tMouse
+
+                        function updateFromPos(mouseX) {
+                            var count = textSliderItem.stops.length;
+                            var ratio = Math.max(0, Math.min(1, mouseX / textSliderItem.width));
+                            var nearestIndex = Math.round(ratio * (count - 1));
+                            var newSize = textSliderItem.stops[nearestIndex];
+                            if (newSize !== root.service.textSize)
+                                root.service.setTextSize(newSize);
+
+                        }
+
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-
-                        function updateFromPos(mouseX) {
-                            var count = textSliderItem.stops.length
-                            var ratio = Math.max(0, Math.min(1.0, mouseX / textSliderItem.width))
-                            var nearestIndex = Math.round(ratio * (count - 1))
-                            var newSize = textSliderItem.stops[nearestIndex]
-                            if (newSize !== root.service.textSize) {
-                                root.service.setTextSize(newSize)
-                            }
+                        onPressed: function(mouse) {
+                            updateFromPos(mouse.x);
                         }
-
-                        onPressed: function(mouse) { updateFromPos(mouse.x) }
                         onPositionChanged: function(mouse) {
-                            if (pressed) updateFromPos(mouse.x)
+                            if (pressed)
+                                updateFromPos(mouse.x);
+
                         }
                     }
+
                 }
+
             }
 
             // Divider
@@ -352,7 +413,7 @@ Item {
                         font.family: Fonts.uiFont
                         font.pixelSize: 10
                         font.bold: true
-                        font.letterSpacing: 1.0
+                        font.letterSpacing: 1
                         color: Theme.glassLabel
                     }
 
@@ -365,34 +426,36 @@ Item {
                         font.pixelSize: 10
                         color: Theme.glassLabel
                     }
+
                 }
 
                 Row {
                     id: scaleRow
-                    width: parent.width
-                    spacing: 6
 
                     readonly property int count: root.service.scalePresets.length
                     readonly property real pillWidth: (width - (spacing * (count - 1))) / count
+
+                    width: parent.width
+                    spacing: 6
 
                     Repeater {
                         model: root.service.scalePresets
 
                         Rectangle {
                             id: scalePill
+
                             required property string modelData
                             required property int index
-
                             readonly property bool isActive: {
-                                var cur = parseFloat(root.service.scale)
-                                var tgt = parseFloat(modelData)
-                                return !isNaN(cur) && !isNaN(tgt) && Math.abs(cur - tgt) < 0.05
+                                var cur = parseFloat(root.service.scale);
+                                var tgt = parseFloat(modelData);
+                                return !isNaN(cur) && !isNaN(tgt) && Math.abs(cur - tgt) < 0.05;
                             }
 
                             width: scaleRow.pillWidth
                             height: 28
                             radius: Appearance.radiusSmall
-                            color: isActive ? Theme.withAlpha(Theme.accent, 0.25) : (pillMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.10) : Qt.rgba(0, 0, 0, 0.22))
+                            color: isActive ? Theme.withAlpha(Theme.accent, 0.25) : (pillMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.1) : Qt.rgba(0, 0, 0, 0.22))
                             border.color: isActive ? Theme.accent : Qt.rgba(255, 255, 255, 0.08)
                             border.width: 1
 
@@ -401,20 +464,25 @@ Item {
                                 text: scalePill.modelData + "x"
                                 font.family: Fonts.uiFont
                                 font.pixelSize: 11
-                                font.bold: scalePill.isActive 
+                                font.bold: scalePill.isActive
                                 color: scalePill.isActive ? Theme.accent : Theme.bright_foreground
                             }
 
                             MouseArea {
                                 id: pillMouse
+
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: root.service.setScale(scalePill.modelData)
                             }
+
                         }
+
                     }
+
                 }
+
             }
 
             // Divider
@@ -440,7 +508,7 @@ Item {
                         font.family: Fonts.uiFont
                         font.pixelSize: 10
                         font.bold: true
-                        font.letterSpacing: 1.0
+                        font.letterSpacing: 1
                         color: Theme.glassLabel
                     }
 
@@ -464,27 +532,30 @@ Item {
                             font.bold: true
                             color: Theme.bright_foreground
                         }
+
                     }
+
                 }
 
                 Row {
                     id: hzRow
-                    width: parent.width
-                    spacing: 6
 
                     readonly property int maxHz: root.service.maxRefreshRate
                     readonly property bool canSwitch: maxHz > 60
 
+                    width: parent.width
+                    spacing: 6
+
                     // 60 Hz Pill
                     Rectangle {
                         id: hz60Pill
-                        width: hzRow.canSwitch ? (hzRow.width - hzRow.spacing) / 2 : hzRow.width
-                        height: 28
-                        radius: Appearance.radiusSmall
 
                         readonly property bool isActive: Math.abs(root.service.currentRefreshRate - 60) <= 2
 
-                        color: isActive ? Theme.withAlpha(Theme.accent, 0.25) : (p60Mouse.containsMouse ? Qt.rgba(255, 255, 255, 0.10) : Qt.rgba(0, 0, 0, 0.22))
+                        width: hzRow.canSwitch ? (hzRow.width - hzRow.spacing) / 2 : hzRow.width
+                        height: 28
+                        radius: Appearance.radiusSmall
+                        color: isActive ? Theme.withAlpha(Theme.accent, 0.25) : (p60Mouse.containsMouse ? Qt.rgba(255, 255, 255, 0.1) : Qt.rgba(0, 0, 0, 0.22))
                         border.color: isActive ? Theme.accent : Qt.rgba(255, 255, 255, 0.08)
                         border.width: 1
 
@@ -493,30 +564,32 @@ Item {
                             text: "60 Hz" + (hzRow.canSwitch ? "" : " (Max)")
                             font.family: Fonts.uiFont
                             font.pixelSize: 11
-                            font.bold: hz60Pill.isActive 
+                            font.bold: hz60Pill.isActive
                             color: hz60Pill.isActive ? Theme.accent : Theme.bright_foreground
                         }
 
                         MouseArea {
                             id: p60Mouse
+
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.service.setRefreshRate(60)
                         }
+
                     }
 
                     // Max Hz Pill (shown if maxHz > 60)
                     Rectangle {
                         id: hzMaxPill
+
+                        readonly property bool isActive: Math.abs(root.service.currentRefreshRate - hzRow.maxHz) <= 2
+
                         visible: hzRow.canSwitch
                         width: (hzRow.width - hzRow.spacing) / 2
                         height: 28
                         radius: Appearance.radiusSmall
-
-                        readonly property bool isActive: Math.abs(root.service.currentRefreshRate - hzRow.maxHz) <= 2
-
-                        color: isActive ? Theme.withAlpha(Theme.accent, 0.25) : (pMaxMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.10) : Qt.rgba(0, 0, 0, 0.22))
+                        color: isActive ? Theme.withAlpha(Theme.accent, 0.25) : (pMaxMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.1) : Qt.rgba(0, 0, 0, 0.22))
                         border.color: isActive ? Theme.accent : Qt.rgba(255, 255, 255, 0.08)
                         border.width: 1
 
@@ -525,19 +598,23 @@ Item {
                             text: hzRow.maxHz + " Hz (Max)"
                             font.family: Fonts.uiFont
                             font.pixelSize: 11
-                            font.bold: hzMaxPill.isActive 
+                            font.bold: hzMaxPill.isActive
                             color: hzMaxPill.isActive ? Theme.accent : Theme.bright_foreground
                         }
 
                         MouseArea {
                             id: pMaxMouse
+
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.service.setRefreshRate(hzRow.maxHz)
                         }
+
                     }
+
                 }
+
             }
 
             // --- 6. Displays (shown if multiple monitors exist) ---
@@ -557,7 +634,7 @@ Item {
                     font.family: Fonts.uiFont
                     font.pixelSize: 10
                     font.bold: true
-                    font.letterSpacing: 1.0
+                    font.letterSpacing: 1
                     color: Theme.glassLabel
                 }
 
@@ -566,6 +643,7 @@ Item {
 
                     Rectangle {
                         required property var modelData
+
                         width: parent.width
                         height: 32
                         radius: Appearance.radiusSmall
@@ -591,22 +669,30 @@ Item {
                                 text: modelData.name + (modelData.focused ? " · active" : "") + " (" + modelData.refreshRate + "Hz)"
                                 font.family: Fonts.uiFont
                                 font.pixelSize: 11
-                                font.bold: modelData.focused 
+                                font.bold: modelData.focused
                                 color: modelData.focused ? Theme.foreground : Theme.muted
                                 anchors.verticalCenter: parent.verticalCenter
                             }
+
                         }
 
                         MouseArea {
                             id: dispMouse
+
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.service.selectDisplay(modelData.name)
                         }
+
                     }
+
                 }
+
             }
+
         }
+
     }
+
 }

@@ -136,13 +136,11 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: Qt.formatDate(root.now, "ddd d").toUpperCase()
                 color: (clockPopup.open || vertClockMouse.containsMouse) ? Theme.accent : Theme.glassLabel
-                font.family: Fonts.monoFont
+                font.family: Fonts.uiFont
                 font.pixelSize: Math.max(9, Fonts.scale(9))
-                font.bold: true
+                font.weight: Font.DemiBold
                 font.letterSpacing: 0.5
                 horizontalAlignment: Text.AlignHCenter
-                style: Text.Raised
-                styleColor: Qt.rgba(0, 0, 0, 0.65)
             }
 
             // Bottom row: Digital Time (e.g. "13:30")
@@ -150,13 +148,11 @@ Item {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: root.formatTime(root.now)
                 color: Theme.bright_foreground
-                font.family: Fonts.monoFont
+                font.family: Fonts.uiFont
                 font.pixelSize: Math.max(11, Fonts.scale(11))
-                font.bold: true
+                font.weight: Font.Bold
                 font.letterSpacing: 0.5
                 horizontalAlignment: Text.AlignHCenter
-                style: Text.Raised
-                styleColor: Qt.rgba(0, 0, 0, 0.65)
             }
 
         }
@@ -319,9 +315,9 @@ Item {
                     Text {
                         text: root.yearDonePercent + "%"
                         color: Theme.muted
-                        font.family: Fonts.monoFont
+                        font.family: Fonts.uiFont
                         font.pixelSize: 11
-                        font.bold: true
+                        font.weight: Font.DemiBold
                         anchors.verticalCenter: parent.verticalCenter
                     }
 
@@ -420,8 +416,9 @@ Item {
                                     anchors.centerIn: parent
                                     text: weekRow.modelData.week
                                     color: Theme.muted
-                                    font.family: Fonts.monoFont
+                                    font.family: Fonts.uiFont
                                     font.pixelSize: 11
+                                    font.weight: Font.Medium
                                 }
 
                             }

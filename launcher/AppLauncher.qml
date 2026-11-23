@@ -478,8 +478,6 @@ PanelWindow {
                                 font.pixelSize: Fonts.sizeRegular
                                 font.weight: element.isSelected ? Fonts.weightBold : Fonts.weightMedium
                                 color: element.isSelected ? Theme.bright_foreground : Theme.foreground
-                                style: Text.Raised
-                                styleColor: Qt.rgba(0, 0, 0, 0.65)
                                 elide: Text.ElideRight
                                 Layout.alignment: Qt.AlignVCenter
                             }

@@ -107,58 +107,63 @@ Item {
                     return Theme.withAlpha(root.accentTint, 0.65);
 
                 if (root.isHovered)
-                    return Theme.withAlpha(Theme.bright_foreground, 0.32);
+                    return Qt.rgba(1, 1, 1, 0.32);
 
-                return Theme.glassBorder;
+                return Qt.rgba(1, 1, 1, 0.16);
             }
 
             Gradient {
                 id: liquidGradient
 
-                // Position 0.0: Soft curved glass crest (merges organically without a harsh top stripe)
+                // Position 0.0: High-clarity crystalline specular crest
                 GradientStop {
                     position: 0
                     color: {
-                        var baseA = Theme.isLightWallpaper ? 0.26 : ((root.mode === "liquid" || root.mode === "clear") ? 0.16 : 0.2);
-                        var c = Theme.withAlpha(Theme.dark_background, baseA * (1 - (root.clarity - 0.75) * 0.3));
-                        c = Qt.tint(c, Theme.withAlpha(root.accentTint, root.active ? 0.2 : 0.07));
-                        var sheenMix = (root.mode === "liquid" || root.mode === "clear") ? (0.045 * root.specularIntensity) : 0.03;
+                        var c = Qt.rgba(0.08, 0.09, 0.12, (root.mode === "clear" ? 0.28 : 0.4) * (1 - (root.clarity - 0.75) * 0.25));
+                        if (root.active)
+                            c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.12));
+                        else if (root.isHovered)
+                            c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.05));
+                        var sheen = (root.mode === "liquid" || root.mode === "clear") ? (0.07 * root.specularIntensity) : 0.04;
                         if (root.isHovered)
-                            sheenMix += 0.025;
+                            sheen += 0.03;
 
-                        return Qt.tint(c, Qt.rgba(1, 1, 1, sheenMix));
+                        return Qt.tint(c, Qt.rgba(1, 1, 1, sheen));
                     }
                 }
 
-                // Position 0.14: Smooth optical transition into translucent body
+                // Position 0.18: Sub-crest luminous optical transition
                 GradientStop {
-                    position: 0.14
+                    position: 0.18
                     color: {
-                        var baseA = Theme.isLightWallpaper ? 0.3 : ((root.mode === "liquid" || root.mode === "clear") ? 0.19 : 0.23);
-                        var c = Theme.withAlpha(Theme.dark_background, baseA * (1 - (root.clarity - 0.75) * 0.3));
-                        c = Qt.tint(c, Theme.withAlpha(root.accentTint, root.active ? 0.2 : 0.07));
+                        var c = Qt.rgba(0.07, 0.08, 0.11, (root.mode === "clear" ? 0.32 : 0.44) * (1 - (root.clarity - 0.75) * 0.25));
+                        if (root.active)
+                            c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.1));
+
                         return c;
                     }
                 }
 
-                // Position 0.50: Translucent body allowing Hyprland dual-kawase blur to glow through
+                // Position 0.55: Pure translucent body allowing compositor dual-kawase blur to refract
                 GradientStop {
-                    position: 0.5
+                    position: 0.55
                     color: {
-                        var baseA = Theme.isLightWallpaper ? 0.34 : ((root.mode === "liquid" || root.mode === "clear") ? 0.22 : 0.26);
-                        var c = Theme.withAlpha(root.baseColor, baseA * (1 - (root.clarity - 0.75) * 0.3));
-                        c = Qt.tint(c, Theme.withAlpha(root.accentTint, root.active ? 0.24 : 0.08));
+                        var c = Qt.rgba(0.06, 0.07, 0.1, (root.mode === "clear" ? 0.36 : 0.5) * (1 - (root.clarity - 0.75) * 0.25));
+                        if (root.active)
+                            c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.08));
+
                         return c;
                     }
                 }
 
-                // Position 1.0: Lower ambient base
+                // Position 1.0: Deep ambient ground base
                 GradientStop {
                     position: 1
                     color: {
-                        var baseA = Theme.isLightWallpaper ? 0.4 : ((root.mode === "liquid" || root.mode === "clear") ? 0.28 : 0.32);
-                        var c = Theme.withAlpha(Theme.dark_background, baseA * (1 - (root.clarity - 0.75) * 0.3));
-                        c = Qt.tint(c, Theme.withAlpha(root.accentTint, root.active ? 0.2 : 0.05));
+                        var c = Qt.rgba(0.05, 0.06, 0.09, (root.mode === "clear" ? 0.42 : 0.56) * (1 - (root.clarity - 0.75) * 0.25));
+                        if (root.active)
+                            c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.06));
+
                         return c;
                     }
                 }
@@ -171,10 +176,10 @@ Item {
             Rectangle {
                 id: specularSheen
 
-                readonly property real bandSize: root.isHorizontalLight ? Math.max(10, Math.min(26, parent.height * 0.26)) : Math.max(8, Math.min(18, parent.width * 0.32))
+                readonly property real bandSize: root.isHorizontalLight ? Math.max(8, Math.min(22, parent.height * 0.32)) : Math.max(8, Math.min(18, parent.width * 0.32))
                 readonly property bool reverseStops: root.lightEdge === "bottom" || root.lightEdge === "right"
 
-                visible: !root.isPill && (root.mode === "liquid" || root.mode === "clear")
+                visible: root.mode === "liquid" || root.mode === "clear" || root.mode === "frosted"
                 x: root.isHorizontalLight ? 1 : (root.lightEdge === "left" ? 1 : Math.max(1, parent.width - 1 - bandSize))
                 y: root.isHorizontalLight ? (root.lightEdge === "top" ? 1 : Math.max(1, parent.height - 1 - bandSize)) : 1
                 width: root.isHorizontalLight ? Math.max(0, parent.width - 2) : bandSize
@@ -190,17 +195,17 @@ Item {
 
                     GradientStop {
                         position: 0
-                        color: specularSheen.reverseStops ? "transparent" : Qt.rgba(1, 1, 1, 0.045 * root.specularIntensity)
+                        color: specularSheen.reverseStops ? "transparent" : Qt.rgba(1, 1, 1, 0.08 * root.specularIntensity)
                     }
 
                     GradientStop {
-                        position: 0.48
-                        color: Qt.rgba(1, 1, 1, 0.015 * root.specularIntensity)
+                        position: 0.5
+                        color: Qt.rgba(1, 1, 1, 0.02 * root.specularIntensity)
                     }
 
                     GradientStop {
                         position: 1
-                        color: specularSheen.reverseStops ? Qt.rgba(1, 1, 1, 0.045 * root.specularIntensity) : "transparent"
+                        color: specularSheen.reverseStops ? Qt.rgba(1, 1, 1, 0.08 * root.specularIntensity) : "transparent"
                     }
 
                 }
@@ -213,10 +218,10 @@ Item {
             Rectangle {
                 id: illuminatedTopEdge
 
-                readonly property real insetA: root.isHorizontalLight ? Math.max(2, Math.round((root.lightEdge === "top" ? root.effectiveTopLeftRadius : root.effectiveBottomLeftRadius) * 0.4)) : Math.max(2, Math.round((root.lightEdge === "left" ? root.effectiveTopLeftRadius : root.effectiveTopRightRadius) * 0.4))
-                readonly property real insetB: root.isHorizontalLight ? Math.max(2, Math.round((root.lightEdge === "top" ? root.effectiveTopRightRadius : root.effectiveBottomRightRadius) * 0.4)) : Math.max(2, Math.round((root.lightEdge === "left" ? root.effectiveBottomLeftRadius : root.effectiveBottomRightRadius) * 0.4))
+                readonly property real insetA: root.isHorizontalLight ? Math.max(3, Math.round((root.lightEdge === "top" ? root.effectiveTopLeftRadius : root.effectiveBottomLeftRadius) * 0.45)) : Math.max(3, Math.round((root.lightEdge === "left" ? root.effectiveTopLeftRadius : root.effectiveTopRightRadius) * 0.45))
+                readonly property real insetB: root.isHorizontalLight ? Math.max(3, Math.round((root.lightEdge === "top" ? root.effectiveTopRightRadius : root.effectiveBottomRightRadius) * 0.45)) : Math.max(3, Math.round((root.lightEdge === "left" ? root.effectiveBottomLeftRadius : root.effectiveBottomRightRadius) * 0.45))
 
-                visible: !root.isPill && (root.mode === "liquid" || root.mode === "clear")
+                visible: root.mode === "liquid" || root.mode === "clear" || root.mode === "frosted"
                 x: root.isHorizontalLight ? insetA : (root.lightEdge === "left" ? 1 : Math.max(1, parent.width - 2))
                 y: root.isHorizontalLight ? (root.lightEdge === "top" ? 1 : Math.max(1, parent.height - 2)) : insetA
                 width: root.isHorizontalLight ? Math.max(0, parent.width - insetA - insetB) : 1
@@ -232,13 +237,61 @@ Item {
                     }
 
                     GradientStop {
-                        position: 0.16
-                        color: Qt.rgba(1, 1, 1, 0.15 * root.rimIllumination)
+                        position: 0.12
+                        color: Qt.rgba(1, 1, 1, 0.35 * root.rimIllumination)
                     }
 
                     GradientStop {
-                        position: 0.84
-                        color: Qt.rgba(1, 1, 1, 0.15 * root.rimIllumination)
+                        position: 0.5
+                        color: Qt.rgba(1, 1, 1, 0.52 * root.rimIllumination)
+                    }
+
+                    GradientStop {
+                        position: 0.88
+                        color: Qt.rgba(1, 1, 1, 0.35 * root.rimIllumination)
+                    }
+
+                    GradientStop {
+                        position: 1
+                        color: "transparent"
+                    }
+
+                }
+
+            }
+
+            // ─────────────────────────────────────────────────────────────────
+            // Lower Ambient Bounce Chamfer
+            // ─────────────────────────────────────────────────────────────────
+            Rectangle {
+                id: illuminatedBottomEdge
+
+                readonly property real insetA: root.isHorizontalLight ? Math.max(4, Math.round(root.effectiveBottomLeftRadius * 0.5)) : Math.max(4, Math.round(root.effectiveTopRightRadius * 0.5))
+                readonly property real insetB: root.isHorizontalLight ? Math.max(4, Math.round(root.effectiveBottomRightRadius * 0.5)) : Math.max(4, Math.round(root.effectiveBottomRightRadius * 0.5))
+
+                visible: root.mode === "liquid" || root.mode === "clear"
+                x: root.isHorizontalLight ? insetA : (root.lightEdge === "left" ? Math.max(1, parent.width - 2) : 1)
+                y: root.isHorizontalLight ? (root.lightEdge === "top" ? Math.max(1, parent.height - 2) : 1) : insetA
+                width: root.isHorizontalLight ? Math.max(0, parent.width - insetA - insetB) : 1
+                height: root.isHorizontalLight ? 1 : Math.max(0, parent.height - insetA - insetB)
+                antialiasing: true
+
+                gradient: Gradient {
+                    orientation: root.isHorizontalLight ? Gradient.Horizontal : Gradient.Vertical
+
+                    GradientStop {
+                        position: 0
+                        color: "transparent"
+                    }
+
+                    GradientStop {
+                        position: 0.2
+                        color: Qt.rgba(1, 1, 1, 0.08 * root.rimIllumination)
+                    }
+
+                    GradientStop {
+                        position: 0.8
+                        color: Qt.rgba(1, 1, 1, 0.08 * root.rimIllumination)
                     }
 
                     GradientStop {

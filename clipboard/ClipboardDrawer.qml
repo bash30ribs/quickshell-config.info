@@ -773,9 +773,34 @@ PanelWindow {
                             height: 28
                             width: ssTabRow.implicitWidth + 18
                             radius: 14
-                            color: root.stage === 1 ? Theme.withAlpha(Theme.accent, 0.22) : (ssTabMouse.containsMouse ? Theme.withAlpha(Theme.bright_foreground, 0.08) : "transparent")
-                            border.width: root.stage === 1 ? 1 : 0
-                            border.color: Theme.withAlpha(Theme.accent, 0.5)
+                            color: root.stage === 1 ? Theme.withAlpha(Theme.accent, 0.22) : (ssTabMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
+                            border.width: (root.stage === 1 || ssTabMouse.containsMouse) ? 1 : 0
+                            border.color: root.stage === 1 ? Theme.withAlpha(Theme.accent, 0.55) : Qt.rgba(1, 1, 1, 0.16)
+
+                            // Top specular sheen when active
+                            Rectangle {
+                                anchors.top: parent.top
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                height: 10
+                                radius: 14
+                                visible: root.stage === 1
+                                antialiasing: true
+
+                                gradient: Gradient {
+                                    GradientStop {
+                                        position: 0
+                                        color: Qt.rgba(1, 1, 1, 0.15)
+                                    }
+
+                                    GradientStop {
+                                        position: 1
+                                        color: "transparent"
+                                    }
+
+                                }
+
+                            }
 
                             Row {
                                 id: ssTabRow
@@ -788,7 +813,7 @@ PanelWindow {
                                     text: Icons.camera
                                     font.family: Icons.effectiveFont(text)
                                     font.pixelSize: 13
-                                    color: root.stage === 1 ? Theme.accent : Theme.muted
+                                    color: root.stage === 1 ? Theme.accent : (ssTabMouse.containsMouse ? Theme.bright_foreground : Qt.rgba(1, 1, 1, 0.5))
                                 }
 
                                 Text {
@@ -796,8 +821,9 @@ PanelWindow {
                                     text: "Screenshots (" + root.imageItems.length + ")"
                                     font.family: Fonts.uiFont
                                     font.pixelSize: 11
-                                    font.weight: root.stage === 1 ? Font.DemiBold : Font.Normal
-                                    color: root.stage === 1 ? Theme.bright_foreground : Theme.foreground
+                                    font.weight: root.stage === 1 ? Font.DemiBold : Font.Medium
+                                    font.letterSpacing: 0.15
+                                    color: root.stage === 1 ? Theme.bright_foreground : (ssTabMouse.containsMouse ? Theme.bright_foreground : Qt.rgba(1, 1, 1, 0.65))
                                 }
 
                             }
@@ -825,9 +851,34 @@ PanelWindow {
                             height: 28
                             width: txtTabRow.implicitWidth + 18
                             radius: 14
-                            color: root.stage === 2 ? Theme.withAlpha(Theme.accent, 0.22) : (txtTabMouse.containsMouse ? Theme.withAlpha(Theme.bright_foreground, 0.08) : "transparent")
-                            border.width: root.stage === 2 ? 1 : 0
-                            border.color: Theme.withAlpha(Theme.accent, 0.5)
+                            color: root.stage === 2 ? Theme.withAlpha(Theme.accent, 0.22) : (txtTabMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
+                            border.width: (root.stage === 2 || txtTabMouse.containsMouse) ? 1 : 0
+                            border.color: root.stage === 2 ? Theme.withAlpha(Theme.accent, 0.55) : Qt.rgba(1, 1, 1, 0.16)
+
+                            // Top specular sheen when active
+                            Rectangle {
+                                anchors.top: parent.top
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                height: 10
+                                radius: 14
+                                visible: root.stage === 2
+                                antialiasing: true
+
+                                gradient: Gradient {
+                                    GradientStop {
+                                        position: 0
+                                        color: Qt.rgba(1, 1, 1, 0.15)
+                                    }
+
+                                    GradientStop {
+                                        position: 1
+                                        color: "transparent"
+                                    }
+
+                                }
+
+                            }
 
                             Row {
                                 id: txtTabRow
@@ -840,7 +891,7 @@ PanelWindow {
                                     text: Icons.textDoc
                                     font.family: Icons.effectiveFont(text)
                                     font.pixelSize: 13
-                                    color: root.stage === 2 ? Theme.accent : Theme.muted
+                                    color: root.stage === 2 ? Theme.accent : (txtTabMouse.containsMouse ? Theme.bright_foreground : Qt.rgba(1, 1, 1, 0.5))
                                 }
 
                                 Text {
@@ -848,8 +899,9 @@ PanelWindow {
                                     text: "Text (" + root.textItems.length + ")"
                                     font.family: Fonts.uiFont
                                     font.pixelSize: 11
-                                    font.weight: root.stage === 2 ? Font.DemiBold : Font.Normal
-                                    color: root.stage === 2 ? Theme.bright_foreground : Theme.foreground
+                                    font.weight: root.stage === 2 ? Font.DemiBold : Font.Medium
+                                    font.letterSpacing: 0.15
+                                    color: root.stage === 2 ? Theme.bright_foreground : (txtTabMouse.containsMouse ? Theme.bright_foreground : Qt.rgba(1, 1, 1, 0.65))
                                 }
 
                             }
@@ -877,9 +929,34 @@ PanelWindow {
                             height: 28
                             width: fileTabRow.implicitWidth + 18
                             radius: 14
-                            color: root.stage === 3 ? Theme.withAlpha(Theme.accent, 0.22) : (fileTabMouse.containsMouse ? Theme.withAlpha(Theme.bright_foreground, 0.08) : "transparent")
-                            border.width: root.stage === 3 ? 1 : 0
-                            border.color: Theme.withAlpha(Theme.accent, 0.5)
+                            color: root.stage === 3 ? Theme.withAlpha(Theme.accent, 0.22) : (fileTabMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
+                            border.width: (root.stage === 3 || fileTabMouse.containsMouse) ? 1 : 0
+                            border.color: root.stage === 3 ? Theme.withAlpha(Theme.accent, 0.55) : Qt.rgba(1, 1, 1, 0.16)
+
+                            // Top specular sheen when active
+                            Rectangle {
+                                anchors.top: parent.top
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                height: 10
+                                radius: 14
+                                visible: root.stage === 3
+                                antialiasing: true
+
+                                gradient: Gradient {
+                                    GradientStop {
+                                        position: 0
+                                        color: Qt.rgba(1, 1, 1, 0.15)
+                                    }
+
+                                    GradientStop {
+                                        position: 1
+                                        color: "transparent"
+                                    }
+
+                                }
+
+                            }
 
                             Row {
                                 id: fileTabRow
@@ -892,7 +969,7 @@ PanelWindow {
                                     text: Icons.folder
                                     font.family: Icons.effectiveFont(text)
                                     font.pixelSize: 13
-                                    color: root.stage === 3 ? Theme.accent : Theme.muted
+                                    color: root.stage === 3 ? Theme.accent : (fileTabMouse.containsMouse ? Theme.bright_foreground : Qt.rgba(1, 1, 1, 0.5))
                                 }
 
                                 Text {
@@ -900,8 +977,9 @@ PanelWindow {
                                     text: "Files (" + root.fileItems.length + ")"
                                     font.family: Fonts.uiFont
                                     font.pixelSize: 11
-                                    font.weight: root.stage === 3 ? Font.DemiBold : Font.Normal
-                                    color: root.stage === 3 ? Theme.bright_foreground : Theme.foreground
+                                    font.weight: root.stage === 3 ? Font.DemiBold : Font.Medium
+                                    font.letterSpacing: 0.15
+                                    color: root.stage === 3 ? Theme.bright_foreground : (fileTabMouse.containsMouse ? Theme.bright_foreground : Qt.rgba(1, 1, 1, 0.65))
                                 }
 
                             }
@@ -939,9 +1017,33 @@ PanelWindow {
                             height: 28
                             width: snapBtnRow.implicitWidth + 16
                             radius: 14
-                            color: snapBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.22) : Qt.rgba(1, 1, 1, 0.08)
+                            color: snapBtnMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06)
                             border.width: 1
-                            border.color: snapBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.55) : Qt.rgba(1, 1, 1, 0.2)
+                            border.color: snapBtnMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.28) : Qt.rgba(1, 1, 1, 0.14)
+
+                            // Top specular sheen
+                            Rectangle {
+                                anchors.top: parent.top
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                height: 10
+                                radius: 14
+                                antialiasing: true
+
+                                gradient: Gradient {
+                                    GradientStop {
+                                        position: 0
+                                        color: Qt.rgba(1, 1, 1, snapBtnMouse.containsMouse ? 0.16 : 0.08)
+                                    }
+
+                                    GradientStop {
+                                        position: 1
+                                        color: "transparent"
+                                    }
+
+                                }
+
+                            }
 
                             Row {
                                 id: snapBtnRow

@@ -32,11 +32,11 @@ QtObject {
     // "liquid", "frosted", "clear", "flat"
     property string glassMaterial: "controlCenter"
     // "controlCenter", "widgets", "clearGlass", "sidebar", "chromatic"
-    property real glassClarity: 0.75
+    property real glassClarity: 0.82
     // Apple liquid clarity
-    property real glassRimIllumination: 0.5
+    property real glassRimIllumination: 0.65
     // Specular crest illumination
-    property real glassSpecularIntensity: 0.75
+    property real glassSpecularIntensity: 0.85
     // Top specular sheen
     property real glassRefractionStrength: 0.85
     // Chromatic dispersion & lensing
