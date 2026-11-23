@@ -93,7 +93,7 @@ Item {
                 return "transparent";
             }
             // Mode C (Liquid) and Mode B (Frosted) Multi-stop Lens Gradient
-            // Calibrated to let Hyprland dual-kawase blur shine through vibrantly
+            // Calibrated to harmonize with Kitty's 0.35 opacity and compositor glass shaders
             gradient: root.mode === "flat" ? null : liquidGradient
             // ─────────────────────────────────────────────────────────────────
             // Illuminated Rim Stroke (Subtle 1px edge definition)
@@ -107,24 +107,31 @@ Item {
                     return Theme.withAlpha(root.accentTint, 0.65);
 
                 if (root.isHovered)
-                    return Qt.rgba(1, 1, 1, 0.32);
+                    return Qt.rgba(1, 1, 1, 0.28);
 
-                return Qt.rgba(1, 1, 1, 0.16);
+                return Qt.rgba(1, 1, 1, 0.12);
             }
 
             Gradient {
                 id: liquidGradient
 
+                // Dynamic clarity scaling harmonized with Kitty (0.35 reference)
+                readonly property real clarityFactor: Math.max(0.6, Math.min(1.4, 1 - (root.clarity - 0.75) * 0.8))
+                readonly property real baseAlpha: root.mode === "clear" ? 0.18 : (root.mode === "liquid" ? 0.24 : 0.3)
+                readonly property real midAlpha: root.mode === "clear" ? 0.22 : (root.mode === "liquid" ? 0.28 : 0.34)
+                readonly property real bodyAlpha: root.mode === "clear" ? 0.25 : (root.mode === "liquid" ? 0.32 : 0.38)
+                readonly property real deepAlpha: root.mode === "clear" ? 0.28 : (root.mode === "liquid" ? 0.35 : 0.42)
+
                 // Position 0.0: High-clarity crystalline specular crest
                 GradientStop {
                     position: 0
                     color: {
-                        var c = Qt.rgba(0.08, 0.09, 0.12, (root.mode === "clear" ? 0.28 : 0.4) * (1 - (root.clarity - 0.75) * 0.25));
+                        var c = Qt.rgba(0.08, 0.09, 0.12, liquidGradient.baseAlpha * liquidGradient.clarityFactor);
                         if (root.active)
                             c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.12));
                         else if (root.isHovered)
                             c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.05));
-                        var sheen = (root.mode === "liquid" || root.mode === "clear") ? (0.07 * root.specularIntensity) : 0.04;
+                        var sheen = (root.mode === "liquid" || root.mode === "clear") ? (0.05 * root.specularIntensity) : 0.03;
                         if (root.isHovered)
                             sheen += 0.03;
 
@@ -136,7 +143,7 @@ Item {
                 GradientStop {
                     position: 0.18
                     color: {
-                        var c = Qt.rgba(0.07, 0.08, 0.11, (root.mode === "clear" ? 0.32 : 0.44) * (1 - (root.clarity - 0.75) * 0.25));
+                        var c = Qt.rgba(0.07, 0.08, 0.11, liquidGradient.midAlpha * liquidGradient.clarityFactor);
                         if (root.active)
                             c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.1));
 
@@ -144,11 +151,11 @@ Item {
                     }
                 }
 
-                // Position 0.55: Pure translucent body allowing compositor dual-kawase blur to refract
+                // Position 0.55: Pure translucent body allowing compositor glass shaders to refract vibrantly
                 GradientStop {
                     position: 0.55
                     color: {
-                        var c = Qt.rgba(0.06, 0.07, 0.1, (root.mode === "clear" ? 0.36 : 0.5) * (1 - (root.clarity - 0.75) * 0.25));
+                        var c = Qt.rgba(0.06, 0.07, 0.1, liquidGradient.bodyAlpha * liquidGradient.clarityFactor);
                         if (root.active)
                             c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.08));
 
@@ -160,7 +167,7 @@ Item {
                 GradientStop {
                     position: 1
                     color: {
-                        var c = Qt.rgba(0.05, 0.06, 0.09, (root.mode === "clear" ? 0.42 : 0.56) * (1 - (root.clarity - 0.75) * 0.25));
+                        var c = Qt.rgba(0.05, 0.06, 0.09, liquidGradient.deepAlpha * liquidGradient.clarityFactor);
                         if (root.active)
                             c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.06));
 
