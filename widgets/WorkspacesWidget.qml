@@ -58,6 +58,7 @@ Item {
                 width: root.isVertical ? root.capsuleThickness : (isActive ? Appearance.workspacesActiveCapsuleWidth : Appearance.workspacesCapsuleWidth)
                 radius: Math.min(width, height) / 2
                 antialiasing: true
+                scale: wsMouse.pressed ? 0.94 : (wsMouse.containsMouse ? 1.06 : 1)
                 color: {
                     if (isActive)
                         return Theme.accent;
@@ -78,14 +79,15 @@ Item {
                     width: Appearance.workspacesDotSize
                     height: Appearance.workspacesDotSize
                     radius: width / 2
-                    visible: !wsCapsule.isActive && !wsCapsule.hasCustomInactiveIcon
+                    visible: opacity > 0.01 && !wsCapsule.hasCustomInactiveIcon
                     color: Theme.bright_foreground
-                    opacity: wsCapsule.isOccupied ? 0.95 : 0.4
+                    opacity: wsCapsule.isActive ? 0 : (wsCapsule.isOccupied ? 0.95 : 0.4)
                     antialiasing: true
 
                     Behavior on opacity {
                         NumberAnimation {
                             duration: Appearance.animDurationNormal
+                            easing.type: Easing.OutCubic
                         }
 
                     }
@@ -99,18 +101,19 @@ Item {
                     anchors.centerIn: parent
                     anchors.horizontalCenterOffset: Appearance.workspacesIconOffsetX
                     anchors.verticalCenterOffset: Appearance.workspacesIconOffsetY
-                    visible: !wsCapsule.isActive && wsCapsule.hasCustomInactiveIcon
+                    visible: opacity > 0.01 && wsCapsule.hasCustomInactiveIcon
                     text: wsCapsule.resolvedInactiveIcon
                     font.family: Icons.effectiveFont(text)
                     font.pixelSize: Appearance.workspacesInactiveIconSize
                     color: Theme.bright_foreground
-                    opacity: wsCapsule.isOccupied ? 0.95 : 0.4
+                    opacity: wsCapsule.isActive ? 0 : (wsCapsule.isOccupied ? 0.95 : 0.4)
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
 
                     Behavior on opacity {
                         NumberAnimation {
                             duration: Appearance.animDurationNormal
+                            easing.type: Easing.OutCubic
                         }
 
                     }
@@ -124,13 +127,23 @@ Item {
                     anchors.centerIn: parent
                     anchors.horizontalCenterOffset: Appearance.workspacesIconOffsetX
                     anchors.verticalCenterOffset: Appearance.workspacesIconOffsetY
-                    visible: wsCapsule.isActive
+                    opacity: wsCapsule.isActive ? 1 : 0
+                    visible: opacity > 0.01
                     text: Icons.workspaceActive || Icons.workspace
                     font.family: Icons.effectiveFont(text)
                     font.pixelSize: Appearance.workspacesIconSize
                     color: Theme.dark_background
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignHCenter
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: Appearance.animDurationNormal
+                            easing.type: Easing.OutCubic
+                        }
+
+                    }
+
                 }
 
                 MouseArea {
@@ -140,6 +153,14 @@ Item {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: root.service.switchTo(wsCapsule.modelData)
+                }
+
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: 120
+                        easing.type: Easing.OutQuad
+                    }
+
                 }
 
                 Behavior on width {
