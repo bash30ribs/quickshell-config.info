@@ -244,7 +244,7 @@ PanelWindow {
     Timer {
         id: edgeAppearDelayTimer
 
-        interval: 10
+        interval: 45
         repeat: false
         onTriggered: {
             if (Appearance.barVisible) {

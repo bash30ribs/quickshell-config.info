@@ -126,6 +126,7 @@ QtObject {
     property Process wallpaperPaletteProc
     property string _lastCurrentTarget: ""
     property string _lastWallpaperTarget: ""
+    property bool _blurStateInitialized: false
     property Process linkCheckProc
     property Timer symlinkWatcherTimer
 
@@ -156,13 +157,13 @@ QtObject {
     }
 
     function setBlurState(enabled) {
+        if (root.blurEnabled === enabled && root._blurStateInitialized)
+            return ;
+
+        root._blurStateInitialized = true;
         root.blurEnabled = enabled;
         var stateStr = enabled ? "on" : "off";
         var cmd = "mkdir -p \"$(dirname \"" + root.blurStatePath + "\")\" && printf '%s' \"" + stateStr + "\" > \"" + root.blurStatePath + "\"";
-        if (enabled)
-            cmd += " && hyprctl eval 'hl.layer_rule({ name = \"qdeck-blur\", match = { namespace = \"^quickshell-.*\" }, blur = true, blur_popups = true, ignore_alpha = 0.14 })' 2>/dev/null || true";
-        else
-            cmd += " && hyprctl eval 'hl.layer_rule({ name = \"qdeck-blur\", match = { namespace = \"^quickshell-.*\" }, blur = false, blur_popups = false })' 2>/dev/null || true";
         Quickshell.execDetached(["sh", "-c", cmd]);
     }
 
@@ -299,6 +300,20 @@ QtObject {
         }
 
         function setWallpaper(path: string) : string {
+            var target = String(path || "").trim();
+            if (target.length > 0)
+                root._lastWallpaperTarget = target;
+
+            if (wallpaperPaletteFile && wallpaperPaletteFile.text()) {
+                try {
+                    var parsed = JSON.parse(wallpaperPaletteFile.text());
+                    if (parsed && parsed.accent) {
+                        root.applyPalette(parsed);
+                        return "ok";
+                    }
+                } catch (e) {
+                }
+            }
             root.updateWallpaper(path);
             return "ok";
         }
@@ -412,12 +427,9 @@ QtObject {
         stdout: StdioCollector {
             waitForEnd: true
             onStreamFinished: {
-                if (text && text.trim().length > 0) {
+                if (text && text.trim().length > 0)
                     root.parseThemeFile(text);
-                    if (root.blurEnabled)
-                        root.setBlurState(true);
 
-                }
             }
         }
 
