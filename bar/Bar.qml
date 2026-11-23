@@ -221,8 +221,8 @@ PanelWindow {
         property: "edgeProgress"
         from: root.edgeProgress
         to: 0
-        duration: Math.max(20, Math.round(45 * root.edgeProgress))
-        easing.type: Easing.InQuad
+        duration: Math.max(30, Math.round(75 * root.edgeProgress))
+        easing.type: Easing.InCubic
         onFinished: {
             if (root.edgeProgress <= 0.001)
                 edgeSwapTimer.restart();
@@ -233,7 +233,7 @@ PanelWindow {
     Timer {
         id: edgeSwapTimer
 
-        interval: 10
+        interval: 16
         repeat: false
         onTriggered: {
             Appearance.barEdge = root.pendingEdge;
@@ -244,14 +244,15 @@ PanelWindow {
     Timer {
         id: edgeAppearDelayTimer
 
-        interval: 12
+        interval: 16
         repeat: false
         onTriggered: {
-            Appearance.barTransitioning = false;
-            if (Appearance.barVisible)
+            if (Appearance.barVisible) {
                 edgeDropAnim.restart();
-            else
+            } else {
+                Appearance.barTransitioning = false;
                 root.edgeProgress = 1;
+            }
         }
     }
 
@@ -260,10 +261,13 @@ PanelWindow {
 
         target: root
         property: "edgeProgress"
-        from: root.edgeProgress
+        from: 0
         to: 1
-        duration: 135
+        duration: 160
         easing.type: Easing.OutQuart
+        onFinished: {
+            Appearance.barTransitioning = false;
+        }
     }
 
     NumberAnimation {
@@ -312,7 +316,7 @@ PanelWindow {
         readonly property real travelY: Appearance.barIsTop ? -root.height : (Appearance.barIsBottom ? root.height : 0)
 
         anchors.fill: parent
-        opacity: reveal > 0.001 ? 1 : 0
+        opacity: Math.max(0, Math.min(1, reveal))
         scale: 0.96 + (0.04 * reveal)
         transformOrigin: Appearance.barIsBottom ? Item.Bottom : (Appearance.barIsLeft ? Item.Left : (Appearance.barIsRight ? Item.Right : Item.Top))
 

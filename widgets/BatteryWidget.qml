@@ -163,6 +163,8 @@ Item {
         }
 
         Behavior on implicitWidth {
+            enabled: !Appearance.barTransitioning
+
             NumberAnimation {
                 duration: 220
                 easing.type: Easing.OutCubic

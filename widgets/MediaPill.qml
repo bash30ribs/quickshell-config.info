@@ -1,17 +1,21 @@
+import "../services"
+import "../theme"
 import QtQuick
 import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
-import "../theme"
-import "../services"
 
 Item {
     id: root
 
-    property MediaController controller: MediaController { id: defaultCtrl }
+    property MediaController controller
+
+    controller: MediaController {
+        id: defaultCtrl
+    }
+
     property AudioService audioService: null
     property alias popup: mediaPopup
-
     readonly property bool hasMedia: controller ? controller.hasMedia : false
     readonly property string trackTitle: root.controller ? (root.controller.title || root.controller.artist || "Music") : ""
 
@@ -19,27 +23,13 @@ Item {
     implicitWidth: hasMedia ? Math.min(220, Math.max(120, titleMeasure.implicitWidth + 76)) : 0
     height: implicitHeight
     width: implicitWidth
-
     visible: width > 0 || opacity > 0
-
-    Behavior on implicitWidth {
-        NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
-    }
-
-    Behavior on opacity {
-        NumberAnimation { duration: 200 }
-    }
-
-    opacity: hasMedia ? 1.0 : 0.0
-    scale: hasMedia ? 1.0 : 0.85
-
-    Behavior on scale {
-        NumberAnimation { duration: 220; easing.type: Easing.OutCubic }
-    }
-
+    opacity: hasMedia ? 1 : 0
+    scale: hasMedia ? 1 : 0.85
     // Hidden text measuring component for fluid pill expansion
     Text {
         id: titleMeasure
+
         text: root.trackTitle
         font.family: Fonts.uiFont
         font.pixelSize: Fonts.scale(11)
@@ -50,33 +40,20 @@ Item {
     // Outer Capsule Pill Container (Black pill)
     Rectangle {
         id: pillBg
+
         anchors.fill: parent
         radius: Appearance.mediaPillRadius
-
         color: pillMouse.containsMouse ? Theme.lighter_background : Theme.dark_background
         border.color: "transparent"
         border.width: 0
-
-        opacity: mediaPopup.open ? 0.0 : 1.0
-        scale: mediaPopup.open ? 0.45 : 1.0
+        opacity: mediaPopup.open ? 0 : 1
+        scale: mediaPopup.open ? 0.45 : 1
         transformOrigin: Item.Center
-
-        Behavior on opacity {
-            NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
-        }
-
-        Behavior on scale {
-            NumberAnimation {
-                duration: mediaPopup.open ? 160 : 280
-                easing.type: mediaPopup.open ? Easing.InCubic : Easing.OutCubic
-            }
-        }
-
-        Behavior on color { ColorAnimation { duration: 150 } }
 
         // 1. Mini Rounded Album Thumbnail on Left Side
         Item {
             id: miniArtBox
+
             width: 18
             height: 18
             anchors.left: parent.left
@@ -99,6 +76,7 @@ Item {
 
                 Rectangle {
                     id: miniArtMask
+
                     anchors.fill: parent
                     radius: Appearance.radiusSmall
                     color: "black"
@@ -108,6 +86,7 @@ Item {
 
                 Image {
                     id: miniArt
+
                     anchors.fill: parent
                     source: root.controller ? root.controller.artUrl : ""
                     fillMode: Image.PreserveAspectCrop
@@ -117,13 +96,15 @@ Item {
                     sourceSize.height: 36
                     mipmap: true
                     smooth: true
-
                     layer.enabled: true
+
                     layer.effect: MultiEffect {
                         maskEnabled: true
                         maskSource: miniArtMask
                     }
+
                 }
+
             }
 
             Rectangle {
@@ -134,17 +115,18 @@ Item {
                 border.width: 0
                 z: 2
             }
+
         }
 
         // 2. Album / Media Name in Middle
         Text {
             id: titleText
+
             anchors.left: miniArtBox.right
             anchors.leftMargin: 7
             anchors.right: eqRow.left
             anchors.rightMargin: 7
             anchors.verticalCenter: parent.verticalCenter
-
             text: root.trackTitle
             font.family: Fonts.uiFont
             font.pixelSize: Fonts.scale(11)
@@ -159,6 +141,7 @@ Item {
         // Animated while playing, held flat (3px) when paused
         Row {
             id: eqRow
+
             anchors.right: parent.right
             anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter
@@ -173,16 +156,44 @@ Item {
                 color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.muted
                 anchors.verticalCenter: parent.verticalCenter
 
-                Behavior on height { NumberAnimation { duration: 160; easing.type: Easing.OutQuad } }
+                Behavior on height {
+                    NumberAnimation {
+                        duration: 160
+                        easing.type: Easing.OutQuad
+                    }
+
+                }
 
                 SequentialAnimation on height {
                     running: root.controller && root.controller.isPlaying
                     loops: Animation.Infinite
-                    NumberAnimation { to: 11; duration: 240; easing.type: Easing.InOutQuad }
-                    NumberAnimation { to: 4; duration: 280; easing.type: Easing.InOutQuad }
-                    NumberAnimation { to: 9; duration: 200; easing.type: Easing.InOutQuad }
-                    NumberAnimation { to: 3; duration: 260; easing.type: Easing.InOutQuad }
+
+                    NumberAnimation {
+                        to: 11
+                        duration: 240
+                        easing.type: Easing.InOutQuad
+                    }
+
+                    NumberAnimation {
+                        to: 4
+                        duration: 280
+                        easing.type: Easing.InOutQuad
+                    }
+
+                    NumberAnimation {
+                        to: 9
+                        duration: 200
+                        easing.type: Easing.InOutQuad
+                    }
+
+                    NumberAnimation {
+                        to: 3
+                        duration: 260
+                        easing.type: Easing.InOutQuad
+                    }
+
                 }
+
             }
 
             // Bar 2
@@ -193,16 +204,44 @@ Item {
                 color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.muted
                 anchors.verticalCenter: parent.verticalCenter
 
-                Behavior on height { NumberAnimation { duration: 160; easing.type: Easing.OutQuad } }
+                Behavior on height {
+                    NumberAnimation {
+                        duration: 160
+                        easing.type: Easing.OutQuad
+                    }
+
+                }
 
                 SequentialAnimation on height {
                     running: root.controller && root.controller.isPlaying
                     loops: Animation.Infinite
-                    NumberAnimation { to: 4; duration: 220; easing.type: Easing.InOutQuad }
-                    NumberAnimation { to: 13; duration: 260; easing.type: Easing.InOutQuad }
-                    NumberAnimation { to: 6; duration: 240; easing.type: Easing.InOutQuad }
-                    NumberAnimation { to: 11; duration: 210; easing.type: Easing.InOutQuad }
+
+                    NumberAnimation {
+                        to: 4
+                        duration: 220
+                        easing.type: Easing.InOutQuad
+                    }
+
+                    NumberAnimation {
+                        to: 13
+                        duration: 260
+                        easing.type: Easing.InOutQuad
+                    }
+
+                    NumberAnimation {
+                        to: 6
+                        duration: 240
+                        easing.type: Easing.InOutQuad
+                    }
+
+                    NumberAnimation {
+                        to: 11
+                        duration: 210
+                        easing.type: Easing.InOutQuad
+                    }
+
                 }
+
             }
 
             // Bar 3
@@ -213,51 +252,135 @@ Item {
                 color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.muted
                 anchors.verticalCenter: parent.verticalCenter
 
-                Behavior on height { NumberAnimation { duration: 160; easing.type: Easing.OutQuad } }
+                Behavior on height {
+                    NumberAnimation {
+                        duration: 160
+                        easing.type: Easing.OutQuad
+                    }
+
+                }
 
                 SequentialAnimation on height {
                     running: root.controller && root.controller.isPlaying
                     loops: Animation.Infinite
-                    NumberAnimation { to: 10; duration: 260; easing.type: Easing.InOutQuad }
-                    NumberAnimation { to: 3; duration: 220; easing.type: Easing.InOutQuad }
-                    NumberAnimation { to: 8; duration: 250; easing.type: Easing.InOutQuad }
-                    NumberAnimation { to: 5; duration: 230; easing.type: Easing.InOutQuad }
+
+                    NumberAnimation {
+                        to: 10
+                        duration: 260
+                        easing.type: Easing.InOutQuad
+                    }
+
+                    NumberAnimation {
+                        to: 3
+                        duration: 220
+                        easing.type: Easing.InOutQuad
+                    }
+
+                    NumberAnimation {
+                        to: 8
+                        duration: 250
+                        easing.type: Easing.InOutQuad
+                    }
+
+                    NumberAnimation {
+                        to: 5
+                        duration: 230
+                        easing.type: Easing.InOutQuad
+                    }
+
                 }
+
             }
+
         }
 
         MouseArea {
             id: pillMouse
+
             anchors.fill: parent
             enabled: !mediaPopup.open && mediaPopup.animProgress < 0.05
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: mediaPopup.toggle()
         }
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: 150
+                easing.type: Easing.OutQuad
+            }
+
+        }
+
+        Behavior on scale {
+            NumberAnimation {
+                duration: mediaPopup.open ? 160 : 280
+                easing.type: mediaPopup.open ? Easing.InCubic : Easing.OutCubic
+            }
+
+        }
+
+        Behavior on color {
+            ColorAnimation {
+                duration: 150
+            }
+
+        }
+
     }
 
     // IPC Interface for toggling media popup
     IpcHandler {
+        function toggle() : string {
+            mediaPopup.toggle();
+            return "ok";
+        }
+
+        function open() : string {
+            mediaPopup.open = true;
+            return "ok";
+        }
+
+        function close() : string {
+            mediaPopup.open = false;
+            return "ok";
+        }
+
         target: "mediapill"
-        function toggle(): string {
-            mediaPopup.toggle()
-            return "ok"
-        }
-        function open(): string {
-            mediaPopup.open = true
-            return "ok"
-        }
-        function close(): string {
-            mediaPopup.open = false
-            return "ok"
-        }
     }
 
     // Expanded One UI 7 Frosted Glass Media Card
     MediaPopup {
         id: mediaPopup
+
         anchorItem: root
         controller: root.controller
         audioService: root.audioService
     }
+
+    Behavior on implicitWidth {
+        enabled: !Appearance.barTransitioning
+
+        NumberAnimation {
+            duration: 250
+            easing.type: Easing.OutCubic
+        }
+
+    }
+
+    Behavior on opacity {
+        NumberAnimation {
+            duration: 200
+        }
+
+    }
+
+    Behavior on scale {
+        NumberAnimation {
+            duration: 220
+            easing.type: Easing.OutCubic
+        }
+
+    }
+
 }
