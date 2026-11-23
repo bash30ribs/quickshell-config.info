@@ -336,8 +336,6 @@ QtObject {
             var v = String(val || "").trim().toLowerCase();
             var enable = (v === "on" || v === "true" || v === "yes" || v === "1");
             Appearance.hyprglassEnabled = enable;
-            var script = Quickshell.env("HOME") + "/.local/bin/qdeck-glass";
-            Quickshell.execDetached([script, enable ? "on" : "off"]);
             return enable ? "on" : "off";
         }
 

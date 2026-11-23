@@ -7,6 +7,7 @@ QtObject {
 
     // Live Resource Telemetry
     property real cpuPercent: 0
+    readonly property alias cpuUsage: root.cpuPercent
     property real ramPercent: 0
     property string ramUsedGb: "0.0"
     property string ramTotalGb: "0.0"

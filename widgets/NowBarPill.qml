@@ -9,11 +9,6 @@ Item {
     id: root
 
     property MediaController controller
-
-    controller: MediaController {
-        id: defaultCtrl
-    }
-
     property AudioService audioService: null
     property alias popup: mediaPopup
     readonly property bool hasMedia: controller ? controller.hasMedia : false
@@ -37,6 +32,7 @@ Item {
     visible: (width > 0 && height > 0) || opacity > 0
     opacity: hasMedia ? 1 : 0
     scale: hasMedia ? 1 : 0.85
+
     // Hidden text measuring component for fluid pill expansion
     Text {
         id: titleMeasure
@@ -156,13 +152,23 @@ Item {
 
                 // Bar 0
                 Rectangle {
+                    id: bar0
+
+                    property real eqScale: (root.controller && root.controller.isPlaying) ? 0.6 : 0.3
+
                     width: 2.2
-                    height: (root.controller && root.controller.isPlaying) ? 6 : 3.5
+                    height: 12
                     radius: width / 2
                     color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.4)
                     anchors.verticalCenter: parent.verticalCenter
 
-                    Behavior on height {
+                    transform: Scale {
+                        origin.x: 1.1
+                        origin.y: 6
+                        yScale: bar0.eqScale
+                    }
+
+                    Behavior on eqScale {
                         enabled: !(root.controller && root.controller.isPlaying)
 
                         NumberAnimation {
@@ -179,30 +185,30 @@ Item {
 
                     }
 
-                    SequentialAnimation on height {
+                    SequentialAnimation on eqScale {
                         running: root.controller && root.controller.isPlaying
                         loops: Animation.Infinite
 
                         NumberAnimation {
-                            to: 10
+                            to: 0.85
                             duration: 240
                             easing.type: Easing.InOutQuad
                         }
 
                         NumberAnimation {
-                            to: 4
+                            to: 0.35
                             duration: 280
                             easing.type: Easing.InOutQuad
                         }
 
                         NumberAnimation {
-                            to: 8
+                            to: 0.7
                             duration: 210
                             easing.type: Easing.InOutQuad
                         }
 
                         NumberAnimation {
-                            to: 6
+                            to: 0.5
                             duration: 260
                             easing.type: Easing.InOutQuad
                         }
@@ -213,13 +219,23 @@ Item {
 
                 // Bar 1 (Center Peak)
                 Rectangle {
+                    id: bar1
+
+                    property real eqScale: (root.controller && root.controller.isPlaying) ? 1 : 0.42
+
                     width: 2.2
-                    height: (root.controller && root.controller.isPlaying) ? 12 : 5
+                    height: 12
                     radius: width / 2
                     color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.4)
                     anchors.verticalCenter: parent.verticalCenter
 
-                    Behavior on height {
+                    transform: Scale {
+                        origin.x: 1.1
+                        origin.y: 6
+                        yScale: bar1.eqScale
+                    }
+
+                    Behavior on eqScale {
                         enabled: !(root.controller && root.controller.isPlaying)
 
                         NumberAnimation {
@@ -236,30 +252,30 @@ Item {
 
                     }
 
-                    SequentialAnimation on height {
+                    SequentialAnimation on eqScale {
                         running: root.controller && root.controller.isPlaying
                         loops: Animation.Infinite
 
                         NumberAnimation {
-                            to: 6
+                            to: 0.5
                             duration: 220
                             easing.type: Easing.InOutQuad
                         }
 
                         NumberAnimation {
-                            to: 13
+                            to: 1
                             duration: 270
                             easing.type: Easing.InOutQuad
                         }
 
                         NumberAnimation {
-                            to: 7
+                            to: 0.58
                             duration: 230
                             easing.type: Easing.InOutQuad
                         }
 
                         NumberAnimation {
-                            to: 11
+                            to: 0.92
                             duration: 250
                             easing.type: Easing.InOutQuad
                         }
@@ -270,13 +286,23 @@ Item {
 
                 // Bar 2
                 Rectangle {
+                    id: bar2
+
+                    property real eqScale: (root.controller && root.controller.isPlaying) ? 0.7 : 0.3
+
                     width: 2.2
-                    height: (root.controller && root.controller.isPlaying) ? 8 : 3.5
+                    height: 12
                     radius: width / 2
                     color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.4)
                     anchors.verticalCenter: parent.verticalCenter
 
-                    Behavior on height {
+                    transform: Scale {
+                        origin.x: 1.1
+                        origin.y: 6
+                        yScale: bar2.eqScale
+                    }
+
+                    Behavior on eqScale {
                         enabled: !(root.controller && root.controller.isPlaying)
 
                         NumberAnimation {
@@ -293,30 +319,30 @@ Item {
 
                     }
 
-                    SequentialAnimation on height {
+                    SequentialAnimation on eqScale {
                         running: root.controller && root.controller.isPlaying
                         loops: Animation.Infinite
 
                         NumberAnimation {
-                            to: 9
+                            to: 0.75
                             duration: 260
                             easing.type: Easing.InOutQuad
                         }
 
                         NumberAnimation {
-                            to: 4
+                            to: 0.35
                             duration: 230
                             easing.type: Easing.InOutQuad
                         }
 
                         NumberAnimation {
-                            to: 11
+                            to: 0.9
                             duration: 280
                             easing.type: Easing.InOutQuad
                         }
 
                         NumberAnimation {
-                            to: 7
+                            to: 0.6
                             duration: 240
                             easing.type: Easing.InOutQuad
                         }
@@ -413,6 +439,10 @@ Item {
         anchorWindow: root.QsWindow ? root.QsWindow.window : null
         controller: root.controller
         audioService: root.audioService
+    }
+
+    controller: MediaController {
+        id: defaultCtrl
     }
 
     Behavior on implicitWidth {
