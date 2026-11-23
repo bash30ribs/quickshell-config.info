@@ -32,6 +32,23 @@ Item {
 
         icon: root.service.icon
         iconSize: root.iconSize
+        text: {
+            if (!root.service.bluetoothEnabled)
+                return "Off";
+
+            if (root.service.connectedDevices.length > 0) {
+                if (Appearance.barIsVertical)
+                    return root.service.connectedDevices.length + " dev";
+
+                var dev = root.service.connectedDevices[0];
+                var name = (dev && dev.name) ? dev.name : "Device";
+                if (name.length > 10)
+                    name = name.slice(0, 9) + "…";
+
+                return root.service.connectedDevices.length > 1 ? (name + " (+" + (root.service.connectedDevices.length - 1) + ")") : name;
+            }
+            return "";
+        }
         accentActive: root.service.connectedDevices.length > 0
         customColor: root.service.bluetoothEnabled ? (root.service.connectedDevices.length > 0 ? Theme.accent : Theme.bright_foreground) : Theme.muted
         active: btPopup.open

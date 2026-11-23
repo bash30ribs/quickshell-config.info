@@ -171,13 +171,13 @@ PanelWindow {
     }
 
     visible: root.isVisibleSurface
-    implicitHeight: root.isHorizontal ? Appearance.barHeight : (root.isCompact ? Math.round(root.totalContentWidth + (Appearance.barMarginHorizontal * 2)) : (root.isWide ? Math.round(root.screenHeight * 0.72) : Math.round(root.screenHeight - (Appearance.barMarginHorizontal * 2))))
+    implicitHeight: root.isHorizontal ? Appearance.barHeight : (root.isCompact ? Math.round(root.totalContentWidth + (Appearance.barMarginHorizontal * 4) + 24) : (root.isWide ? Math.round(root.screenHeight * 0.72) : Math.round(root.screenHeight - (Appearance.barMarginHorizontal * 2))))
     implicitWidth: root.isVertical ? Appearance.barThickness : (root.isCompact ? Math.round(root.totalContentWidth + (Appearance.barMarginHorizontal * 2)) : (root.isWide ? Math.round(root.screenWidth * 0.72) : Math.round(root.screenWidth - (Appearance.barMarginHorizontal * 2))))
     color: "transparent"
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "quickshell-bar"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-    exclusionMode: ExclusionMode.Auto
+    exclusionMode: root.isCompact ? ExclusionMode.Ignore : ExclusionMode.Auto
 
     // Panel anchors adapt cleanly across top, bottom, left, and right screen edges
     anchors {

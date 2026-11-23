@@ -1,32 +1,39 @@
+import "../components"
+import "../services"
+import "../theme"
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Wayland
-import "../theme"
-import "../components"
-import "../services"
 
 Item {
     id: root
 
     required property NetworkService service
-
     property string selectedSsid: ""
     property bool showPasswordInput: false
     property bool showQrView: false
     property int iconSize: Appearance.networkIconSize
 
-    onSelectedSsidChanged: {
-        pwInput.text = ""
-    }
-
-    onShowPasswordInputChanged: {
-        if (root.showPasswordInput) {
-            Qt.callLater(function() {
-                pwInput.forceActiveFocus()
-            })
+    function toggle() {
+        netPopup.toggle();
+        if (netPopup.open) {
+            root.service.refresh();
+            root.service.scanWifi();
+            root.showPasswordInput = false;
+            root.showQrView = false;
         }
     }
 
+    onSelectedSsidChanged: {
+        pwInput.text = "";
+    }
+    onShowPasswordInputChanged: {
+        if (root.showPasswordInput)
+            Qt.callLater(function() {
+                pwInput.forceActiveFocus();
+            });
+
+    }
     implicitWidth: netButton.implicitWidth
     implicitHeight: netButton.implicitHeight
     width: implicitWidth
@@ -34,37 +41,47 @@ Item {
 
     BarButton {
         id: netButton
+
         icon: root.service.icon
         iconSize: root.iconSize
+        text: {
+            if (root.service.isEthernet)
+                return "LAN";
+
+            if (!root.service.wifiEnabled)
+                return "Off";
+
+            if (root.service.isConnected && root.service.currentSsid) {
+                if (Appearance.barIsVertical)
+                    return root.service.signalStrength > 0 ? (root.service.signalStrength + "%") : "On";
+
+                var ssid = root.service.currentSsid;
+                if (ssid.length > 12)
+                    ssid = ssid.slice(0, 11) + "…";
+
+                return ssid;
+            }
+            return root.service.wifiEnabled ? (root.service.scanning ? "Scan…" : "No Net") : "Off";
+        }
         accentActive: root.service.isConnected
         active: netPopup.open
         onClicked: {
-            root.toggle()
-        }
-    }
-
-    function toggle() {
-        netPopup.toggle()
-        if (netPopup.open) {
-            root.service.refresh()
-            root.service.scanWifi()
-            root.showPasswordInput = false
-            root.showQrView = false
+            root.toggle();
         }
     }
 
     PopupCard {
         id: netPopup
+
         anchorItem: netButton
         showDefaultHeader: false
         contentWidth: 360
         contentHeight: root.showQrView ? 420 : (root.showPasswordInput ? 525 : (root.service.isEthernet ? 520 : 470))
         keyboardFocus: root.showPasswordInput ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
-
         onOpenChanged: {
             if (!open) {
-                root.showPasswordInput = false
-                pwInput.text = ""
+                root.showPasswordInput = false;
+                pwInput.text = "";
             }
         }
 
@@ -97,10 +114,16 @@ Item {
 
                         Text {
                             text: {
-                                if (root.service.isEthernet) return "Ethernet"
-                                if (!root.service.wifiEnabled) return "Wi-Fi Off"
-                                if (root.service.connectingSsid) return root.service.connectingSsid
-                                return root.service.currentSsid || "Not Connected"
+                                if (root.service.isEthernet)
+                                    return "Ethernet";
+
+                                if (!root.service.wifiEnabled)
+                                    return "Wi-Fi Off";
+
+                                if (root.service.connectingSsid)
+                                    return root.service.connectingSsid;
+
+                                return root.service.currentSsid || "Not Connected";
                             }
                             font.family: Fonts.uiFont
                             font.pixelSize: 15
@@ -112,18 +135,28 @@ Item {
 
                         Text {
                             text: {
-                                if (root.service.isEthernet) return "CONNECTED • PRIORITY"
-                                if (!root.service.wifiEnabled) return "DISABLED"
-                                if (root.service.connectingSsid) return "CONNECTING..."
-                                if (root.service.currentSsid) return root.service.connectionPhrase
-                                return "DISCONNECTED"
+                                if (root.service.isEthernet)
+                                    return "CONNECTED • PRIORITY";
+
+                                if (!root.service.wifiEnabled)
+                                    return "DISABLED";
+
+                                if (root.service.connectingSsid)
+                                    return "CONNECTING...";
+
+                                if (root.service.currentSsid)
+                                    return root.service.connectionPhrase;
+
+                                return "DISCONNECTED";
                             }
                             font.family: Fonts.uiFont
                             font.pixelSize: 10
                             font.bold: true
                             color: root.service.isEthernet ? Theme.accent : (root.service.connectingSsid ? Theme.accent : Theme.muted)
                         }
+
                     }
+
                 }
 
                 // Right Actions: QR, Quick Disconnect, Toggle Switch
@@ -138,7 +171,7 @@ Item {
                         width: 28
                         height: 28
                         radius: Appearance.radiusSmall
-                        color: topDisMouse.containsMouse ? Qt.rgba(1, 0.3, 0.3, 0.20) : Qt.rgba(1, 1, 1, 0.06)
+                        color: topDisMouse.containsMouse ? Qt.rgba(1, 0.3, 0.3, 0.2) : Qt.rgba(1, 1, 1, 0.06)
                         border.color: topDisMouse.containsMouse ? Theme.red : Qt.rgba(1, 1, 1, 0.12)
                         border.width: 1
 
@@ -152,18 +185,20 @@ Item {
 
                         MouseArea {
                             id: topDisMouse
+
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 if (root.service.isEthernet && root.service.interfaceName) {
-                                    Quickshell.execDetached(["nmcli", "device", "disconnect", root.service.interfaceName])
-                                    root.service.refresh()
+                                    Quickshell.execDetached(["nmcli", "device", "disconnect", root.service.interfaceName]);
+                                    root.service.refresh();
                                 } else {
-                                    root.service.disconnectNetwork(root.service.currentSsid)
+                                    root.service.disconnectNetwork(root.service.currentSsid);
                                 }
                             }
                         }
+
                     }
 
                     // QR Code Button
@@ -185,25 +220,30 @@ Item {
 
                         MouseArea {
                             id: qrMouse
+
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                root.showQrView = !root.showQrView
-                                if (root.showQrView) {
-                                    root.service.generateQr()
-                                }
+                                root.showQrView = !root.showQrView;
+                                if (root.showQrView)
+                                    root.service.generateQr();
+
                             }
                         }
+
                     }
 
                     // Wi-Fi On/Off Rectangular Toggle Switch
                     ToggleSwitch {
                         id: wifiToggle
+
                         checked: root.service.wifiEnabled
                         onToggled: root.service.toggleWifi()
                     }
+
                 }
+
             }
 
             // Divider
@@ -235,14 +275,15 @@ Item {
                     // QR Matrix Canvas Container
                     Rectangle {
                         id: qrBox
+
+                        readonly property int size: root.service.qrSize > 0 ? root.service.qrSize : 1
+                        readonly property real cellSize: size > 0 ? (width / size) : 0
+
                         width: 210
                         height: 210
                         color: Theme.bright_foreground
                         radius: Appearance.radiusSmall
                         anchors.horizontalCenter: parent.horizontalCenter
-
-                        readonly property int size: root.service.qrSize > 0 ? root.service.qrSize : 1
-                        readonly property real cellSize: size > 0 ? (width / size) : 0
 
                         Grid {
                             anchors.fill: parent
@@ -260,7 +301,9 @@ Item {
                                     height: qrBox.cellSize
                                     color: (root.service.qrMatrix.length > r && root.service.qrMatrix[r].charAt(c) === "1") ? Theme.darker_background : "transparent"
                                 }
+
                             }
+
                         }
 
                         Text {
@@ -280,6 +323,7 @@ Item {
                             font.pixelSize: 10
                             color: Theme.red
                         }
+
                     }
 
                     Text {
@@ -310,8 +354,11 @@ Item {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: root.showQrView = false
                         }
+
                     }
+
                 }
+
             }
 
             // ================= MAIN NETWORK CONTENT =================
@@ -337,10 +384,11 @@ Item {
                         // LAN Icon Pill
                         Rectangle {
                             id: lanIconRect
+
                             width: 36
                             height: 36
                             radius: Appearance.radiusSmall
-                            color: Theme.withAlpha(Theme.accent, 0.20)
+                            color: Theme.withAlpha(Theme.accent, 0.2)
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
 
@@ -351,11 +399,13 @@ Item {
                                 font.pixelSize: 18
                                 color: Theme.accent
                             }
+
                         }
 
                         // Right: Live Rates & Ping
                         Column {
                             id: liveRatesCol
+
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 1
@@ -369,6 +419,7 @@ Item {
                                 horizontalAlignment: Text.AlignRight
                                 anchors.right: parent.right
                             }
+
                             Text {
                                 text: "↑ " + root.service.formatRate(root.service.uploadRate)
                                 font.family: Fonts.monoFont
@@ -377,6 +428,7 @@ Item {
                                 horizontalAlignment: Text.AlignRight
                                 anchors.right: parent.right
                             }
+
                         }
 
                         // Info Column
@@ -390,6 +442,7 @@ Item {
 
                             Row {
                                 spacing: 6
+
                                 Text {
                                     text: "Wired Ethernet"
                                     font.family: Fonts.uiFont
@@ -397,12 +450,14 @@ Item {
                                     font.bold: true
                                     color: Theme.bright_foreground
                                 }
+
                                 Rectangle {
                                     width: 52
                                     height: 14
                                     radius: 3
                                     color: Theme.accent
                                     anchors.verticalCenter: parent.verticalCenter
+
                                     Text {
                                         anchors.centerIn: parent
                                         text: "PRIORITY"
@@ -411,7 +466,9 @@ Item {
                                         font.bold: true
                                         color: Theme.darker_background
                                     }
+
                                 }
+
                             }
 
                             Text {
@@ -422,8 +479,11 @@ Item {
                                 elide: Text.ElideRight
                                 width: parent.width
                             }
+
                         }
+
                     }
+
                 }
 
                 // --- 2. DNS PROVIDER Section (Segmented Buttons) ---
@@ -436,33 +496,34 @@ Item {
                         font.family: Fonts.uiFont
                         font.pixelSize: 11
                         font.bold: true
-                        font.letterSpacing: 1.0
+                        font.letterSpacing: 1
                         color: Theme.glassLabel
                     }
 
                     Row {
                         id: dnsRow
-                        width: parent.width
-                        spacing: 5
 
                         readonly property int count: root.service.dnsProviders.length
                         readonly property real cellWidth: (width - (spacing * (count - 1))) / count
+
+                        width: parent.width
+                        spacing: 5
 
                         Repeater {
                             model: root.service.dnsProviders
 
                             Rectangle {
                                 id: dnsPill
+
                                 required property string modelData
                                 required property int index
-
                                 readonly property bool isActive: (root.service.dnsProvider === modelData)
 
                                 width: dnsRow.cellWidth
                                 height: 28
                                 radius: Appearance.radiusSmall
                                 color: isActive ? Theme.withAlpha(Theme.accent, 0.22) : (dnsMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06))
-                                border.color: isActive ? Theme.accent : (dnsMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.20) : Qt.rgba(1, 1, 1, 0.12))
+                                border.color: isActive ? Theme.accent : (dnsMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.2) : Qt.rgba(1, 1, 1, 0.12))
                                 border.width: 1
 
                                 Text {
@@ -470,20 +531,25 @@ Item {
                                     text: dnsPill.modelData
                                     font.family: Fonts.uiFont
                                     font.pixelSize: 11
-                                    font.bold: dnsPill.isActive 
+                                    font.bold: dnsPill.isActive
                                     color: Theme.foreground
                                 }
 
                                 MouseArea {
                                     id: dnsMouse
+
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: root.service.setDns(dnsPill.modelData)
                                 }
+
                             }
+
                         }
+
                     }
+
                 }
 
                 // Divider
@@ -538,6 +604,7 @@ Item {
 
                                 TextInput {
                                     id: pwInput
+
                                     anchors.fill: parent
                                     anchors.leftMargin: 8
                                     anchors.rightMargin: 8
@@ -552,31 +619,35 @@ Item {
                                     activeFocusOnPress: true
                                     clip: true
                                     onAccepted: joinBtn.join()
-
                                     Keys.onPressed: function(event) {
                                         if (event.key === Qt.Key_Escape) {
-                                            root.showPasswordInput = false
-                                            pwInput.text = ""
-                                            event.accepted = true
+                                            root.showPasswordInput = false;
+                                            pwInput.text = "";
+                                            event.accepted = true;
                                         }
                                     }
                                 }
+
                             }
 
                             Rectangle {
                                 id: joinBtn
+
                                 readonly property bool isJoining: root.service.connectingSsid === root.selectedSsid
+
+                                function join() {
+                                    if (joinBtn.isJoining)
+                                        return ;
+
+                                    root.service.connectToNetwork(root.selectedSsid, pwInput.text);
+                                    root.showPasswordInput = false;
+                                    pwInput.text = "";
+                                }
+
                                 width: isJoining ? 70 : 56
                                 height: 28
                                 radius: Appearance.radiusSmall
                                 color: Theme.accent
-
-                                function join() {
-                                    if (joinBtn.isJoining) return
-                                    root.service.connectToNetwork(root.selectedSsid, pwInput.text)
-                                    root.showPasswordInput = false
-                                    pwInput.text = ""
-                                }
 
                                 Text {
                                     anchors.centerIn: parent
@@ -593,6 +664,7 @@ Item {
                                     cursorShape: joinBtn.isJoining ? Qt.ArrowCursor : Qt.PointingHandCursor
                                     onClicked: joinBtn.join()
                                 }
+
                             }
 
                             Rectangle {
@@ -613,13 +685,17 @@ Item {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
                                     onClicked: {
-                                        root.showPasswordInput = false
-                                        pwInput.text = ""
+                                        root.showPasswordInput = false;
+                                        pwInput.text = "";
                                     }
                                 }
+
                             }
+
                         }
+
                     }
+
                 }
 
                 // --- 3. KNOWN NETWORKS Section ---
@@ -633,7 +709,7 @@ Item {
                         font.family: Fonts.uiFont
                         font.pixelSize: 11
                         font.bold: true
-                        font.letterSpacing: 1.0
+                        font.letterSpacing: 1
                         color: Theme.glassLabel
                     }
 
@@ -645,6 +721,7 @@ Item {
 
                         ListView {
                             id: knownList
+
                             anchors.fill: parent
                             spacing: 2
                             model: root.service.knownNetworks
@@ -652,9 +729,9 @@ Item {
 
                             delegate: Rectangle {
                                 id: knownRow
+
                                 required property var modelData
                                 required property int index
-
                                 readonly property bool isConnected: modelData.active
                                 readonly property bool isSelected: root.selectedSsid === modelData.ssid
                                 readonly property bool isConnecting: root.service.connectingSsid === modelData.ssid
@@ -689,7 +766,7 @@ Item {
                                             text: knownRow.modelData.ssid
                                             font.family: Fonts.uiFont
                                             font.pixelSize: 12
-                                            font.bold: knownRow.isConnected 
+                                            font.bold: knownRow.isConnected
                                             color: Theme.foreground
                                             elide: Text.ElideRight
                                             width: 115
@@ -701,7 +778,9 @@ Item {
                                             font.pixelSize: 10
                                             color: knownRow.isConnecting ? Theme.accent : (knownRow.hasError ? Theme.red : (knownRow.isConnected ? (root.service.isEthernet ? Theme.muted : Theme.accent) : Theme.muted))
                                         }
+
                                     }
+
                                 }
 
                                 // Right Actions: Lock Icon + Connect/Disconnect + Forget
@@ -724,10 +803,11 @@ Item {
                                     // Connect / Disconnect Button
                                     Rectangle {
                                         id: connBtn
+
                                         width: knownRow.isConnecting ? 76 : (knownRow.isConnected ? 68 : 54)
                                         height: 24
                                         radius: Appearance.radiusSmall
-                                        color: knownRow.isConnecting ? Theme.withAlpha(Theme.accent, 0.20) : (knownRow.isConnected ? (connMouse.containsMouse ? Qt.rgba(1, 0.3, 0.3, 0.20) : Qt.rgba(1, 1, 1, 0.06)) : (connMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.22) : Qt.rgba(1, 1, 1, 0.06)))
+                                        color: knownRow.isConnecting ? Theme.withAlpha(Theme.accent, 0.2) : (knownRow.isConnected ? (connMouse.containsMouse ? Qt.rgba(1, 0.3, 0.3, 0.2) : Qt.rgba(1, 1, 1, 0.06)) : (connMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.22) : Qt.rgba(1, 1, 1, 0.06)))
                                         border.color: knownRow.isConnecting ? Theme.accent : (knownRow.isConnected ? (connMouse.containsMouse ? Theme.red : Qt.rgba(1, 1, 1, 0.12)) : (connMouse.containsMouse ? Theme.accent : Qt.rgba(1, 1, 1, 0.12)))
                                         border.width: 1
                                         anchors.verticalCenter: parent.verticalCenter
@@ -743,28 +823,30 @@ Item {
 
                                         MouseArea {
                                             id: connMouse
+
                                             anchors.fill: parent
                                             enabled: !knownRow.isConnecting
                                             hoverEnabled: true
                                             cursorShape: knownRow.isConnecting ? Qt.ArrowCursor : Qt.PointingHandCursor
                                             onClicked: {
-                                                root.selectedSsid = knownRow.modelData.ssid
-                                                if (knownRow.isConnected) {
-                                                    root.service.disconnectNetwork(knownRow.modelData.ssid)
-                                                } else {
-                                                    root.service.connectToNetwork(knownRow.modelData.ssid, "")
-                                                }
+                                                root.selectedSsid = knownRow.modelData.ssid;
+                                                if (knownRow.isConnected)
+                                                    root.service.disconnectNetwork(knownRow.modelData.ssid);
+                                                else
+                                                    root.service.connectToNetwork(knownRow.modelData.ssid, "");
                                             }
                                         }
+
                                     }
 
                                     // Forget Button
                                     Rectangle {
                                         id: fgtBtn
+
                                         width: 48
                                         height: 24
                                         radius: Appearance.radiusSmall
-                                        color: fgtMouse.containsMouse ? Qt.rgba(1, 0.3, 0.3, 0.20) : Qt.rgba(1, 1, 1, 0.06)
+                                        color: fgtMouse.containsMouse ? Qt.rgba(1, 0.3, 0.3, 0.2) : Qt.rgba(1, 1, 1, 0.06)
                                         border.color: fgtMouse.containsMouse ? Theme.red : Qt.rgba(1, 1, 1, 0.12)
                                         border.width: 1
                                         anchors.verticalCenter: parent.verticalCenter
@@ -780,34 +862,42 @@ Item {
 
                                         MouseArea {
                                             id: fgtMouse
+
                                             anchors.fill: parent
                                             hoverEnabled: true
                                             cursorShape: Qt.PointingHandCursor
                                             onClicked: {
-                                                root.selectedSsid = knownRow.modelData.ssid
-                                                root.service.forgetNetwork(knownRow.modelData.ssid)
+                                                root.selectedSsid = knownRow.modelData.ssid;
+                                                root.service.forgetNetwork(knownRow.modelData.ssid);
                                             }
                                         }
+
                                     }
+
                                 }
 
                                 MouseArea {
                                     id: kMouse
+
                                     anchors.fill: parent
                                     anchors.rightMargin: knownRow.isConnecting ? 155 : 135
                                     enabled: !knownRow.isConnecting
                                     hoverEnabled: true
                                     cursorShape: knownRow.isConnecting ? Qt.ArrowCursor : Qt.PointingHandCursor
                                     onClicked: {
-                                        root.selectedSsid = knownRow.modelData.ssid
-                                        if (!knownRow.isConnected) {
-                                            root.service.connectToNetwork(knownRow.modelData.ssid, "")
-                                        }
+                                        root.selectedSsid = knownRow.modelData.ssid;
+                                        if (!knownRow.isConnected)
+                                            root.service.connectToNetwork(knownRow.modelData.ssid, "");
+
                                     }
                                 }
+
                             }
+
                         }
+
                     }
+
                 }
 
                 // --- 4. OTHER NETWORKS Section ---
@@ -821,7 +911,7 @@ Item {
                         font.family: Fonts.uiFont
                         font.pixelSize: 11
                         font.bold: true
-                        font.letterSpacing: 1.0
+                        font.letterSpacing: 1
                         color: Theme.glassLabel
                     }
 
@@ -834,6 +924,7 @@ Item {
 
                         ListView {
                             id: otherList
+
                             anchors.fill: parent
                             spacing: 2
                             model: root.service.otherNetworks
@@ -841,6 +932,7 @@ Item {
 
                             delegate: Rectangle {
                                 id: otherRow
+
                                 required property var modelData
                                 required property int index
                                 readonly property bool isConnecting: root.service.connectingSsid === modelData.ssid
@@ -876,7 +968,7 @@ Item {
                                             font.family: Fonts.uiFont
                                             font.pixelSize: 12
                                             color: Theme.foreground
-                                            font.bold: otherRow.modelData.active 
+                                            font.bold: otherRow.modelData.active
                                             elide: Text.ElideRight
                                             width: (otherRow.isConnecting || otherRow.hasError) ? 140 : 170
                                         }
@@ -888,7 +980,9 @@ Item {
                                             font.pixelSize: 9
                                             color: otherRow.isConnecting ? Theme.accent : Theme.red
                                         }
+
                                     }
+
                                 }
 
                                 // Right Actions: Lock Icon + Connect Button
@@ -913,7 +1007,7 @@ Item {
                                         width: otherRow.isConnecting ? 76 : 54
                                         height: 24
                                         radius: Appearance.radiusSmall
-                                        color: otherRow.isConnecting ? Theme.withAlpha(Theme.accent, 0.20) : (oConnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.22) : Qt.rgba(1, 1, 1, 0.06))
+                                        color: otherRow.isConnecting ? Theme.withAlpha(Theme.accent, 0.2) : (oConnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.22) : Qt.rgba(1, 1, 1, 0.06))
                                         border.color: otherRow.isConnecting ? Theme.accent : (oConnMouse.containsMouse ? Theme.accent : Qt.rgba(1, 1, 1, 0.12))
                                         border.width: 1
                                         anchors.verticalCenter: parent.verticalCenter
@@ -929,43 +1023,53 @@ Item {
 
                                         MouseArea {
                                             id: oConnMouse
+
                                             anchors.fill: parent
                                             enabled: !otherRow.isConnecting
                                             hoverEnabled: true
                                             cursorShape: otherRow.isConnecting ? Qt.ArrowCursor : Qt.PointingHandCursor
                                             onClicked: {
-                                                root.selectedSsid = otherRow.modelData.ssid
-                                                if (otherRow.modelData.isSecured) {
-                                                    root.showPasswordInput = true
-                                                } else {
-                                                    root.service.connectToNetwork(root.selectedSsid, "")
-                                                }
+                                                root.selectedSsid = otherRow.modelData.ssid;
+                                                if (otherRow.modelData.isSecured)
+                                                    root.showPasswordInput = true;
+                                                else
+                                                    root.service.connectToNetwork(root.selectedSsid, "");
                                             }
                                         }
+
                                     }
+
                                 }
 
                                 MouseArea {
                                     id: oMouse
+
                                     anchors.fill: parent
                                     anchors.rightMargin: otherRow.isConnecting ? 88 : 65
                                     enabled: !otherRow.isConnecting
                                     hoverEnabled: true
                                     cursorShape: otherRow.isConnecting ? Qt.ArrowCursor : Qt.PointingHandCursor
                                     onClicked: {
-                                        root.selectedSsid = otherRow.modelData.ssid
-                                        if (otherRow.modelData.isSecured) {
-                                            root.showPasswordInput = true
-                                        } else {
-                                            root.service.connectToNetwork(root.selectedSsid, "")
-                                        }
+                                        root.selectedSsid = otherRow.modelData.ssid;
+                                        if (otherRow.modelData.isSecured)
+                                            root.showPasswordInput = true;
+                                        else
+                                            root.service.connectToNetwork(root.selectedSsid, "");
                                     }
                                 }
+
                             }
+
                         }
+
                     }
+
                 }
+
             }
+
         }
+
     }
+
 }

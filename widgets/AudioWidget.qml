@@ -30,6 +30,7 @@ Item {
 
         icon: root.service.icon
         iconSize: root.iconSize
+        text: root.service.muted ? "Muted" : (root.service.volume + "%")
         accentActive: root.service.volume > 0 && !root.service.muted
         customColor: root.service.muted ? Theme.red : Theme.foreground
         active: audioPopup.open
@@ -39,6 +40,18 @@ Item {
                 root.service.refresh();
 
         }
+
+        WheelHandler {
+            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+            onWheel: function(event) {
+                var dy = Theme.wheelDeltaY(event);
+                if (dy > 0)
+                    Quickshell.execDetached(["qdeck", "volume", "up"]);
+                else if (dy < 0)
+                    Quickshell.execDetached(["qdeck", "volume", "down"]);
+            }
+        }
+
     }
 
     Connections {

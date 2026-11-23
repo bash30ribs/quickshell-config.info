@@ -79,6 +79,16 @@ Item {
 
         icon: root.profileIcon
         iconSize: root.iconSize
+        text: {
+            var profileShort = root.isPerf ? "Turbo" : (root.isSaver ? "Saver" : "Bal");
+            if (Appearance.barIsVertical)
+                return profileShort;
+
+            if (root.hardwareService && root.hardwareService.cpuUsage > 0)
+                return profileShort + " " + root.hardwareService.cpuUsage + "%";
+
+            return profileShort;
+        }
         active: usagePopup.open
         accentActive: root.isPerf
         customColor: {
