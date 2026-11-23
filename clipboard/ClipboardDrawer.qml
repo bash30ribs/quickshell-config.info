@@ -761,241 +761,125 @@ PanelWindow {
                         }
                     }
 
-                    // Left: 3 Segmented Pill Tabs [ SS | Text | Files ]
-                    Row {
+                    // Left: Unified Segmented Pill Tabs [ 📷 Screenshots | 📄 Text | 📁 Files ]
+                    Rectangle {
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: 6
+                        height: 30
+                        width: segmentedTabsRow.implicitWidth + 4
+                        radius: 15
+                        color: Qt.rgba(14, 16, 20, 0.6)
+                        border.width: 1
+                        border.color: Qt.rgba(1, 1, 1, 0.14)
                         z: 60
 
-                        // Tab 1: Screenshots (SS)
-                        Rectangle {
-                            height: 28
-                            width: ssTabRow.implicitWidth + 18
-                            radius: 14
-                            color: root.stage === 1 ? Theme.withAlpha(Theme.accent, 0.22) : (ssTabMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
-                            border.width: (root.stage === 1 || ssTabMouse.containsMouse) ? 1 : 0
-                            border.color: root.stage === 1 ? Theme.withAlpha(Theme.accent, 0.55) : Qt.rgba(1, 1, 1, 0.16)
+                        Row {
+                            id: segmentedTabsRow
 
-                            // Top specular sheen when active
+                            anchors.centerIn: parent
+                            spacing: 2
+
+                            // Segment 1: Screenshots (SS)
                             Rectangle {
-                                anchors.top: parent.top
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                height: 10
-                                radius: 14
-                                visible: root.stage === 1
-                                antialiasing: true
-
-                                gradient: Gradient {
-                                    GradientStop {
-                                        position: 0
-                                        color: Qt.rgba(1, 1, 1, 0.15)
-                                    }
-
-                                    GradientStop {
-                                        position: 1
-                                        color: "transparent"
-                                    }
-
-                                }
-
-                            }
-
-                            Row {
-                                id: ssTabRow
-
-                                anchors.centerIn: parent
-                                spacing: 5
+                                height: 26
+                                width: 36
+                                radius: 13
+                                color: root.stage === 1 ? Theme.withAlpha(Theme.accent, 0.28) : (ssTabMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
+                                border.width: root.stage === 1 ? 1 : 0
+                                border.color: root.stage === 1 ? Theme.withAlpha(Theme.accent, 0.65) : "transparent"
 
                                 Text {
-                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.centerIn: parent
                                     text: Icons.camera
                                     font.family: Icons.effectiveFont(text)
                                     font.pixelSize: 13
                                     color: root.stage === 1 ? Theme.accent : (ssTabMouse.containsMouse ? Theme.bright_foreground : Qt.rgba(1, 1, 1, 0.5))
                                 }
 
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: "Screenshots (" + root.imageItems.length + ")"
-                                    font.family: Fonts.uiFont
-                                    font.pixelSize: 11
-                                    font.weight: root.stage === 1 ? Font.DemiBold : Font.Medium
-                                    font.letterSpacing: 0.15
-                                    color: root.stage === 1 ? Theme.bright_foreground : (ssTabMouse.containsMouse ? Theme.bright_foreground : Qt.rgba(1, 1, 1, 0.65))
+                                MouseArea {
+                                    id: ssTabMouse
+
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.showScreenshotsStage()
+                                }
+
+                                Behavior on color {
+                                    ColorAnimation {
+                                        duration: 120
+                                    }
+
                                 }
 
                             }
 
-                            MouseArea {
-                                id: ssTabMouse
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.showScreenshotsStage()
-                            }
-
-                            Behavior on color {
-                                ColorAnimation {
-                                    duration: 120
-                                }
-
-                            }
-
-                        }
-
-                        // Tab 2: Text
-                        Rectangle {
-                            height: 28
-                            width: txtTabRow.implicitWidth + 18
-                            radius: 14
-                            color: root.stage === 2 ? Theme.withAlpha(Theme.accent, 0.22) : (txtTabMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
-                            border.width: (root.stage === 2 || txtTabMouse.containsMouse) ? 1 : 0
-                            border.color: root.stage === 2 ? Theme.withAlpha(Theme.accent, 0.55) : Qt.rgba(1, 1, 1, 0.16)
-
-                            // Top specular sheen when active
+                            // Segment 2: Text
                             Rectangle {
-                                anchors.top: parent.top
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                height: 10
-                                radius: 14
-                                visible: root.stage === 2
-                                antialiasing: true
-
-                                gradient: Gradient {
-                                    GradientStop {
-                                        position: 0
-                                        color: Qt.rgba(1, 1, 1, 0.15)
-                                    }
-
-                                    GradientStop {
-                                        position: 1
-                                        color: "transparent"
-                                    }
-
-                                }
-
-                            }
-
-                            Row {
-                                id: txtTabRow
-
-                                anchors.centerIn: parent
-                                spacing: 5
+                                height: 26
+                                width: 36
+                                radius: 13
+                                color: root.stage === 2 ? Theme.withAlpha(Theme.accent, 0.28) : (txtTabMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
+                                border.width: root.stage === 2 ? 1 : 0
+                                border.color: root.stage === 2 ? Theme.withAlpha(Theme.accent, 0.65) : "transparent"
 
                                 Text {
-                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.centerIn: parent
                                     text: Icons.textDoc
                                     font.family: Icons.effectiveFont(text)
                                     font.pixelSize: 13
                                     color: root.stage === 2 ? Theme.accent : (txtTabMouse.containsMouse ? Theme.bright_foreground : Qt.rgba(1, 1, 1, 0.5))
                                 }
 
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: "Text (" + root.textItems.length + ")"
-                                    font.family: Fonts.uiFont
-                                    font.pixelSize: 11
-                                    font.weight: root.stage === 2 ? Font.DemiBold : Font.Medium
-                                    font.letterSpacing: 0.15
-                                    color: root.stage === 2 ? Theme.bright_foreground : (txtTabMouse.containsMouse ? Theme.bright_foreground : Qt.rgba(1, 1, 1, 0.65))
+                                MouseArea {
+                                    id: txtTabMouse
+
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.showTextStage()
+                                }
+
+                                Behavior on color {
+                                    ColorAnimation {
+                                        duration: 120
+                                    }
+
                                 }
 
                             }
 
-                            MouseArea {
-                                id: txtTabMouse
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.showTextStage()
-                            }
-
-                            Behavior on color {
-                                ColorAnimation {
-                                    duration: 120
-                                }
-
-                            }
-
-                        }
-
-                        // Tab 3: Files
-                        Rectangle {
-                            height: 28
-                            width: fileTabRow.implicitWidth + 18
-                            radius: 14
-                            color: root.stage === 3 ? Theme.withAlpha(Theme.accent, 0.22) : (fileTabMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
-                            border.width: (root.stage === 3 || fileTabMouse.containsMouse) ? 1 : 0
-                            border.color: root.stage === 3 ? Theme.withAlpha(Theme.accent, 0.55) : Qt.rgba(1, 1, 1, 0.16)
-
-                            // Top specular sheen when active
+                            // Segment 3: Files
                             Rectangle {
-                                anchors.top: parent.top
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                height: 10
-                                radius: 14
-                                visible: root.stage === 3
-                                antialiasing: true
-
-                                gradient: Gradient {
-                                    GradientStop {
-                                        position: 0
-                                        color: Qt.rgba(1, 1, 1, 0.15)
-                                    }
-
-                                    GradientStop {
-                                        position: 1
-                                        color: "transparent"
-                                    }
-
-                                }
-
-                            }
-
-                            Row {
-                                id: fileTabRow
-
-                                anchors.centerIn: parent
-                                spacing: 5
+                                height: 26
+                                width: 36
+                                radius: 13
+                                color: root.stage === 3 ? Theme.withAlpha(Theme.accent, 0.28) : (fileTabMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent")
+                                border.width: root.stage === 3 ? 1 : 0
+                                border.color: root.stage === 3 ? Theme.withAlpha(Theme.accent, 0.65) : "transparent"
 
                                 Text {
-                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.centerIn: parent
                                     text: Icons.folder
                                     font.family: Icons.effectiveFont(text)
                                     font.pixelSize: 13
                                     color: root.stage === 3 ? Theme.accent : (fileTabMouse.containsMouse ? Theme.bright_foreground : Qt.rgba(1, 1, 1, 0.5))
                                 }
 
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: "Files (" + root.fileItems.length + ")"
-                                    font.family: Fonts.uiFont
-                                    font.pixelSize: 11
-                                    font.weight: root.stage === 3 ? Font.DemiBold : Font.Medium
-                                    font.letterSpacing: 0.15
-                                    color: root.stage === 3 ? Theme.bright_foreground : (fileTabMouse.containsMouse ? Theme.bright_foreground : Qt.rgba(1, 1, 1, 0.65))
+                                MouseArea {
+                                    id: fileTabMouse
+
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.showFilesStage()
                                 }
 
-                            }
+                                Behavior on color {
+                                    ColorAnimation {
+                                        duration: 120
+                                    }
 
-                            MouseArea {
-                                id: fileTabMouse
-
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.showFilesStage()
-                            }
-
-                            Behavior on color {
-                                ColorAnimation {
-                                    duration: 120
                                 }
 
                             }
@@ -1004,7 +888,7 @@ PanelWindow {
 
                     }
 
-                    // Right: Context-sensitive Action Buttons
+                    // Right: Context-sensitive Action Buttons (Minimal Icon Controls)
                     Row {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
@@ -1015,59 +899,18 @@ PanelWindow {
                         Rectangle {
                             visible: root.stage === 1
                             height: 28
-                            width: snapBtnRow.implicitWidth + 16
+                            width: 28
                             radius: 14
                             color: snapBtnMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0.06)
                             border.width: 1
-                            border.color: snapBtnMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.28) : Qt.rgba(1, 1, 1, 0.14)
+                            border.color: snapBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.6) : Qt.rgba(1, 1, 1, 0.14)
 
-                            // Top specular sheen
-                            Rectangle {
-                                anchors.top: parent.top
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                height: 10
-                                radius: 14
-                                antialiasing: true
-
-                                gradient: Gradient {
-                                    GradientStop {
-                                        position: 0
-                                        color: Qt.rgba(1, 1, 1, snapBtnMouse.containsMouse ? 0.16 : 0.08)
-                                    }
-
-                                    GradientStop {
-                                        position: 1
-                                        color: "transparent"
-                                    }
-
-                                }
-
-                            }
-
-                            Row {
-                                id: snapBtnRow
-
+                            Text {
                                 anchors.centerIn: parent
-                                spacing: 4
-
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: Icons.camera
-                                    font.family: Icons.effectiveFont(text)
-                                    font.pixelSize: 13
-                                    color: Theme.accent
-                                }
-
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: "Snap"
-                                    font.family: Fonts.uiFont
-                                    font.pixelSize: 11
-                                    font.weight: Font.Medium
-                                    color: Theme.bright_foreground
-                                }
-
+                                text: Icons.camera
+                                font.family: Icons.effectiveFont(text)
+                                font.pixelSize: 13
+                                color: Theme.accent
                             }
 
                             MouseArea {
@@ -1083,41 +926,31 @@ PanelWindow {
                                 }
                             }
 
+                            Behavior on border.color {
+                                ColorAnimation {
+                                    duration: 120
+                                }
+
+                            }
+
                         }
 
                         // In Stage 2: Add Note button
                         Rectangle {
                             visible: root.stage === 2 && !root.searchOpen
                             height: 28
-                            width: noteBtnRow.implicitWidth + 16
+                            width: 28
                             radius: 14
                             color: root.newNoteOpen ? Theme.withAlpha(Theme.accent, 0.3) : (noteBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.2) : Qt.rgba(1, 1, 1, 0.08))
                             border.width: 1
                             border.color: root.newNoteOpen ? Theme.accent : Qt.rgba(1, 1, 1, 0.2)
 
-                            Row {
-                                id: noteBtnRow
-
+                            Text {
                                 anchors.centerIn: parent
-                                spacing: 4
-
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: Icons.editBrush
-                                    font.family: Icons.effectiveFont(text)
-                                    font.pixelSize: 13
-                                    color: Theme.accent
-                                }
-
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: root.newNoteOpen ? "Cancel" : "+ Note"
-                                    font.family: Fonts.uiFont
-                                    font.pixelSize: 11
-                                    font.weight: Font.Medium
-                                    color: Theme.bright_foreground
-                                }
-
+                                text: root.newNoteOpen ? Icons.close : Icons.editBrush
+                                font.family: Icons.effectiveFont(text)
+                                font.pixelSize: 13
+                                color: Theme.accent
                             }
 
                             MouseArea {
@@ -1135,35 +968,18 @@ PanelWindow {
                         Rectangle {
                             visible: root.stage === 3 && !root.searchOpen
                             height: 28
-                            width: addFileBtnRow.implicitWidth + 16
+                            width: 28
                             radius: 14
                             color: addFileBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.25) : Qt.rgba(1, 1, 1, 0.08)
                             border.width: 1
                             border.color: addFileBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.6) : Qt.rgba(1, 1, 1, 0.2)
 
-                            Row {
-                                id: addFileBtnRow
-
+                            Text {
                                 anchors.centerIn: parent
-                                spacing: 4
-
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: Icons.fileAdd
-                                    font.family: Icons.effectiveFont(text)
-                                    font.pixelSize: 14
-                                    color: Theme.accent
-                                }
-
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: "+ Add File"
-                                    font.family: Fonts.uiFont
-                                    font.pixelSize: 11
-                                    font.weight: Font.Medium
-                                    color: Theme.bright_foreground
-                                }
-
+                                text: Icons.fileAdd
+                                font.family: Icons.effectiveFont(text)
+                                font.pixelSize: 14
+                                color: Theme.accent
                             }
 
                             MouseArea {
@@ -1181,35 +997,18 @@ PanelWindow {
                         Rectangle {
                             visible: (root.stage === 2 || root.stage === 3) && !root.searchOpen
                             height: 28
-                            width: searchBtnRow.implicitWidth + 16
+                            width: 28
                             radius: 14
                             color: searchBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.22) : Qt.rgba(1, 1, 1, 0.08)
                             border.width: 1
                             border.color: searchBtnMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.55) : Qt.rgba(1, 1, 1, 0.2)
 
-                            Row {
-                                id: searchBtnRow
-
+                            Text {
                                 anchors.centerIn: parent
-                                spacing: 4
-
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: Icons.search
-                                    font.family: Icons.effectiveFont(text)
-                                    font.pixelSize: 13
-                                    color: searchBtnMouse.containsMouse ? Theme.accent : Theme.foreground
-                                }
-
-                                Text {
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: "Search"
-                                    font.family: Fonts.uiFont
-                                    font.pixelSize: 11
-                                    font.weight: Font.Medium
-                                    color: searchBtnMouse.containsMouse ? Theme.accent : Theme.foreground
-                                }
-
+                                text: Icons.search
+                                font.family: Icons.effectiveFont(text)
+                                font.pixelSize: 13
+                                color: searchBtnMouse.containsMouse ? Theme.accent : Theme.foreground
                             }
 
                             MouseArea {
@@ -1521,20 +1320,20 @@ PanelWindow {
                         readonly property real thumbRatio: imgStripList.contentWidth > 0 ? Math.min(1, imgStripList.width / imgStripList.contentWidth) : 1
 
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 3
+                        Layout.preferredHeight: 2
                         visible: root.imageItems.length > 4 && maxX > 1
 
                         Rectangle {
                             anchors.fill: parent
-                            radius: 1.5
-                            color: Theme.withAlpha(Theme.bright_foreground, 0.08)
+                            radius: 1
+                            color: Qt.rgba(1, 1, 1, 0.08)
 
                             Rectangle {
                                 height: parent.height
-                                radius: 1.5
+                                radius: 1
                                 width: Math.max(32, parent.width * stripProgressTrack.thumbRatio)
                                 x: stripProgressTrack.maxX > 0 ? ((imgStripList.contentX / stripProgressTrack.maxX) * Math.max(0, parent.width - width)) : 0
-                                color: Theme.withAlpha(Theme.accent, 0.78)
+                                color: Theme.withAlpha(Theme.accent, 0.6)
                             }
 
                         }

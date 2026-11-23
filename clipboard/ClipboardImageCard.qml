@@ -336,89 +336,23 @@ Item {
 
         }
 
-        // Hover Bottom Frosted Scrim & Dimension/Age Caption
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: 30
-            opacity: imgCard.isHovered ? 1 : 0
-            visible: opacity > 0.01
-            z: 10
-
-            Text {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                anchors.leftMargin: 8
-                anchors.rightMargin: 8
-                anchors.bottomMargin: 5
-                text: {
-                    var parts = [];
-                    if (imgCard.modelData.width > 0)
-                        parts.push(imgCard.modelData.width + "×" + imgCard.modelData.height);
-
-                    if (imgCard.clipboardService) {
-                        var tm = imgCard.clipboardService.formatRelativeTime(imgCard.modelData.timestamp);
-                        var sz = imgCard.clipboardService.formatSize(imgCard.modelData.sizeBytes);
-                        if (tm)
-                            parts.push(tm);
-
-                        if (sz)
-                            parts.push(sz);
-
-                    }
-                    return parts.join(" · ");
-                }
-                font.family: Fonts.uiFont
-                font.pixelSize: 10
-                font.weight: Font.Medium
-                color: Theme.withAlpha(Theme.bright_foreground, 0.92)
-                elide: Text.ElideRight
-            }
-
-            gradient: Gradient {
-                GradientStop {
-                    position: 0
-                    color: "transparent"
-                }
-
-                GradientStop {
-                    position: 1
-                    color: Qt.rgba(8, 10, 14, 0.82)
-                }
-
-            }
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: 120
-                }
-
-            }
-
-        }
-
-        // Crisp Copied Pill Toast
+        // Minimal Copied Feedback (Checkmark Glyph Pill)
         Rectangle {
             anchors.centerIn: parent
-            height: 24
-            width: copiedLabel.implicitWidth + 18
-            radius: 12
-            color: Qt.rgba(14, 18, 16, 0.9)
-            border.width: 1
-            border.color: Theme.withAlpha(Theme.green, 0.78)
+            width: 28
+            height: 28
+            radius: 14
+            color: Qt.rgba(14, 22, 16, 0.92)
+            border.width: 1.5
+            border.color: Theme.green
             visible: imgCard.isCopiedNow
-            z: 15
+            z: 25
 
             Text {
-                id: copiedLabel
-
                 anchors.centerIn: parent
-                text: "Copied"
-                font.family: Fonts.uiFont
-                font.pixelSize: 11
-                font.weight: Font.DemiBold
+                text: Icons.check
+                font.family: Icons.effectiveFont(text)
+                font.pixelSize: 14
                 color: Theme.green
             }
 
