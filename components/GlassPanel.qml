@@ -107,26 +107,27 @@ Item {
                     return Theme.withAlpha(root.accentTint, 0.65);
 
                 if (root.isHovered)
-                    return Qt.rgba(1, 1, 1, 0.28);
+                    return Qt.rgba(1, 1, 1, Appearance.hyprglassEnabled ? 0.28 : 0.32);
 
-                return Qt.rgba(1, 1, 1, 0.12);
+                return Qt.rgba(1, 1, 1, Appearance.hyprglassEnabled ? 0.12 : 0.16);
             }
 
             Gradient {
                 id: liquidGradient
 
                 // Dynamic clarity scaling harmonized with Kitty (0.35 reference)
+                readonly property bool useHyprglass: Appearance.hyprglassEnabled
                 readonly property real clarityFactor: Math.max(0.6, Math.min(1.4, 1 - (root.clarity - 0.75) * 0.8))
-                readonly property real baseAlpha: root.mode === "clear" ? 0.18 : (root.mode === "liquid" ? 0.24 : 0.3)
-                readonly property real midAlpha: root.mode === "clear" ? 0.22 : (root.mode === "liquid" ? 0.28 : 0.34)
-                readonly property real bodyAlpha: root.mode === "clear" ? 0.25 : (root.mode === "liquid" ? 0.32 : 0.38)
-                readonly property real deepAlpha: root.mode === "clear" ? 0.28 : (root.mode === "liquid" ? 0.35 : 0.42)
+                readonly property real baseAlpha: liquidGradient.useHyprglass ? (root.mode === "clear" ? 0.18 : (root.mode === "liquid" ? 0.24 : 0.3)) : (root.mode === "clear" ? 0.32 : (root.mode === "liquid" ? 0.4 : 0.48))
+                readonly property real midAlpha: liquidGradient.useHyprglass ? (root.mode === "clear" ? 0.22 : (root.mode === "liquid" ? 0.28 : 0.34)) : (root.mode === "clear" ? 0.38 : (root.mode === "liquid" ? 0.46 : 0.54))
+                readonly property real bodyAlpha: liquidGradient.useHyprglass ? (root.mode === "clear" ? 0.25 : (root.mode === "liquid" ? 0.32 : 0.38)) : (root.mode === "clear" ? 0.44 : (root.mode === "liquid" ? 0.52 : 0.6))
+                readonly property real deepAlpha: liquidGradient.useHyprglass ? (root.mode === "clear" ? 0.28 : (root.mode === "liquid" ? 0.35 : 0.42)) : (root.mode === "clear" ? 0.5 : (root.mode === "liquid" ? 0.58 : 0.68))
 
                 // Position 0.0: High-clarity crystalline specular crest
                 GradientStop {
                     position: 0
                     color: {
-                        var c = Qt.rgba(0.08, 0.09, 0.12, liquidGradient.baseAlpha * liquidGradient.clarityFactor);
+                        var c = liquidGradient.useHyprglass ? Qt.rgba(0.08, 0.09, 0.12, liquidGradient.baseAlpha * liquidGradient.clarityFactor) : Qt.rgba(0.06, 0.07, 0.1, liquidGradient.baseAlpha);
                         if (root.active)
                             c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.12));
                         else if (root.isHovered)
@@ -143,7 +144,7 @@ Item {
                 GradientStop {
                     position: 0.18
                     color: {
-                        var c = Qt.rgba(0.07, 0.08, 0.11, liquidGradient.midAlpha * liquidGradient.clarityFactor);
+                        var c = liquidGradient.useHyprglass ? Qt.rgba(0.07, 0.08, 0.11, liquidGradient.midAlpha * liquidGradient.clarityFactor) : Qt.rgba(0.05, 0.06, 0.08, liquidGradient.midAlpha);
                         if (root.active)
                             c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.1));
 
@@ -155,7 +156,7 @@ Item {
                 GradientStop {
                     position: 0.55
                     color: {
-                        var c = Qt.rgba(0.06, 0.07, 0.1, liquidGradient.bodyAlpha * liquidGradient.clarityFactor);
+                        var c = liquidGradient.useHyprglass ? Qt.rgba(0.06, 0.07, 0.1, liquidGradient.bodyAlpha * liquidGradient.clarityFactor) : Qt.rgba(0.04, 0.05, 0.07, liquidGradient.bodyAlpha);
                         if (root.active)
                             c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.08));
 
@@ -167,7 +168,7 @@ Item {
                 GradientStop {
                     position: 1
                     color: {
-                        var c = Qt.rgba(0.05, 0.06, 0.09, liquidGradient.deepAlpha * liquidGradient.clarityFactor);
+                        var c = liquidGradient.useHyprglass ? Qt.rgba(0.05, 0.06, 0.09, liquidGradient.deepAlpha * liquidGradient.clarityFactor) : Qt.rgba(0.03, 0.04, 0.06, liquidGradient.deepAlpha);
                         if (root.active)
                             c = Qt.tint(c, Theme.withAlpha(root.accentTint, 0.06));
 

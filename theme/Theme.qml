@@ -10,6 +10,7 @@ QtObject {
     readonly property string colorsConfigPath: Quickshell.env("HOME") + "/.config/themes/current/colors.toml"
     readonly property string localColorsPath: (Quickshell.env("QS_CONFIG_PATH") || (Quickshell.env("HOME") + "/.config/quickshell")) + "/theme/colors.toml"
     readonly property string blurStatePath: (Quickshell.env("XDG_STATE_HOME") || (Quickshell.env("HOME") + "/.local/state")) + "/quickshell/blur-state"
+    readonly property string hyprglassConfigPath: (Quickshell.env("QS_CONFIG_PATH") || (Quickshell.env("HOME") + "/.config/quickshell")) + "/hyprglass"
     // Raw parsed colors dictionary
     property var _c: ({
     })
@@ -75,20 +76,20 @@ QtObject {
     // ─────────────────────────────────────────────────────────────────────────
     // Glassmorphism & Frosted Glass Tokens (Apple-grade Smoked Liquid Glass)
     // ─────────────────────────────────────────────────────────────────────────
-    readonly property real glassOpacity: 0.45
-    readonly property real glassPillOpacity: 0.18
+    readonly property real glassOpacity: Appearance.hyprglassEnabled ? 0.45 : 0.85
+    readonly property real glassPillOpacity: Appearance.hyprglassEnabled ? 0.18 : 0.35
     readonly property color glassBorder: Qt.rgba(1, 1, 1, 0.16)
     readonly property color glassBorderLight: Qt.rgba(1, 1, 1, 0.28)
     readonly property color glassSpecular: Qt.rgba(1, 1, 1, 0.5)
     readonly property color glassInnerSheen: Qt.rgba(1, 1, 1, 0.1)
     readonly property color glassBounce: Qt.rgba(1, 1, 1, 0.06)
-    readonly property color glassWidgetBg: Qt.rgba(0, 0, 0, 0.28)
-    readonly property color glassWidgetBorder: Qt.rgba(1, 1, 1, 0.12)
+    readonly property color glassWidgetBg: Qt.rgba(0, 0, 0, Appearance.hyprglassEnabled ? 0.28 : 0.5)
+    readonly property color glassWidgetBorder: Qt.rgba(1, 1, 1, Appearance.hyprglassEnabled ? 0.12 : 0.16)
     readonly property color glassHover: root.withAlpha(root.accent, 0.14)
     readonly property color glassHoverBorder: root.withAlpha(root.accent, 0.42)
     readonly property color glassActive: root.withAlpha(root.accent, 0.24)
     readonly property color glassActiveBorder: root.accent
-    readonly property real glassPopupOpacity: 0.5
+    readonly property real glassPopupOpacity: Appearance.hyprglassEnabled ? 0.5 : 0.85
     // ─────────────────────────────────────────────────────────────────────────
     // Dual Alpha + Compositor Blur Architecture
     // ─────────────────────────────────────────────────────────────────────────
@@ -115,6 +116,7 @@ QtObject {
     readonly property int radiusLarge: Appearance.radiusLarge
     readonly property int animDuration: Appearance.animDurationNormal
     property FileView blurStateFile
+    property FileView hyprglassFile
     property FileView colorsFile
     property FileView fallbackColorsFile
     property Process themeReaderProc
@@ -270,6 +272,11 @@ QtObject {
             root.parseThemeFile(colorsFile.text());
         else if (fallbackColorsFile.text())
             root.parseThemeFile(fallbackColorsFile.text());
+        var rawGlass = String(hyprglassFile.text() || "").trim().toLowerCase();
+        if (rawGlass === "off" || rawGlass === "false" || rawGlass === "no" || rawGlass === "0")
+            Appearance.hyprglassEnabled = false;
+        else
+            Appearance.hyprglassEnabled = true;
         var rawBlur = String(blurStateFile.text() || "").trim().toLowerCase();
         if (rawBlur === "off" || rawBlur === "false" || rawBlur === "0") {
             root.blurEnabled = false;
@@ -319,6 +326,25 @@ QtObject {
             return root.blurEnabled ? "on" : "off";
         }
 
+        function toggleHyprglass() : string {
+            var script = Quickshell.env("HOME") + "/.local/bin/qdeck-glass";
+            Quickshell.execDetached([script, "toggle"]);
+            return Appearance.hyprglassEnabled ? "off" : "on";
+        }
+
+        function setHyprglass(val: string) : string {
+            var v = String(val || "").trim().toLowerCase();
+            var enable = (v === "on" || v === "true" || v === "yes" || v === "1");
+            Appearance.hyprglassEnabled = enable;
+            var script = Quickshell.env("HOME") + "/.local/bin/qdeck-glass";
+            Quickshell.execDetached([script, enable ? "on" : "off"]);
+            return enable ? "on" : "off";
+        }
+
+        function getHyprglass() : string {
+            return Appearance.hyprglassEnabled ? "on" : "off";
+        }
+
         target: "theme"
     }
 
@@ -335,6 +361,24 @@ QtObject {
             } else if (raw === "on" || raw === "true" || raw === "1") {
                 if (!root.blurEnabled)
                     root.blurEnabled = true;
+
+            }
+        }
+    }
+
+    hyprglassFile: FileView {
+        path: root.hyprglassConfigPath
+        watchChanges: true
+        printErrors: false
+        onLoaded: {
+            var raw = String(text() || "").trim().toLowerCase();
+            if (raw === "off" || raw === "false" || raw === "no" || raw === "0") {
+                if (Appearance.hyprglassEnabled)
+                    Appearance.hyprglassEnabled = false;
+
+            } else if (raw === "on" || raw === "true" || raw === "yes" || raw === "1") {
+                if (!Appearance.hyprglassEnabled)
+                    Appearance.hyprglassEnabled = true;
 
             }
         }

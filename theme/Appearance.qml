@@ -30,6 +30,8 @@ QtObject {
     // =========================================================================
     property string glassMode: "liquid"
     // "liquid", "frosted", "clear", "flat"
+    property bool hyprglassEnabled: true
+    // Master HyprGlass GPU shader sync
     property string glassMaterial: "controlCenter"
     // "controlCenter", "widgets", "clearGlass", "sidebar", "chromatic"
     property real glassClarity: 0.82
