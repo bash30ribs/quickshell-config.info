@@ -221,8 +221,8 @@ PanelWindow {
         property: "edgeProgress"
         from: root.edgeProgress
         to: 0
-        duration: Math.max(30, Math.round(75 * root.edgeProgress))
-        easing.type: Easing.InCubic
+        duration: Math.max(20, Math.round(50 * root.edgeProgress))
+        easing.type: Easing.OutQuad
         onFinished: {
             if (root.edgeProgress <= 0.001)
                 edgeSwapTimer.restart();
@@ -233,7 +233,7 @@ PanelWindow {
     Timer {
         id: edgeSwapTimer
 
-        interval: 16
+        interval: 10
         repeat: false
         onTriggered: {
             Appearance.barEdge = root.pendingEdge;
@@ -244,7 +244,7 @@ PanelWindow {
     Timer {
         id: edgeAppearDelayTimer
 
-        interval: 16
+        interval: 10
         repeat: false
         onTriggered: {
             if (Appearance.barVisible) {
@@ -263,8 +263,8 @@ PanelWindow {
         property: "edgeProgress"
         from: 0
         to: 1
-        duration: 160
-        easing.type: Easing.OutQuart
+        duration: 140
+        easing.type: Easing.OutCubic
         onFinished: {
             Appearance.barTransitioning = false;
         }
@@ -307,13 +307,11 @@ PanelWindow {
         }
     }
 
-    // Animated edge-drop container carrying glass backgrounds and widgets at 120fps
+    // Animated edge container carrying glass backgrounds and widgets synchronously
     Item {
         id: edgeSurface
 
         readonly property real reveal: root.edgeProgress * root.showProgress
-        readonly property real travelX: Appearance.barIsLeft ? -root.width : (Appearance.barIsRight ? root.width : 0)
-        readonly property real travelY: Appearance.barIsTop ? -root.height : (Appearance.barIsBottom ? root.height : 0)
 
         anchors.fill: parent
         opacity: Math.max(0, Math.min(1, reveal))
@@ -607,11 +605,6 @@ PanelWindow {
 
             }
 
-        }
-
-        transform: Translate {
-            x: edgeSurface.travelX * (1 - edgeSurface.reveal)
-            y: edgeSurface.travelY * (1 - edgeSurface.reveal)
         }
 
     }
