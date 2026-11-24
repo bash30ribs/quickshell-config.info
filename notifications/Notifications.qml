@@ -496,297 +496,39 @@ Item {
                         required property real remainingLifetime
                         readonly property real lifetime: root.durationFor(cardSlot.urgency, cardSlot.expireTimeout)
                         readonly property bool isScreenshot: app.toLowerCase().indexOf("screenshot") !== -1 || summary.toLowerCase().indexOf("screenshot") !== -1
-                        readonly property real stringDrop: 44
 
                         Layout.preferredWidth: card.implicitWidth
                         Layout.alignment: Qt.AlignHCenter
-                        implicitHeight: isScreenshot ? (card.implicitHeight + stringDrop) : card.implicitHeight
+                        implicitHeight: card.implicitHeight
 
-                        // ── Top Clasps (Secured to underside of top panel) ──
-                        Item {
-                            id: claspsLayer
+                        NotificationCard {
+                            id: card
 
-                            anchors.top: parent.top
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            height: 8
-                            visible: cardSlot.isScreenshot
-                            z: 30
-
-                            // Left Clasp Bracket
-                            Rectangle {
-                                x: 28 - 5
-                                y: 0
-                                width: 10
-                                height: 6
-                                radius: 2
-                                color: Theme.withAlpha(Theme.bright_foreground, 0.85)
-                                border.width: 1
-                                border.color: Theme.withAlpha(Theme.foreground, 0.4)
-
-                                Rectangle {
-                                    anchors.top: parent.top
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    width: 8
-                                    height: 1
-                                    color: Qt.rgba(1, 1, 1, 0.85)
-                                }
-
-                            }
-
-                            // Right Clasp Bracket
-                            Rectangle {
-                                x: parent.width - 28 - 5
-                                y: 0
-                                width: 10
-                                height: 6
-                                radius: 2
-                                color: Theme.withAlpha(Theme.bright_foreground, 0.85)
-                                border.width: 1
-                                border.color: Theme.withAlpha(Theme.foreground, 0.4)
-
-                                Rectangle {
-                                    anchors.top: parent.top
-                                    anchors.horizontalCenter: parent.horizontalCenter
-                                    width: 8
-                                    height: 1
-                                    color: Qt.rgba(1, 1, 1, 0.85)
-                                }
-
-                            }
-
-                        }
-
-                        // ── Dynamic String Canvas Rig (Connects clasps to card eyelets) ──
-                        Canvas {
-                            id: stringCanvas
-
-                            visible: cardSlot.isScreenshot
                             anchors.fill: parent
-                            z: 25
-                            antialiasing: true
-                            onPaint: {
-                                var ctx = getContext("2d");
-                                ctx.clearRect(0, 0, width, height);
-                                var W = cardSlot.width;
-                                if (W <= 0)
-                                    return ;
-
-                                var rotDeg = cardHanger.rotation;
-                                var rad = rotDeg * Math.PI / 180;
-                                var cosA = Math.cos(rad);
-                                var sinA = Math.sin(rad);
-                                var pivotX = cardHanger.x + (cardHanger.width / 2);
-                                var pivotY = cardHanger.y;
-                                var eyeletMargin = 28;
-                                var eyeletLocalY = 14;
-                                // Left eyelet vector from pivot
-                                var dxL = eyeletMargin - (cardHanger.width / 2);
-                                var dyL = eyeletLocalY;
-                                var exL = pivotX + dxL * cosA - dyL * sinA;
-                                var eyL = pivotY + dxL * sinA + dyL * cosA;
-                                // Right eyelet vector from pivot
-                                var dxR = (cardHanger.width - eyeletMargin) - (cardHanger.width / 2);
-                                var dyR = eyeletLocalY;
-                                var exR = pivotX + dxR * cosA - dyR * sinA;
-                                var eyR = pivotY + dxR * sinA + dyR * cosA;
-                                var claspL_X = cardHanger.x + eyeletMargin;
-                                var claspL_Y = 0;
-                                var claspR_X = cardHanger.x + (cardHanger.width - eyeletMargin);
-                                var claspR_Y = 0;
-                                // 1. Ambient Drop Shadow (gives strings realistic physical depth)
-                                ctx.beginPath();
-                                ctx.moveTo(claspL_X + 1.2, claspL_Y + 1.2);
-                                ctx.lineTo(exL + 1.2, eyL + 1.2);
-                                ctx.moveTo(claspR_X + 1.2, claspR_Y + 1.2);
-                                ctx.lineTo(exR + 1.2, eyR + 1.2);
-                                ctx.lineWidth = 2.2;
-                                ctx.strokeStyle = "rgba(0, 0, 0, 0.32)";
-                                ctx.lineCap = "round";
-                                ctx.stroke();
-                                // 2. Tactile Braided Silk Cord Body
-                                ctx.beginPath();
-                                ctx.moveTo(claspL_X, claspL_Y);
-                                ctx.lineTo(exL, eyL);
-                                ctx.moveTo(claspR_X, claspR_Y);
-                                ctx.lineTo(exR, eyR);
-                                ctx.lineWidth = 1.4;
-                                ctx.strokeStyle = "rgba(235, 238, 245, 0.82)";
-                                ctx.lineCap = "round";
-                                ctx.stroke();
-                                // 3. Specular Highlight Core (Optical thread sheen)
-                                ctx.beginPath();
-                                ctx.moveTo(claspL_X, claspL_Y);
-                                ctx.lineTo(exL, eyL);
-                                ctx.moveTo(claspR_X, claspR_Y);
-                                ctx.lineTo(exR, eyR);
-                                ctx.lineWidth = 0.55;
-                                ctx.strokeStyle = "rgba(255, 255, 255, 0.96)";
-                                ctx.stroke();
-                                // 4. Metallic Crimp Knot Beads at eyelet entries
-                                ctx.beginPath();
-                                ctx.arc(exL, eyL, 2.2, 0, 2 * Math.PI);
-                                ctx.arc(exR, eyR, 2.2, 0, 2 * Math.PI);
-                                ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
-                                ctx.fill();
+                            isScreenshot: cardSlot.isScreenshot
+                            app: cardSlot.app
+                            appIcon: cardSlot.appIcon
+                            summary: cardSlot.summary
+                            body: cardSlot.body
+                            image: cardSlot.image
+                            glyph: cardSlot.glyph
+                            urgency: cardSlot.urgency
+                            timestamp: cardSlot.timestamp
+                            actionsJson: cardSlot.actionsJson
+                            progress: cardSlot.remainingLifetime !== undefined ? cardSlot.remainingLifetime : 1
+                            hasTimeout: cardSlot.lifetime > 0
+                            onCloseRequested: root.dismissPopup(cardSlot.index)
+                            onCardClicked: root.invokePopupDefault(cardSlot.index)
+                            onActionRequested: function(actionId) {
+                                root.invokePopupAction(cardSlot.index, actionId);
                             }
 
                             Connections {
-                                function onRotationChanged() {
-                                    stringCanvas.requestPaint();
+                                function onHoveredChanged() {
+                                    root.setNotificationHovered(cardSlot.originalId, card.hovered);
                                 }
 
-                                function onYChanged() {
-                                    stringCanvas.requestPaint();
-                                }
-
-                                target: cardHanger
-                            }
-
-                            Connections {
-                                function onWidthChanged() {
-                                    stringCanvas.requestPaint();
-                                }
-
-                                function onHeightChanged() {
-                                    stringCanvas.requestPaint();
-                                }
-
-                                target: cardSlot
-                            }
-
-                        }
-
-                        // ── Suspended Card with Harmonic String Physics ──
-                        Item {
-                            id: cardHanger
-
-                            property real dropOffset: 0
-                            property real arrivalSway: 0
-                            property real mouseSway: 0
-
-                            x: Math.round((cardSlot.width - width) / 2)
-                            y: cardSlot.isScreenshot ? (cardSlot.stringDrop + dropOffset) : 0
-                            width: card.implicitWidth
-                            height: card.implicitHeight
-                            transformOrigin: Item.Top
-                            rotation: cardSlot.isScreenshot ? (arrivalSway + mouseSway) : 0
-
-                            SequentialAnimation {
-                                id: pendulumArrival
-
-                                running: cardSlot.isScreenshot
-
-                                ParallelAnimation {
-                                    NumberAnimation {
-                                        target: cardHanger
-                                        property: "dropOffset"
-                                        from: -cardSlot.stringDrop - 20
-                                        to: 0
-                                        duration: 520
-                                        easing.type: Easing.OutBack
-                                        easing.overshoot: 1.32
-                                    }
-
-                                    SequentialAnimation {
-                                        NumberAnimation {
-                                            target: cardHanger
-                                            property: "arrivalSway"
-                                            from: 4.8
-                                            to: -3.4
-                                            duration: 380
-                                            easing.type: Easing.InOutQuad
-                                        }
-
-                                        NumberAnimation {
-                                            target: cardHanger
-                                            property: "arrivalSway"
-                                            to: 2.2
-                                            duration: 320
-                                            easing.type: Easing.InOutQuad
-                                        }
-
-                                        NumberAnimation {
-                                            target: cardHanger
-                                            property: "arrivalSway"
-                                            to: -1
-                                            duration: 260
-                                            easing.type: Easing.InOutQuad
-                                        }
-
-                                        NumberAnimation {
-                                            target: cardHanger
-                                            property: "arrivalSway"
-                                            to: 0.4
-                                            duration: 200
-                                            easing.type: Easing.InOutQuad
-                                        }
-
-                                        NumberAnimation {
-                                            target: cardHanger
-                                            property: "arrivalSway"
-                                            to: 0
-                                            duration: 160
-                                            easing.type: Easing.OutQuad
-                                        }
-
-                                    }
-
-                                }
-
-                            }
-
-                            NotificationCard {
-                                id: card
-
-                                anchors.fill: parent
-                                isScreenshot: cardSlot.isScreenshot
-                                app: cardSlot.app
-                                appIcon: cardSlot.appIcon
-                                summary: cardSlot.summary
-                                body: cardSlot.body
-                                image: cardSlot.image
-                                glyph: cardSlot.glyph
-                                urgency: cardSlot.urgency
-                                timestamp: cardSlot.timestamp
-                                actionsJson: cardSlot.actionsJson
-                                progress: cardSlot.remainingLifetime !== undefined ? cardSlot.remainingLifetime : 1
-                                hasTimeout: cardSlot.lifetime > 0
-                                onCloseRequested: root.dismissPopup(cardSlot.index)
-                                onCardClicked: root.invokePopupDefault(cardSlot.index)
-                                onActionRequested: function(actionId) {
-                                    root.invokePopupAction(cardSlot.index, actionId);
-                                }
-                                onHoverPosChanged: function(relX) {
-                                    if (!cardSlot.isScreenshot)
-                                        return ;
-
-                                    var centerOffset = (relX - card.implicitWidth / 2) / (card.implicitWidth / 2);
-                                    cardHanger.mouseSway = Math.max(-2.8, Math.min(2.8, centerOffset * 2.8));
-                                }
-                                onHoverExited: {
-                                    if (!cardSlot.isScreenshot)
-                                        return ;
-
-                                    cardHanger.mouseSway = 0;
-                                }
-
-                                Connections {
-                                    function onHoveredChanged() {
-                                        root.setNotificationHovered(cardSlot.originalId, card.hovered);
-                                    }
-
-                                    target: card
-                                }
-
-                            }
-
-                            Behavior on mouseSway {
-                                NumberAnimation {
-                                    duration: 160
-                                    easing.type: Easing.OutQuad
-                                }
-
+                                target: card
                             }
 
                         }

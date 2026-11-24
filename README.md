@@ -119,13 +119,13 @@ Move your pointer to the top bar and glide two fingers downward (trackpad natura
 
 ---
 
-### 🧵 Suspended Screenshot Notifications & Hanging Thread Physics
-- **What It Is**: A tactile notification presentation that renders new screenshot captures as physical cards suspended from top bar clasps with metallic eyelets and dual thread lines.
-- **Why We Built It**: Standard notification toasts are flat, generic, and easily dismissed by accident. A screenshot is an active, tactile creative asset that deserves distinct visual importance and physical presence.
+### 📸 Executive Floating Screenshot HUD
+- **What It Is**: A refined floating preview HUD that presents new screenshot captures with clean liquid glass fidelity, direct click-to-open interaction, and instant swappy annotation.
+- **Why We Built It**: Standard notification toasts are flat, generic, and easily dismissed, while heavy utility windows interrupt workflow. A clean floating thumbnail provides immediate visual confirmation without intrusive clutter.
 - **How It Helps You**:
-  - **Damped Pendulum Dynamics**: New captures swing into view with a physical $-3.2^\circ$ release oscillation and subtle spring rebound, responding dynamically to mouse hover gestures.
-  - **Corner Grommet Architecture**: Authentic liquid glass surface detailed with metallic perimeter eyelets and top-bar mounting clasps.
-  - **Inline Workflow Actions**: Instant access to `[ Open ]`, `[ Annotate ]` (via `swappy`), and `[ Copy ]` directly from the suspended card.
+  - **Unobstructed Hero Preview**: Clean, borderless preview thumbnail with 10px squircle radius and subtle specular border illumination.
+  - **Direct Spatial Interaction**: Click directly on the image to open in your default viewer, middle-click or click the header brush icon to launch `swappy` annotation, and right-click to dismiss.
+  - **Zero UI Clutter**: Eliminates temporary filenames, badges, and clunky button rows for a minimalist, professional desktop experience.
 
 ---
 
@@ -282,7 +282,7 @@ qs ipc call audit status                # Query daemon running state
 │   └── Polkit.qml                # Centered polkit authentication dialog
 ├── notifications/
 │   ├── Notifications.qml         # Desktop notification manager
-│   ├── NotificationCard.qml      # Suspended screenshot card with hanging string physics & eyelets
+│   ├── NotificationCard.qml      # Executive floating screenshot preview HUD & liquid glass toast
 │   └── NotificationLogic.js      # Notification snapshotting & lifetime logic
 ├── services/                     # Backend communication layer
 │   ├── AudioService.qml          # PipeWire native integration
