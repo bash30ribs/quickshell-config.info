@@ -12,6 +12,9 @@ Item {
     property AudioService audioService: null
     property alias popup: mediaPopup
     readonly property bool hasMedia: controller ? controller.hasMedia : false
+    readonly property bool isPlaying: controller ? controller.isPlaying : false
+    property bool graceActive: false
+    readonly property bool pillActive: (root.controller && root.controller.hasMedia) && (root.isPlaying || root.graceActive || mediaPopup.open)
     readonly property string trackTitle: {
         if (!root.controller)
             return "";
@@ -25,13 +28,47 @@ Item {
     }
     readonly property bool isVertical: Appearance.barIsVertical
 
-    implicitHeight: root.isVertical ? (hasMedia ? Math.max(28, Appearance.barThickness - 10) : 0) : Appearance.mediaPillHeight
-    implicitWidth: root.isVertical ? (hasMedia ? Math.max(28, Appearance.barThickness - 10) : 0) : (hasMedia ? Math.min(195, Math.max(110, titleMeasure.implicitWidth + 56)) : 0)
+    onIsPlayingChanged: {
+        if (root.isPlaying) {
+            pauseGraceTimer.stop();
+            root.graceActive = false;
+        } else if (root.controller && root.controller.hasMedia) {
+            root.graceActive = true;
+            pauseGraceTimer.restart();
+        } else {
+            pauseGraceTimer.stop();
+            root.graceActive = false;
+        }
+    }
+    implicitHeight: root.isVertical ? (pillActive ? Math.max(28, Appearance.barThickness - 10) : 0) : (pillActive ? Appearance.mediaPillHeight : 0)
+    implicitWidth: root.isVertical ? (pillActive ? Math.max(28, Appearance.barThickness - 10) : 0) : (pillActive ? Math.min(205, Math.max(115, titleMeasure.implicitWidth + 58)) : 0)
     height: implicitHeight
     width: implicitWidth
     visible: (width > 0 && height > 0) || opacity > 0
-    opacity: hasMedia ? 1 : 0
-    scale: hasMedia ? 1 : 0.85
+    opacity: pillActive ? 1 : 0
+    scale: pillActive ? 1 : 0.88
+
+    Timer {
+        id: pauseGraceTimer
+
+        interval: 6000
+        repeat: false
+        onTriggered: {
+            if (!root.isPlaying && !mediaPopup.open)
+                root.graceActive = false;
+
+        }
+    }
+
+    Connections {
+        function onOpenChanged() {
+            if (!mediaPopup.open && !root.isPlaying)
+                root.graceActive = false;
+
+        }
+
+        target: mediaPopup
+    }
 
     // Hidden text measuring component for fluid pill expansion
     Text {
@@ -52,8 +89,8 @@ Item {
         radius: Math.min(width, height) / 2
         clip: true
         antialiasing: true
-        color: mediaPopup.open ? Theme.withAlpha(Theme.accent, 0.22) : (pillMouse.containsMouse ? Theme.withAlpha(Theme.glassCrest, 0.16) : Theme.withAlpha(Theme.glassCrest, 0.08))
-        border.color: mediaPopup.open ? Theme.withAlpha(Theme.accent, 0.55) : (pillMouse.containsMouse ? Theme.withAlpha(Theme.glassCrest, 0.35) : Theme.withAlpha(Theme.glassBorderColor, 0.2))
+        color: mediaPopup.open ? Theme.withAlpha(Theme.accent, 0.25) : (pillMouse.containsMouse ? Theme.withAlpha(Theme.glassCrest, 0.18) : (root.isPlaying ? Qt.rgba(0.08, 0.11, 0.15, 0.7) : Qt.rgba(0.05, 0.07, 0.09, 0.5)))
+        border.color: mediaPopup.open ? Theme.withAlpha(Theme.accent, 0.6) : (pillMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.45) : (root.isPlaying ? Theme.withAlpha(Theme.accent, 0.3) : Theme.withAlpha(Theme.glassBorderColor, 0.2)))
         border.width: 1
         scale: pillMouse.pressed ? 0.965 : (pillMouse.containsMouse ? 1.025 : 1)
         transformOrigin: Item.Center
@@ -135,7 +172,7 @@ Item {
                 font.family: Fonts.uiFont
                 font.pixelSize: Fonts.scale(10.5)
                 font.weight: Fonts.weightDemiBold
-                color: Theme.bright_foreground
+                color: root.isPlaying ? Theme.bright_foreground : Theme.muted
                 elide: Text.ElideRight
                 maximumLineCount: 1
                 horizontalAlignment: Text.AlignLeft
@@ -148,29 +185,29 @@ Item {
                 visible: !root.isVertical
                 x: Math.round(parent.width - width - 8)
                 y: Math.round((parent.height - height) / 2)
-                spacing: 2
+                spacing: 2.5
                 height: 14
 
                 // Bar 0
                 Rectangle {
                     id: bar0
 
-                    property real eqScale: (root.controller && root.controller.isPlaying) ? 0.6 : 0.3
+                    property real eqScale: root.isPlaying ? 0.6 : 0.22
 
-                    width: 2.2
+                    width: 2.4
                     height: 12
                     radius: width / 2
-                    color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.4)
+                    color: root.isPlaying ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
                     anchors.verticalCenter: parent.verticalCenter
 
                     transform: Scale {
-                        origin.x: 1.1
+                        origin.x: 1.2
                         origin.y: 6
                         yScale: bar0.eqScale
                     }
 
                     Behavior on eqScale {
-                        enabled: !(root.controller && root.controller.isPlaying)
+                        enabled: !root.isPlaying
 
                         NumberAnimation {
                             duration: 220
@@ -187,7 +224,7 @@ Item {
                     }
 
                     SequentialAnimation on eqScale {
-                        running: root.controller && root.controller.isPlaying
+                        running: root.isPlaying
                         loops: Animation.Infinite
 
                         NumberAnimation {
@@ -222,22 +259,22 @@ Item {
                 Rectangle {
                     id: bar1
 
-                    property real eqScale: (root.controller && root.controller.isPlaying) ? 1 : 0.42
+                    property real eqScale: root.isPlaying ? 1 : 0.22
 
-                    width: 2.2
+                    width: 2.4
                     height: 12
                     radius: width / 2
-                    color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.4)
+                    color: root.isPlaying ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
                     anchors.verticalCenter: parent.verticalCenter
 
                     transform: Scale {
-                        origin.x: 1.1
+                        origin.x: 1.2
                         origin.y: 6
                         yScale: bar1.eqScale
                     }
 
                     Behavior on eqScale {
-                        enabled: !(root.controller && root.controller.isPlaying)
+                        enabled: !root.isPlaying
 
                         NumberAnimation {
                             duration: 220
@@ -254,7 +291,7 @@ Item {
                     }
 
                     SequentialAnimation on eqScale {
-                        running: root.controller && root.controller.isPlaying
+                        running: root.isPlaying
                         loops: Animation.Infinite
 
                         NumberAnimation {
@@ -289,22 +326,22 @@ Item {
                 Rectangle {
                     id: bar2
 
-                    property real eqScale: (root.controller && root.controller.isPlaying) ? 0.7 : 0.3
+                    property real eqScale: root.isPlaying ? 0.75 : 0.22
 
-                    width: 2.2
+                    width: 2.4
                     height: 12
                     radius: width / 2
-                    color: (root.controller && root.controller.isPlaying) ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.4)
+                    color: root.isPlaying ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
                     anchors.verticalCenter: parent.verticalCenter
 
                     transform: Scale {
-                        origin.x: 1.1
+                        origin.x: 1.2
                         origin.y: 6
                         yScale: bar2.eqScale
                     }
 
                     Behavior on eqScale {
-                        enabled: !(root.controller && root.controller.isPlaying)
+                        enabled: !root.isPlaying
 
                         NumberAnimation {
                             duration: 220
@@ -321,7 +358,7 @@ Item {
                     }
 
                     SequentialAnimation on eqScale {
-                        running: root.controller && root.controller.isPlaying
+                        running: root.isPlaying
                         loops: Animation.Infinite
 
                         NumberAnimation {
@@ -450,8 +487,9 @@ Item {
         enabled: !Appearance.barTransitioning
 
         NumberAnimation {
-            duration: 260
-            easing.type: Easing.OutCubic
+            duration: 320
+            easing.type: Easing.OutBack
+            easing.overshoot: 1.15
         }
 
     }
@@ -460,15 +498,16 @@ Item {
         enabled: !Appearance.barTransitioning
 
         NumberAnimation {
-            duration: 260
-            easing.type: Easing.OutCubic
+            duration: 320
+            easing.type: Easing.OutBack
+            easing.overshoot: 1.15
         }
 
     }
 
     Behavior on opacity {
         NumberAnimation {
-            duration: 220
+            duration: 240
             easing.type: Easing.OutCubic
         }
 
@@ -476,9 +515,9 @@ Item {
 
     Behavior on scale {
         NumberAnimation {
-            duration: 260
+            duration: 300
             easing.type: Easing.OutBack
-            easing.overshoot: 1.12
+            easing.overshoot: 1.14
         }
 
     }

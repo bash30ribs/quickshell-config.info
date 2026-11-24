@@ -204,9 +204,9 @@ PanelWindow {
         property: "animProgress"
         from: root.animProgress
         to: 1
-        duration: 260
+        duration: 340
         easing.type: Easing.OutBack
-        easing.overshoot: 1.08
+        easing.overshoot: 1.22
     }
 
     NumberAnimation {
@@ -277,8 +277,16 @@ PanelWindow {
         radius: Appearance.mediaIslandRadius
         baseColor: Theme.barBackground
         transformOrigin: Appearance.barIsBottom ? Item.Bottom : (Appearance.barIsRight ? Item.Right : (Appearance.barIsLeft ? Item.Left : Item.Top))
-        scale: 0.93 + (0.07 * root.animProgress)
+        scale: 0.82 + (0.18 * root.animProgress)
         opacity: Math.min(1, root.animProgress * 1.5)
+
+        // Deep obsidian optical backing prevents translucent window bleed-through
+        Rectangle {
+            anchors.fill: parent
+            radius: cardRect.radius
+            color: Qt.rgba(0.04, 0.06, 0.09, 0.9)
+            z: -1
+        }
 
         MouseArea {
             anchors.fill: parent
@@ -299,16 +307,17 @@ PanelWindow {
             Item {
                 id: albumCoverBox
 
-                width: 82
-                height: 82
-                anchors.top: parent.top
+                width: 104
+                height: 104
+                anchors.verticalCenter: parent.verticalCenter
+                scale: coverMouse.pressed ? 0.96 : (coverMouse.containsMouse ? 1.02 : 1)
 
-                // Mask defining sharp rounded corners (Appearance.radiusMedium: 8px)
+                // Mask defining sharp rounded corners (Squircle 14px)
                 Rectangle {
                     id: albumCoverMask
 
                     anchors.fill: parent
-                    radius: Appearance.radiusMedium
+                    radius: 14
                     color: "black"
                     layer.enabled: true
                     visible: false
@@ -317,17 +326,17 @@ PanelWindow {
                 // Underlying fallback when no artwork is available
                 Rectangle {
                     anchors.fill: parent
-                    radius: Appearance.radiusMedium
-                    color: Theme.dark_background
-                    border.color: "transparent"
-                    border.width: 0
+                    radius: 14
+                    color: Qt.rgba(0.08, 0.11, 0.16, 0.9)
+                    border.color: Theme.withAlpha(Theme.glassBorderColor, 0.25)
+                    border.width: 1
                     visible: !coverImg.visible
 
                     Text {
                         anchors.centerIn: parent
                         text: "󰝚"
                         font.family: Icons.effectiveFont("󰝚")
-                        font.pixelSize: Fonts.scale(32)
+                        font.pixelSize: Fonts.scale(36)
                         color: Theme.muted
                     }
 
@@ -351,14 +360,64 @@ PanelWindow {
 
                 }
 
-                // Razor-crisp outline over rounded album art (borderless)
+                // Razor-crisp outline over rounded album art
                 Rectangle {
                     anchors.fill: parent
-                    radius: Appearance.radiusMedium
+                    radius: 14
                     color: "transparent"
-                    border.color: "transparent"
-                    border.width: 0
+                    border.color: coverMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.5) : Theme.withAlpha(Theme.glassBorderColor, 0.3)
+                    border.width: 1
                     z: 10
+                }
+
+                // Play / Pause overlay glyph on hover
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 38
+                    height: 38
+                    radius: 19
+                    color: Qt.rgba(0, 0, 0, 0.55)
+                    visible: coverMouse.containsMouse
+                    opacity: coverMouse.containsMouse ? 1 : 0
+                    z: 12
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: root.controller && root.controller.isPlaying ? "󰏤" : "󰐊"
+                        font.family: Icons.effectiveFont(text)
+                        font.pixelSize: Fonts.scale(18)
+                        color: Theme.bright_foreground
+                    }
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: 120
+                        }
+
+                    }
+
+                }
+
+                MouseArea {
+                    id: coverMouse
+
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    z: 15
+                    onClicked: {
+                        if (root.controller)
+                            root.controller.togglePlay();
+
+                    }
+                }
+
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: 150
+                        easing.type: Easing.OutCubic
+                    }
+
                 }
 
             }
@@ -368,8 +427,8 @@ PanelWindow {
                 id: rightMediaCol
 
                 width: parent.width - albumCoverBox.width - parent.spacing
-                anchors.top: parent.top
-                spacing: 8
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 6
 
                 // --- TOP ROW: Track Info + App Icon (in which audio is playing) ---
                 Row {
@@ -387,7 +446,7 @@ PanelWindow {
                             font.family: Fonts.uiFont
                             font.pixelSize: Fonts.sizeMedium
                             font.weight: Fonts.weightBold
-                            color: Theme.foreground
+                            color: Theme.bright_foreground
                             elide: Text.ElideRight
                             maximumLineCount: 1
                         }
@@ -408,8 +467,8 @@ PanelWindow {
                     Item {
                         id: appIconBox
 
-                        width: 30
-                        height: 30
+                        width: 28
+                        height: 28
                         anchors.verticalCenter: parent.verticalCenter
 
                         // Squircle container with native clipping
@@ -417,11 +476,11 @@ PanelWindow {
                             id: appIconBg
 
                             anchors.fill: parent
-                            radius: 6
+                            radius: 8
                             clip: true
                             color: root.appBadgeBg
-                            border.color: "transparent"
-                            border.width: 0
+                            border.color: Theme.withAlpha(Theme.glassBorderColor, 0.25)
+                            border.width: 1
 
                             // High-res desktop app icon (anti-aliased, mipmapped)
                             Image {
@@ -444,7 +503,7 @@ PanelWindow {
                                 anchors.centerIn: parent
                                 text: root.appGlyph
                                 font.family: Icons.effectiveFont(text)
-                                font.pixelSize: Fonts.scale(18)
+                                font.pixelSize: Fonts.scale(16)
                                 color: root.appGlyphColor
                                 visible: !appIconImg.visible
                             }
@@ -474,7 +533,7 @@ PanelWindow {
                             width: parent.width
                             height: 3.5
                             radius: 1.75
-                            color: Theme.selection
+                            color: Theme.withAlpha(Theme.foreground, 0.15)
                         }
 
                         // Played active progress
@@ -487,17 +546,32 @@ PanelWindow {
                             color: Theme.accent
                         }
 
-                        // Playback Pill / Dot Head
+                        // Playback Knob / Scrubber Head
                         Rectangle {
+                            id: scrubHead
+
                             anchors.verticalCenter: parent.verticalCenter
                             x: Math.max(0, Math.min(parent.width - width, parent.width * progressGrooveArea.curProgress - width / 2))
-                            width: 14
-                            height: 6
-                            radius: 3
+                            width: (seekMouse.containsMouse || root.isDraggingSeek) ? 12 : 9
+                            height: width
+                            radius: width / 2
                             color: Theme.bright_foreground
+                            border.color: Theme.accent
+                            border.width: 1.5
+
+                            Behavior on width {
+                                NumberAnimation {
+                                    duration: 120
+                                    easing.type: Easing.OutCubic
+                                }
+
+                            }
+
                         }
 
                         MouseArea {
+                            id: seekMouse
+
                             function updateFromMouse(mouseX) {
                                 var pct = Math.max(0, Math.min(1, mouseX / width));
                                 root.dragProgress = pct;
@@ -537,7 +611,7 @@ PanelWindow {
                             anchors.left: parent.left
                             text: root.controller ? root.controller.formatTime(root.isDraggingSeek ? (root.dragProgress * root.controller.length) : root.controller.position) : "00:00"
                             font.family: Fonts.monoFont
-                            font.pixelSize: Fonts.scale(10)
+                            font.pixelSize: Fonts.scale(9.5)
                             color: Theme.muted
                         }
 
@@ -545,7 +619,7 @@ PanelWindow {
                             anchors.right: parent.right
                             text: root.controller ? root.controller.formatTime(root.controller.length) : "00:00"
                             font.family: Fonts.monoFont
-                            font.pixelSize: Fonts.scale(10)
+                            font.pixelSize: Fonts.scale(9.5)
                             color: Theme.muted
                         }
 
@@ -553,35 +627,44 @@ PanelWindow {
 
                 }
 
-                // --- BOTTOM ROW: Previous | Play/Pause | Next (Centered matching reference image) ---
+                // --- BOTTOM ROW: Tactile Glass Controls (Previous | Play/Pause | Next) ---
                 Item {
                     width: parent.width
-                    height: 30
+                    height: 38
 
                     Row {
                         anchors.centerIn: parent
-                        spacing: 48
+                        spacing: 24
 
-                        // 1. Previous Button
+                        // 1. Previous Button (Circular Glass Pill)
                         Item {
-                            width: 28
-                            height: 30
+                            width: 32
+                            height: 32
                             anchors.verticalCenter: parent.verticalCenter
+                            scale: prevMouse.pressed ? 0.92 : (prevMouse.containsMouse ? 1.06 : 1)
+
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: 16
+                                color: prevMouse.pressed ? Theme.withAlpha(Theme.foreground, 0.16) : (prevMouse.containsMouse ? Theme.withAlpha(Theme.foreground, 0.08) : "transparent")
+                                border.color: prevMouse.containsMouse ? Theme.withAlpha(Theme.glassBorderColor, 0.35) : "transparent"
+                                border.width: 1
+
+                                Behavior on color {
+                                    ColorAnimation {
+                                        duration: 120
+                                    }
+
+                                }
+
+                            }
 
                             Text {
                                 anchors.centerIn: parent
                                 text: "󰒮"
                                 font.family: Icons.effectiveFont("󰒮")
-                                font.pixelSize: Fonts.scale(32)
+                                font.pixelSize: Fonts.scale(16)
                                 color: root.controller && root.controller.canGoPrevious ? (prevMouse.containsMouse ? Theme.bright_foreground : Theme.foreground) : Theme.muted
-                                scale: prevMouse.pressed ? 0.9 : 1
-
-                                Behavior on scale {
-                                    NumberAnimation {
-                                        duration: 100
-                                    }
-
-                                }
 
                                 Behavior on color {
                                     ColorAnimation {
@@ -605,30 +688,53 @@ PanelWindow {
                                 }
                             }
 
+                            Behavior on scale {
+                                NumberAnimation {
+                                    duration: prevMouse.pressed ? 70 : 180
+                                    easing.type: prevMouse.pressed ? Easing.OutQuad : Easing.OutBack
+                                    easing.overshoot: 1.25
+                                }
+
+                            }
+
                         }
 
-                        // 2. Central Play / Pause Toggle
+                        // 2. Central Play / Pause Hero Button
                         Item {
-                            width: 32
-                            height: 30
+                            width: 38
+                            height: 38
                             anchors.verticalCenter: parent.verticalCenter
+                            scale: playMouse.pressed ? 0.92 : (playMouse.containsMouse ? 1.08 : 1)
+
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: 19
+                                color: playMouse.pressed ? Theme.withAlpha(Theme.accent, 0.38) : (playMouse.containsMouse ? Theme.withAlpha(Theme.accent, 0.26) : Theme.withAlpha(Theme.accent, 0.16))
+                                border.color: playMouse.containsMouse ? Theme.accent : Theme.withAlpha(Theme.accent, 0.6)
+                                border.width: 1.5
+
+                                Behavior on color {
+                                    ColorAnimation {
+                                        duration: 120
+                                    }
+
+                                }
+
+                                Behavior on border.color {
+                                    ColorAnimation {
+                                        duration: 120
+                                    }
+
+                                }
+
+                            }
 
                             Text {
                                 anchors.centerIn: parent
                                 text: root.controller && root.controller.isPlaying ? "󰏤" : "󰐊"
                                 font.family: Icons.effectiveFont(text)
-                                font.pixelSize: Fonts.scale(34)
-                                color: playMouse.containsMouse ? Theme.bright_foreground : Theme.foreground
-                                scale: playMouse.pressed ? 0.88 : 1
-
-                                Behavior on scale {
-                                    NumberAnimation {
-                                        duration: 120
-                                        easing.type: Easing.OutBack
-                                    }
-
-                                }
-
+                                font.pixelSize: Fonts.scale(18)
+                                color: Theme.bright_foreground
                             }
 
                             MouseArea {
@@ -644,28 +750,46 @@ PanelWindow {
                                 }
                             }
 
+                            Behavior on scale {
+                                NumberAnimation {
+                                    duration: playMouse.pressed ? 70 : 200
+                                    easing.type: playMouse.pressed ? Easing.OutQuad : Easing.OutBack
+                                    easing.overshoot: 1.3
+                                }
+
+                            }
+
                         }
 
-                        // 3. Next Button
+                        // 3. Next Button (Circular Glass Pill)
                         Item {
-                            width: 28
-                            height: 30
+                            width: 32
+                            height: 32
                             anchors.verticalCenter: parent.verticalCenter
+                            scale: nextMouse.pressed ? 0.92 : (nextMouse.containsMouse ? 1.06 : 1)
+
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: 16
+                                color: nextMouse.pressed ? Theme.withAlpha(Theme.foreground, 0.16) : (nextMouse.containsMouse ? Theme.withAlpha(Theme.foreground, 0.08) : "transparent")
+                                border.color: nextMouse.containsMouse ? Theme.withAlpha(Theme.glassBorderColor, 0.35) : "transparent"
+                                border.width: 1
+
+                                Behavior on color {
+                                    ColorAnimation {
+                                        duration: 120
+                                    }
+
+                                }
+
+                            }
 
                             Text {
                                 anchors.centerIn: parent
                                 text: "󰒭"
                                 font.family: Icons.effectiveFont("󰒭")
-                                font.pixelSize: Fonts.scale(32)
+                                font.pixelSize: Fonts.scale(16)
                                 color: root.controller && root.controller.canGoNext ? (nextMouse.containsMouse ? Theme.bright_foreground : Theme.foreground) : Theme.muted
-                                scale: nextMouse.pressed ? 0.9 : 1
-
-                                Behavior on scale {
-                                    NumberAnimation {
-                                        duration: 100
-                                    }
-
-                                }
 
                                 Behavior on color {
                                     ColorAnimation {
@@ -689,6 +813,15 @@ PanelWindow {
                                 }
                             }
 
+                            Behavior on scale {
+                                NumberAnimation {
+                                    duration: nextMouse.pressed ? 70 : 180
+                                    easing.type: nextMouse.pressed ? Easing.OutQuad : Easing.OutBack
+                                    easing.overshoot: 1.25
+                                }
+
+                            }
+
                         }
 
                     }
@@ -700,8 +833,8 @@ PanelWindow {
         }
 
         transform: Translate {
-            y: Appearance.barIsTop ? Math.round(-10 * (1 - root.animProgress)) : (Appearance.barIsBottom ? Math.round(10 * (1 - root.animProgress)) : 0)
-            x: Appearance.barIsLeft ? Math.round(-10 * (1 - root.animProgress)) : (Appearance.barIsRight ? Math.round(10 * (1 - root.animProgress)) : 0)
+            y: Appearance.barIsTop ? Math.round(-18 * (1 - root.animProgress)) : (Appearance.barIsBottom ? Math.round(18 * (1 - root.animProgress)) : 0)
+            x: Appearance.barIsLeft ? Math.round(-18 * (1 - root.animProgress)) : (Appearance.barIsRight ? Math.round(18 * (1 - root.animProgress)) : 0)
         }
 
     }
