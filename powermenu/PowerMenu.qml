@@ -673,7 +673,7 @@ PanelWindow {
         radius: 20
         baseColor: Theme.barBackground
         opacity: Math.min(1, root.animProgress * 1.5)
-        scale: 0.94 + 0.06 * Math.max(0, root.animProgress)
+        scale: 0.91 + 0.09 * Math.max(0, root.animProgress)
 
         // Block clicks from falling through to backdrop
         MouseArea {
@@ -1808,8 +1808,9 @@ PanelWindow {
             enabled: root.viewTransitionsEnabled
 
             NumberAnimation {
-                duration: 250
-                easing.type: Easing.OutCubic
+                duration: 260
+                easing.type: Easing.OutBack
+                easing.overshoot: 1.07
                 onRunningChanged: {
                     if (!running) {
                         if (root.currentView === "wallpaper" && wallpapersList) {
@@ -1833,8 +1834,9 @@ PanelWindow {
             enabled: root.viewTransitionsEnabled
 
             NumberAnimation {
-                duration: 250
-                easing.type: Easing.OutCubic
+                duration: 260
+                easing.type: Easing.OutBack
+                easing.overshoot: 1.07
             }
 
         }

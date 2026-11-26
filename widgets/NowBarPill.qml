@@ -1,3 +1,4 @@
+import "../components"
 import "../services"
 import "../theme"
 import QtQuick
@@ -8,19 +9,20 @@ import Quickshell.Io
 Item {
     id: root
 
-    property MediaController controller
+    property MediaController controller: null
     property AudioService audioService: null
     property alias popup: mediaPopup
-    readonly property bool hasMedia: controller ? controller.hasMedia : false
-    readonly property bool isPlaying: controller ? controller.isPlaying : false
+    readonly property MediaController effectiveController: root.controller ? root.controller : fallbackCtrlLoader.item
+    readonly property bool hasMedia: effectiveController ? effectiveController.hasMedia : false
+    readonly property bool isPlaying: effectiveController ? effectiveController.isPlaying : false
     property bool graceActive: false
-    readonly property bool pillActive: (root.controller && root.controller.hasMedia) && (root.isPlaying || root.graceActive || mediaPopup.open)
+    readonly property bool pillActive: (root.effectiveController && root.effectiveController.hasMedia) && (root.isPlaying || root.graceActive || mediaPopup.open)
     readonly property string trackTitle: {
-        if (!root.controller)
+        if (!root.effectiveController)
             return "";
 
-        var t = (root.controller.title || "").trim();
-        var a = (root.controller.artist || "").trim();
+        var t = (root.effectiveController.title || "").trim();
+        var a = (root.effectiveController.artist || "").trim();
         if (t && a)
             return a + " • " + t;
 
@@ -32,7 +34,7 @@ Item {
         if (root.isPlaying) {
             pauseGraceTimer.stop();
             root.graceActive = false;
-        } else if (root.controller && root.controller.hasMedia) {
+        } else if (root.effectiveController && root.effectiveController.hasMedia) {
             root.graceActive = true;
             pauseGraceTimer.restart();
         } else {
@@ -40,8 +42,8 @@ Item {
             root.graceActive = false;
         }
     }
-    implicitHeight: root.isVertical ? (pillActive ? Math.max(28, Appearance.barThickness - 10) : 0) : (pillActive ? Appearance.mediaPillHeight : 0)
-    implicitWidth: root.isVertical ? (pillActive ? Math.max(28, Appearance.barThickness - 10) : 0) : (pillActive ? Math.min(205, Math.max(115, titleMeasure.implicitWidth + 58)) : 0)
+    implicitHeight: root.isVertical ? (pillActive ? 48 : 0) : (pillActive ? Appearance.mediaPillHeight : 0)
+    implicitWidth: root.isVertical ? (pillActive ? Math.max(28, Appearance.barThickness - 10) : 0) : (pillActive ? Math.min(238, Math.max(138, titleMeasure.implicitWidth + 86)) : 0)
     height: implicitHeight
     width: implicitWidth
     visible: (width > 0 && height > 0) || opacity > 0
@@ -100,14 +102,14 @@ Item {
             anchors.fill: parent
             opacity: root.isVertical ? (root.height > 20 ? 1 : 0) : Math.max(0, Math.min(1, (root.width - 45) / 35))
 
-            // ── 1. Mini Rounded Album Art on Left Side ────────────────────────
+            // ── 1. Mini Rounded Album Art on Left / Top Side ──────────────────
             Item {
                 id: miniArtBox
 
                 width: 20
                 height: 20
                 x: root.isVertical ? Math.round((parent.width - width) / 2) : 5
-                y: Math.round((parent.height - height) / 2)
+                y: root.isVertical ? 5 : Math.round((parent.height - height) / 2)
 
                 Rectangle {
                     id: miniArtBg
@@ -139,7 +141,7 @@ Item {
                         id: miniArt
 
                         anchors.fill: parent
-                        source: root.controller ? root.controller.artUrl : ""
+                        source: root.effectiveController ? root.effectiveController.artUrl : ""
                         fillMode: Image.PreserveAspectCrop
                         asynchronous: true
                         visible: status === Image.Ready
@@ -166,7 +168,7 @@ Item {
 
                 visible: !root.isVertical
                 x: miniArtBox.x + miniArtBox.width + 7
-                width: Math.max(0, visualizerRow.x - x - 6)
+                width: Math.max(0, visualizerStage.x - x - 6)
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.trackTitle
                 font.family: Fonts.uiFont
@@ -178,217 +180,19 @@ Item {
                 horizontalAlignment: Text.AlignLeft
             }
 
-            // ── 3. High-Fidelity 3-Bar Waveform Visualizer ─────────────────────
-            Row {
-                id: visualizerRow
+            // ── 3. Vibing Kitty & Smooth Wave Stage ──────────────────────────
+            VibingKittyWave {
+                id: visualizerStage
 
-                visible: !root.isVertical
-                x: Math.round(parent.width - width - 8)
-                y: Math.round((parent.height - height) / 2)
-                spacing: 2.5
-                height: 14
-
-                // Bar 0
-                Rectangle {
-                    id: bar0
-
-                    property real eqScale: root.isPlaying ? 0.6 : 0.22
-
-                    width: 2.4
-                    height: 12
-                    radius: width / 2
-                    color: root.isPlaying ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    transform: Scale {
-                        origin.x: 1.2
-                        origin.y: 6
-                        yScale: bar0.eqScale
-                    }
-
-                    Behavior on eqScale {
-                        enabled: !root.isPlaying
-
-                        NumberAnimation {
-                            duration: 220
-                            easing.type: Easing.OutCubic
-                        }
-
-                    }
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: 180
-                        }
-
-                    }
-
-                    SequentialAnimation on eqScale {
-                        running: root.isPlaying
-                        loops: Animation.Infinite
-
-                        NumberAnimation {
-                            to: 0.85
-                            duration: 240
-                            easing.type: Easing.InOutQuad
-                        }
-
-                        NumberAnimation {
-                            to: 0.35
-                            duration: 280
-                            easing.type: Easing.InOutQuad
-                        }
-
-                        NumberAnimation {
-                            to: 0.7
-                            duration: 210
-                            easing.type: Easing.InOutQuad
-                        }
-
-                        NumberAnimation {
-                            to: 0.5
-                            duration: 260
-                            easing.type: Easing.InOutQuad
-                        }
-
-                    }
-
-                }
-
-                // Bar 1 (Center Peak)
-                Rectangle {
-                    id: bar1
-
-                    property real eqScale: root.isPlaying ? 1 : 0.22
-
-                    width: 2.4
-                    height: 12
-                    radius: width / 2
-                    color: root.isPlaying ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    transform: Scale {
-                        origin.x: 1.2
-                        origin.y: 6
-                        yScale: bar1.eqScale
-                    }
-
-                    Behavior on eqScale {
-                        enabled: !root.isPlaying
-
-                        NumberAnimation {
-                            duration: 220
-                            easing.type: Easing.OutCubic
-                        }
-
-                    }
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: 180
-                        }
-
-                    }
-
-                    SequentialAnimation on eqScale {
-                        running: root.isPlaying
-                        loops: Animation.Infinite
-
-                        NumberAnimation {
-                            to: 0.5
-                            duration: 220
-                            easing.type: Easing.InOutQuad
-                        }
-
-                        NumberAnimation {
-                            to: 1
-                            duration: 270
-                            easing.type: Easing.InOutQuad
-                        }
-
-                        NumberAnimation {
-                            to: 0.58
-                            duration: 230
-                            easing.type: Easing.InOutQuad
-                        }
-
-                        NumberAnimation {
-                            to: 0.92
-                            duration: 250
-                            easing.type: Easing.InOutQuad
-                        }
-
-                    }
-
-                }
-
-                // Bar 2
-                Rectangle {
-                    id: bar2
-
-                    property real eqScale: root.isPlaying ? 0.75 : 0.22
-
-                    width: 2.4
-                    height: 12
-                    radius: width / 2
-                    color: root.isPlaying ? Theme.accent : Theme.withAlpha(Theme.foreground, 0.35)
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    transform: Scale {
-                        origin.x: 1.2
-                        origin.y: 6
-                        yScale: bar2.eqScale
-                    }
-
-                    Behavior on eqScale {
-                        enabled: !root.isPlaying
-
-                        NumberAnimation {
-                            duration: 220
-                            easing.type: Easing.OutCubic
-                        }
-
-                    }
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: 180
-                        }
-
-                    }
-
-                    SequentialAnimation on eqScale {
-                        running: root.isPlaying
-                        loops: Animation.Infinite
-
-                        NumberAnimation {
-                            to: 0.75
-                            duration: 260
-                            easing.type: Easing.InOutQuad
-                        }
-
-                        NumberAnimation {
-                            to: 0.35
-                            duration: 230
-                            easing.type: Easing.InOutQuad
-                        }
-
-                        NumberAnimation {
-                            to: 0.9
-                            duration: 280
-                            easing.type: Easing.InOutQuad
-                        }
-
-                        NumberAnimation {
-                            to: 0.6
-                            duration: 240
-                            easing.type: Easing.InOutQuad
-                        }
-
-                    }
-
-                }
-
+                mode: root.isVertical ? "vertical" : "pill"
+                playing: root.isPlaying
+                activeVisible: root.visible && root.pillActive && Appearance.barVisible
+                pausedTransition: Appearance.barTransitioning
+                width: root.isVertical ? 24 : 48
+                height: root.isVertical ? 15 : 22
+                x: root.isVertical ? Math.round((parent.width - width) / 2) : Math.round(parent.width - width - 6)
+                y: root.isVertical ? Math.round(parent.height - height - 4) : Math.round((parent.height - height) / 2)
+                visible: root.pillActive
             }
 
         }
@@ -404,23 +208,23 @@ Item {
                 if (mouse.button === Qt.LeftButton) {
                     mediaPopup.toggle();
                 } else if (mouse.button === Qt.MiddleButton) {
-                    if (root.controller)
-                        root.controller.togglePlay();
+                    if (root.effectiveController)
+                        root.effectiveController.togglePlay();
 
                 } else if (mouse.button === Qt.RightButton) {
-                    if (root.controller)
-                        root.controller.next();
+                    if (root.effectiveController)
+                        root.effectiveController.next();
 
                 }
             }
             onWheel: function(event) {
-                if (!root.controller)
+                if (!root.effectiveController)
                     return ;
 
                 if (event.angleDelta.y > 0)
-                    root.controller.next();
+                    root.effectiveController.next();
                 else if (event.angleDelta.y < 0)
-                    root.controller.previous();
+                    root.effectiveController.previous();
             }
         }
 
@@ -475,12 +279,16 @@ Item {
 
         anchorItem: root
         anchorWindow: root.QsWindow ? root.QsWindow.window : null
-        controller: root.controller
+        controller: root.effectiveController
         audioService: root.audioService
     }
 
-    controller: MediaController {
-        id: defaultCtrl
+    Loader {
+        id: fallbackCtrlLoader
+
+        active: root.controller === null
+        sourceComponent: MediaController {
+        }
     }
 
     Behavior on implicitWidth {

@@ -72,6 +72,8 @@ GlassPanel {
         return "Capture";
     }
 
+    property real appearProgress: 0
+
     signal closeRequested()
     signal cardClicked()
     signal actionRequested(string actionId)
@@ -100,13 +102,35 @@ GlassPanel {
         }
     }
 
-    Component.onCompleted: updateActionList()
+    Component.onCompleted: {
+        updateActionList();
+        appearAnim.start();
+    }
     onActionsJsonChanged: updateActionList()
     implicitWidth: Appearance.notificationWidth
     implicitHeight: mainColumn.implicitHeight + (root.isScreenshot ? (Appearance.spacingLarge * 2) : 20)
     radius: Appearance.notificationRadius > 0 ? Appearance.notificationRadius : 14
     baseColor: Theme.barBackground
     clip: true
+    opacity: Math.min(1, root.appearProgress * 1.35)
+    scale: 0.92 + (0.08 * root.appearProgress)
+    transformOrigin: Item.Top
+
+    NumberAnimation {
+        id: appearAnim
+
+        target: root
+        property: "appearProgress"
+        from: 0
+        to: 1
+        duration: 250
+        easing.type: Easing.OutBack
+        easing.overshoot: 1.12
+    }
+
+    transform: Translate {
+        y: (1 - root.appearProgress) * -14
+    }
 
     HoverHandler {
         id: hoverTracker

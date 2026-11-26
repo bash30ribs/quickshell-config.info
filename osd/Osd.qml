@@ -150,8 +150,9 @@ Item {
         target: root
         property: "animProgress"
         to: 1
-        duration: 180
-        easing.type: Easing.OutCubic
+        duration: 240
+        easing.type: Easing.OutBack
+        easing.overshoot: 1.16
     }
 
     NumberAnimation {
@@ -160,8 +161,8 @@ Item {
         target: root
         property: "animProgress"
         to: 0
-        duration: 150
-        easing.type: Easing.InQuad
+        duration: 160
+        easing.type: Easing.InCubic
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -212,8 +213,8 @@ Item {
             baseColor: Theme.dark_background
             clarity: 0.88
             transformOrigin: Item.Center
-            opacity: root.animProgress
-            scale: 0.92 + 0.08 * root.animProgress
+            opacity: Math.min(1, Math.max(0, root.animProgress * 1.4))
+            scale: 0.88 + 0.12 * root.animProgress
 
             Row {
                 id: contentRow
@@ -265,8 +266,8 @@ Item {
                             enabled: root.opened
 
                             NumberAnimation {
-                                duration: 60
-                                easing.type: Easing.OutQuad
+                                duration: 100
+                                easing.type: Easing.OutCubic
                             }
 
                         }

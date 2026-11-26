@@ -215,8 +215,8 @@ QtObject {
     property int mediaPillRadius: root.radiusMedium
     property int mediaPopupWidth: 350
     property int mediaPopupHeight: 195
-    property int mediaIslandWidth: 340
-    property int mediaIslandHeight: 140
+    property int mediaIslandWidth: 364
+    property int mediaIslandHeight: 142
     property int mediaIslandRadius: 22
     // =========================================================================
     // Clipboard Drawer (Bar Pull-Down Shade)

@@ -157,8 +157,9 @@ Item {
 
                 Behavior on scale {
                     NumberAnimation {
-                        duration: 120
-                        easing.type: Easing.OutQuad
+                        duration: wsMouse.pressed ? 70 : 180
+                        easing.type: wsMouse.pressed ? Easing.OutQuad : Easing.OutBack
+                        easing.overshoot: wsMouse.pressed ? 1 : 1.25
                     }
 
                 }
@@ -167,8 +168,9 @@ Item {
                     enabled: !Appearance.barTransitioning
 
                     NumberAnimation {
-                        duration: Appearance.animDurationNormal
-                        easing.type: Easing.OutCubic
+                        duration: 230
+                        easing.type: Easing.OutBack
+                        easing.overshoot: 1.14
                     }
 
                 }
@@ -177,8 +179,9 @@ Item {
                     enabled: !Appearance.barTransitioning
 
                     NumberAnimation {
-                        duration: Appearance.animDurationNormal
-                        easing.type: Easing.OutCubic
+                        duration: 230
+                        easing.type: Easing.OutBack
+                        easing.overshoot: 1.14
                     }
 
                 }

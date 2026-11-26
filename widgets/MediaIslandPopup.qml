@@ -288,6 +288,22 @@ PanelWindow {
             z: -1
         }
 
+        // Subtle wave floor & vibing kitty companion riding beside controls
+        VibingKittyWave {
+            id: islandKittyWave
+
+            mode: "island"
+            playing: !!(root.controller && root.controller.isPlaying)
+            activeVisible: root.open && root.animProgress > 0.1
+            x: 132
+            width: Math.max(0, parent.width - 144)
+            height: 40
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 6
+            opacity: Math.min(1, Math.max(0, (root.animProgress - 0.1) * 1.25))
+            z: 1
+        }
+
         MouseArea {
             anchors.fill: parent
             propagateComposedEvents: true
@@ -301,6 +317,7 @@ PanelWindow {
             anchors.fill: parent
             anchors.margins: 16
             spacing: 14
+            z: 2
             opacity: Math.min(1, Math.max(0, (root.animProgress - 0.08) * 1.25))
 
             // 1. Album Artwork Thumbnail (Strictly Rounded Corners using MultiEffect Mask)
@@ -633,8 +650,10 @@ PanelWindow {
                     height: 38
 
                     Row {
-                        anchors.centerIn: parent
-                        spacing: 24
+                        x: 4
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.verticalCenterOffset: -3
+                        spacing: 18
 
                         // 1. Previous Button (Circular Glass Pill)
                         Item {

@@ -12,6 +12,7 @@ import "polkit"
 import "powermenu"
 import "services"
 import "theme"
+import "widgets"
 
 ShellRoot {
     id: root
@@ -28,6 +29,7 @@ ShellRoot {
     property WallpaperSwitcherService wallpaperSwitcherService
     property ClipboardService clipboardService
     property HardwareService hardwareService
+    property MediaController mediaController
     readonly property ClipboardDrawer clipboardDrawer: clipboardDrawerWindow
 
     IpcHandler {
@@ -135,6 +137,13 @@ ShellRoot {
         id: notifications
     }
 
+    // Translucent Wave Overlay Behind Playing Kitty Windows
+    KittyWaveOverlay {
+        id: kittyWaveOverlay
+
+        mediaController: root.mediaController
+    }
+
     // Mount Bar on each screen
     Variants {
         model: Quickshell.screens
@@ -152,8 +161,12 @@ ShellRoot {
             powerService: root.powerService
             clipboardDrawer: root.clipboardDrawer
             hardwareService: root.hardwareService
+            mediaController: root.mediaController
         }
 
+    }
+
+    mediaController: MediaController {
     }
 
     workspacesService: WorkspacesService {

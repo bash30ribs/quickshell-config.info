@@ -25,8 +25,8 @@ Rectangle {
     height: implicitHeight
     radius: Appearance.buttonRadius > 0 ? (root.vertical ? Appearance.radiusSmall : Appearance.buttonRadius) : 8
     antialiasing: true
-    // Subtle press compression
-    scale: mouseArea.pressed ? 0.96 : 1
+    // Spring hover elevation & press compression (matching GlassButton)
+    scale: mouseArea.pressed ? 0.96 : (mouseArea.containsMouse ? 1.025 : 1)
     // Borderless bar button: clean transparent resting state, soft frosted glass highlight on hover, subtle translucent accent wash when active
     color: {
         if (root.active)
@@ -107,8 +107,9 @@ Rectangle {
 
     Behavior on scale {
         NumberAnimation {
-            duration: 80
-            easing.type: Easing.OutQuad
+            duration: mouseArea.pressed ? 70 : 185
+            easing.type: mouseArea.pressed ? Easing.OutQuad : Easing.OutBack
+            easing.overshoot: mouseArea.pressed ? 1 : 1.25
         }
 
     }

@@ -369,15 +369,16 @@ PanelWindow {
         right: Appearance.barIsRight ? Appearance.barThickness : 0
     }
 
-    // Crisp drop-and-scale reveal from beneath the active docked bar
+    // Spring drop-and-scale reveal from beneath the active docked bar
     NumberAnimation {
         id: openAnim
 
         target: root
         property: "animProgress"
         to: 1
-        duration: 240
-        easing.type: Easing.OutCubic
+        duration: 280
+        easing.type: Easing.OutBack
+        easing.overshoot: 1.08
     }
 
     NumberAnimation {
@@ -1779,8 +1780,9 @@ PanelWindow {
                 enabled: root.isOpen && !openAnim.running && !closeAnim.running
 
                 NumberAnimation {
-                    duration: 165
-                    easing.type: Easing.OutCubic
+                    duration: 220
+                    easing.type: Easing.OutBack
+                    easing.overshoot: 1.06
                 }
 
             }
