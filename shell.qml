@@ -26,7 +26,6 @@ ShellRoot {
     property PowerService powerService
     property ThemeSwitcherService themeSwitcherService
     property WallpaperSwitcherService wallpaperSwitcherService
-    property AuditService auditService
     property ClipboardService clipboardService
     property HardwareService hardwareService
     readonly property ClipboardDrawer clipboardDrawer: clipboardDrawerWindow
@@ -185,9 +184,6 @@ ShellRoot {
     }
 
     wallpaperSwitcherService: WallpaperSwitcherService {
-    }
-
-    auditService: AuditService {
     }
 
     clipboardService: ClipboardService {

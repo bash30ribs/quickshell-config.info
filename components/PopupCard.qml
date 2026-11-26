@@ -67,9 +67,9 @@ PanelWindow {
         property: "animProgress"
         from: root.animProgress
         to: 1
-        duration: 260
+        duration: 240
         easing.type: Easing.OutBack
-        easing.overshoot: 1.08
+        easing.overshoot: 1.12
     }
 
     NumberAnimation {
@@ -79,7 +79,7 @@ PanelWindow {
         property: "animProgress"
         from: root.animProgress
         to: 0
-        duration: 180
+        duration: 160
         easing.type: Easing.OutCubic
     }
 
@@ -141,7 +141,7 @@ PanelWindow {
         height: root.contentHeight
         radius: Appearance.popupRadius > 0 ? Appearance.popupRadius : 14
         opacity: Math.min(1, root.animProgress * 1.5)
-        scale: 0.93 + 0.07 * root.animProgress
+        scale: 0.88 + 0.12 * root.animProgress
         transformOrigin: Appearance.barIsBottom ? Item.Bottom : (Appearance.barIsLeft ? Item.Left : (Appearance.barIsRight ? Item.Right : Item.Top))
 
         // Prevent clicks inside the card from closing the popup
@@ -212,8 +212,8 @@ PanelWindow {
         }
 
         transform: Translate {
-            x: (1 - root.animProgress) * (Appearance.barIsLeft ? -12 : (Appearance.barIsRight ? 12 : 0))
-            y: (1 - root.animProgress) * (Appearance.barIsTop ? -12 : (Appearance.barIsBottom ? 12 : 0))
+            x: (1 - root.animProgress) * (Appearance.barIsLeft ? -14 : (Appearance.barIsRight ? 14 : 0))
+            y: (1 - root.animProgress) * (Appearance.barIsTop ? -14 : (Appearance.barIsBottom ? 14 : 0))
         }
 
     }

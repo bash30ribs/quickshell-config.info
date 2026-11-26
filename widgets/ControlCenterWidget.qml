@@ -3,6 +3,7 @@ import "../services"
 import "../theme"
 import QtQuick
 import Quickshell
+import Quickshell.Io
 
 Item {
     id: root
@@ -10,6 +11,7 @@ Item {
     required property HardwareService hardwareService
     required property PowerService powerService
     property int iconSize: Appearance.barIconSize
+    property bool dndEnabled: false
     readonly property string profile: root.hardwareService.powerProfile
     readonly property bool isPerf: root.profile === "performance"
     readonly property bool isSaver: root.profile === "power-saver"
@@ -44,9 +46,11 @@ Item {
 
     function toggle() {
         usagePopup.toggle();
-        if (usagePopup.open)
+        if (usagePopup.open) {
             root.hardwareService.refresh();
-
+            root.powerService.refresh();
+            dndSettingsFile.reload();
+        }
     }
 
     function cycleProfile() {
@@ -72,6 +76,24 @@ Item {
     implicitHeight: usageButton.implicitHeight
     width: implicitWidth
     height: implicitHeight
+
+    FileView {
+        id: dndSettingsFile
+
+        path: Quickshell.env("HOME") + "/.local/state/quickshell/notifications.json"
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            try {
+                var d = JSON.parse(text() || "{}");
+                if (typeof d.dnd === "boolean")
+                    root.dndEnabled = d.dnd;
+
+            } catch (e) {
+            }
+        }
+    }
 
     // ── Bar Button with Quick Controls ─────────────────────────────────────────
     BarButton {
@@ -133,6 +155,11 @@ Item {
         showDefaultHeader: false
         contentWidth: 280
         contentHeight: mainCol.implicitHeight + (Appearance.popupPadding * 2)
+        onOpenChanged: {
+            if (root.hardwareService)
+                root.hardwareService.menuOpen = usagePopup.open;
+
+        }
 
         Column {
             id: mainCol
@@ -919,7 +946,143 @@ Item {
 
             }
 
-            // 5. Mornye Glass Action Button: Activity Monitor
+            // 5. Quick System Toggles: Do Not Disturb & Glass Blur
+            Row {
+                width: parent.width
+                spacing: 6
+
+                // Do Not Disturb Toggle
+                Rectangle {
+                    width: (parent.width - parent.spacing) / 2
+                    height: 30
+                    radius: 8
+                    color: root.dndEnabled ? Theme.withAlpha(Theme.accent, 0.18) : (dndHover.hovered ? Qt.rgba(1, 1, 1, 0.07) : Qt.rgba(1, 1, 1, 0.035))
+                    border.width: 1
+                    border.color: root.dndEnabled ? Theme.withAlpha(Theme.accent, 0.5) : (dndHover.hovered ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.07))
+                    antialiasing: true
+                    scale: dndMouse.pressed ? 0.965 : (dndHover.hovered ? 1.02 : 1)
+
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: 6
+
+                        Text {
+                            text: root.dndEnabled ? "󰂛" : "󰂚"
+                            font.family: Icons.effectiveFont(text)
+                            font.pixelSize: 12
+                            color: root.dndEnabled ? Theme.accent : Theme.muted
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Text {
+                            text: root.dndEnabled ? "DND On" : "Alerts"
+                            font.family: Fonts.uiFont
+                            font.pixelSize: 10
+                            font.weight: root.dndEnabled ? Font.DemiBold : Font.Medium
+                            color: root.dndEnabled ? Theme.bright_foreground : Theme.foreground
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                    }
+
+                    HoverHandler {
+                        id: dndHover
+                    }
+
+                    MouseArea {
+                        id: dndMouse
+
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            root.dndEnabled = !root.dndEnabled;
+                            Quickshell.execDetached(["qs", "ipc", "call", "notifications", "toggleDnd"]);
+                        }
+                    }
+
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: 120
+                            easing.type: Easing.OutQuad
+                        }
+
+                    }
+
+                    Behavior on color {
+                        ColorAnimation {
+                            duration: 140
+                        }
+
+                    }
+
+                }
+
+                // Compositor Glass Blur Toggle
+                Rectangle {
+                    width: (parent.width - parent.spacing) / 2
+                    height: 30
+                    radius: 8
+                    color: Theme.blurEnabled ? Theme.withAlpha(Theme.accent, 0.14) : (blurHover.hovered ? Qt.rgba(1, 1, 1, 0.07) : Qt.rgba(1, 1, 1, 0.035))
+                    border.width: 1
+                    border.color: Theme.blurEnabled ? Theme.withAlpha(Theme.accent, 0.42) : (blurHover.hovered ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(1, 1, 1, 0.07))
+                    antialiasing: true
+                    scale: blurMouse.pressed ? 0.965 : (blurHover.hovered ? 1.02 : 1)
+
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: 6
+
+                        Text {
+                            text: "󰂵"
+                            font.family: Icons.effectiveFont(text)
+                            font.pixelSize: 12
+                            color: Theme.blurEnabled ? Theme.accent : Theme.muted
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Text {
+                            text: Theme.blurEnabled ? "Blur On" : "Blur Off"
+                            font.family: Fonts.uiFont
+                            font.pixelSize: 10
+                            font.weight: Theme.blurEnabled ? Font.DemiBold : Font.Medium
+                            color: Theme.blurEnabled ? Theme.bright_foreground : Theme.foreground
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                    }
+
+                    HoverHandler {
+                        id: blurHover
+                    }
+
+                    MouseArea {
+                        id: blurMouse
+
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: Theme.setBlurState(!Theme.blurEnabled)
+                    }
+
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: 120
+                            easing.type: Easing.OutQuad
+                        }
+
+                    }
+
+                    Behavior on color {
+                        ColorAnimation {
+                            duration: 140
+                        }
+
+                    }
+
+                }
+
+            }
+
+            // 6. Mornye Glass Action Button: Activity Monitor
             Rectangle {
                 id: monitorBtn
 

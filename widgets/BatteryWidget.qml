@@ -179,6 +179,11 @@ Item {
         id: batPopup
 
         anchorItem: batButton
+        onOpenChanged: {
+            if (root.batteryService)
+                root.batteryService.menuOpen = batPopup.open;
+
+        }
         showDefaultHeader: false
         contentWidth: 360
         contentHeight: (root.showCycles && root.showHealth) ? 265 : 240

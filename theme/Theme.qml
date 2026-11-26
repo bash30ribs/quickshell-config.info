@@ -124,11 +124,8 @@ QtObject {
     property FileView wallpaperPaletteFile
     readonly property string wallpaperPaletteScript: (Quickshell.env("QS_CONFIG_PATH") || (Quickshell.env("HOME") + "/.config/quickshell")) + "/src/qdeck-wallpaper-palette.py"
     property Process wallpaperPaletteProc
-    property string _lastCurrentTarget: ""
     property string _lastWallpaperTarget: ""
     property bool _blurStateInitialized: false
-    property Process linkCheckProc
-    property Timer symlinkWatcherTimer
 
     function withAlpha(colorVal, alphaVal) {
         if (!colorVal)
@@ -474,45 +471,6 @@ QtObject {
             }
         }
 
-    }
-
-    linkCheckProc: Process {
-        id: linkCheckProc
-
-        command: ["sh", "-c", "readlink -f \"$HOME/.config/themes/current\" 2>/dev/null; (command -v awww >/dev/null 2>&1 && awww query 2>/dev/null | grep -oP 'currently displaying: image: \\K.*') || readlink -f \"$HOME/.config/themes/current/default.png\" 2>/dev/null"]
-
-        stdout: StdioCollector {
-            waitForEnd: true
-            onStreamFinished: {
-                var lines = String(text || "").trim().split("\n");
-                var curTarget = (lines.length > 0) ? lines[0].trim() : "";
-                var wpTarget = (lines.length > 1) ? lines[1].trim() : "";
-                var changed = false;
-                if (curTarget && curTarget !== root._lastCurrentTarget) {
-                    root._lastCurrentTarget = curTarget;
-                    changed = true;
-                }
-                if (wpTarget && wpTarget !== root._lastWallpaperTarget) {
-                    root._lastWallpaperTarget = wpTarget;
-                    changed = true;
-                }
-                if (changed)
-                    root.reloadTheme();
-
-            }
-        }
-
-    }
-
-    symlinkWatcherTimer: Timer {
-        interval: 1600
-        running: true
-        repeat: true
-        onTriggered: {
-            if (!linkCheckProc.running)
-                linkCheckProc.running = true;
-
-        }
     }
 
 }

@@ -28,6 +28,7 @@ QtObject {
     property var otherNetworks: []
     property var networks: []
     property bool scanning: false
+    property bool menuOpen: false
     property var qrMatrix: []
     property int qrSize: 0
     property bool qrLoading: false
@@ -45,8 +46,10 @@ QtObject {
     property Process connectProc
     // Enforce Ethernet priority in NetworkManager (autoconnect priority 100, route metric 50, DNS priority 50)
     property Process prioritizeEthernetProc
-    // 1. Live status & telemetry from qdeck-network-status --verbose
+    // 1. Live status & telemetry from qdeck-network-status (--verbose when popup open, --brief when idle)
     property Process detailsProc
+    // Real-time event listener via NetworkManager monitor
+    property Process netMonitorProc
     // 2. DNS Provider query
     property Process dnsProc
     // 3. QR Code generator
@@ -186,18 +189,23 @@ QtObject {
     }
 
     function refresh() {
+        detailsProc.command = ["qdeck-network-status", root.menuOpen ? "--verbose" : "--brief"];
         if (!detailsProc.running)
             detailsProc.running = true;
 
-        if (!dnsProc.running)
+        if (root.menuOpen && !dnsProc.running)
             dnsProc.running = true;
 
     }
 
+    onMenuOpenChanged: {
+        if (root.menuOpen)
+            root.refresh();
+
+    }
     onIsEthernetChanged: root.prioritizeEthernet()
     Component.onCompleted: {
         root.refresh();
-        root.prioritizeEthernet();
     }
 
     connectionErrorTimer: Timer {
@@ -296,6 +304,10 @@ QtObject {
                         kv[parts[0].trim()] = parts[1].trim();
 
                 }
+                if (kv["iface"] === "none") {
+                    root.currentSsid = "";
+                    root.connectionType = "wifi";
+                }
                 if (kv["type"])
                     root.connectionType = kv["type"];
 
@@ -308,11 +320,15 @@ QtObject {
                 if (kv["gateway"])
                     root.gateway = kv["gateway"];
 
-                if (kv["ssid"]) {
-                    root.currentSsid = kv["ssid"];
-                    if (root.connectingSsid === kv["ssid"])
-                        root.connectingSsid = "";
+                if (kv.hasOwnProperty("ssid")) {
+                    if (kv["ssid"]) {
+                        root.currentSsid = kv["ssid"];
+                        if (root.connectingSsid === kv["ssid"])
+                            root.connectingSsid = "";
 
+                    } else if (root.connectionType === "wifi") {
+                        root.currentSsid = "";
+                    }
                 }
                 if (kv["signal_dbm"]) {
                     var dbm = parseFloat(kv["signal_dbm"]);
@@ -320,34 +336,53 @@ QtObject {
                         root.signalStrength = Math.max(10, Math.min(100, Math.round(2 * (dbm + 100))));
 
                 }
-                var rx = parseFloat(kv["rx_bytes"] || "0");
-                var tx = parseFloat(kv["tx_bytes"] || "0");
-                root.rxBytes = rx;
-                root.txBytes = tx;
-                var now = Date.now() / 1000;
-                if (root.prevSampleTime > 0 && now > root.prevSampleTime) {
-                    var dt = now - root.prevSampleTime;
-                    if (dt > 0.5) {
-                        root.downloadRate = Math.max(0, (rx - root.prevRxBytes) / dt);
-                        root.uploadRate = Math.max(0, (tx - root.prevTxBytes) / dt);
+                if (root.menuOpen && kv.hasOwnProperty("rx_bytes")) {
+                    var rx = parseFloat(kv["rx_bytes"] || "0");
+                    var tx = parseFloat(kv["tx_bytes"] || "0");
+                    root.rxBytes = rx;
+                    root.txBytes = tx;
+                    var now = Date.now() / 1000;
+                    if (root.prevSampleTime > 0 && now > root.prevSampleTime) {
+                        var dt = now - root.prevSampleTime;
+                        if (dt > 0.5) {
+                            root.downloadRate = Math.max(0, (rx - root.prevRxBytes) / dt);
+                            root.uploadRate = Math.max(0, (tx - root.prevTxBytes) / dt);
+                        }
                     }
-                }
-                root.prevRxBytes = rx;
-                root.prevTxBytes = tx;
-                root.prevSampleTime = now;
-                var p = kv["internet_ping_ms"] || kv["router_ping_ms"];
-                if (p) {
-                    var pNum = parseFloat(p);
-                    if (!isNaN(pNum) && pNum >= 0) {
-                        root.pingMs = pNum;
-                        root.packetLoss = 0;
+                    root.prevRxBytes = rx;
+                    root.prevTxBytes = tx;
+                    root.prevSampleTime = now;
+                    var p = kv["internet_ping_ms"] || kv["router_ping_ms"];
+                    if (p) {
+                        var pNum = parseFloat(p);
+                        if (!isNaN(pNum) && pNum >= 0) {
+                            root.pingMs = pNum;
+                            root.packetLoss = 0;
+                        } else {
+                            root.pingMs = -1;
+                            root.packetLoss = 100;
+                        }
                     } else {
                         root.pingMs = -1;
-                        root.packetLoss = 100;
                     }
-                } else {
-                    root.pingMs = -1;
                 }
+            }
+        }
+
+    }
+
+    netMonitorProc: Process {
+        id: netMonitorProc
+
+        command: ["nmcli", "monitor"]
+        running: true
+
+        stdout: SplitParser {
+            onRead: function(line) {
+                var l = String(line || "");
+                if (l.indexOf(": connected") !== -1 || l.indexOf(": disconnected") !== -1 || l.indexOf(": unavailable") !== -1 || l.indexOf("using connection") !== -1 || l.indexOf("Connectivity is now") !== -1)
+                    refreshTimer.restart();
+
             }
         }
 
@@ -512,9 +547,9 @@ QtObject {
     }
 
     pollTimer: Timer {
-        interval: 3500
+        interval: root.menuOpen ? 2500 : 15000
         repeat: true
-        running: true
+        running: root.menuOpen || (root.wifiEnabled && root.connectionType === "wifi")
         onTriggered: root.refresh()
     }
 

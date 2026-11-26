@@ -13,12 +13,19 @@ PanelWindow {
 
     readonly property string fontFamily: Fonts.uiFont
     property bool isOpen: false
+    property real animProgress: 0
     property var allApps: []
+    property string cachedWindows: "[]"
     property var filteredApps: []
 
     function open(initialQuery) {
+        closeAnim.stop();
         root.isOpen = true;
+        openAnim.restart();
         root.loadApps();
+        if (!windowsProc.running)
+            windowsProc.running = true;
+
         searchInput.text = (typeof initialQuery === "string") ? initialQuery : "";
         root.filterApps();
         listView.currentIndex = 0;
@@ -28,7 +35,9 @@ PanelWindow {
     }
 
     function close() {
+        openAnim.stop();
         root.isOpen = false;
+        closeAnim.restart();
         searchInput.text = "";
         listView.currentIndex = 0;
     }
@@ -44,9 +53,35 @@ PanelWindow {
         root.allApps = DesktopEntries.applications.values || [];
     }
 
+    function resolveDelegateIcon(item) {
+        if (!item)
+            return "";
+
+        if (item.type === "window" && item.winClass) {
+            var cls = String(item.winClass).trim();
+            var de = DesktopEntries.byId(cls) || DesktopEntries.heuristicLookup(cls);
+            if (de && de.icon) {
+                var deIcon = Quickshell.iconPath(de.icon, true);
+                if (deIcon)
+                    return deIcon;
+
+            }
+            var bare = cls.toLowerCase().replace(/-browser$/, "");
+            return Quickshell.iconPath(cls, true) || Quickshell.iconPath(bare, true) || "";
+        }
+        var raw = String(item.icon || "");
+        if (!raw)
+            return "";
+
+        if (raw.indexOf("image://icon/") === 0)
+            return Quickshell.iconPath(raw.slice(13), true);
+
+        return raw;
+    }
+
     function filterApps() {
         var q = searchInput.text.trim();
-        root.filteredApps = LauncherModel.filterApps(root.allApps, q);
+        root.filteredApps = LauncherModel.buildSpotlightResults(root.allApps, root.cachedWindows, q);
         if (listView.currentIndex >= root.filteredApps.length)
             listView.currentIndex = 0;
 
@@ -60,14 +95,22 @@ PanelWindow {
         if (!item)
             return ;
 
-        LauncherModel.launchAppEntry(item, Quickshell.execDetached);
+        if (item.type === "math") {
+            Quickshell.execDetached(["wl-copy", "--trim-newline", String(item.value)]);
+            Quickshell.execDetached(["qs", "ipc", "call", "osd", "trigger", "󰆏", "Copied " + item.value]);
+        } else if (item.type === "window")
+            Quickshell.execDetached(["hyprctl", "dispatch", "focuswindow", "address:" + item.address]);
+        else if (item.type === "command")
+            Quickshell.execDetached(["sh", "-c", item.cmd]);
+        else
+            LauncherModel.launchAppEntry(item, Quickshell.execDetached);
         root.close();
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // Window Setup & Native Hyprland Blur Integration
     // ─────────────────────────────────────────────────────────────────────────
-    visible: root.isOpen
+    visible: root.isOpen || root.animProgress > 0.001
     color: "transparent"
     // Dynamic screen binding to Hyprland focused monitor
     screen: {
@@ -113,6 +156,46 @@ PanelWindow {
         onActivated: root.close()
     }
 
+    NumberAnimation {
+        id: openAnim
+
+        target: root
+        property: "animProgress"
+        from: root.animProgress
+        to: 1
+        duration: 210
+        easing.type: Easing.OutBack
+        easing.overshoot: 1.1
+    }
+
+    NumberAnimation {
+        id: closeAnim
+
+        target: root
+        property: "animProgress"
+        from: root.animProgress
+        to: 0
+        duration: 145
+        easing.type: Easing.OutCubic
+    }
+
+    Process {
+        id: windowsProc
+
+        command: ["hyprctl", "clients", "-j"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                root.cachedWindows = String(text || "[]");
+                if (root.isOpen)
+                    root.filterApps();
+
+            }
+        }
+
+    }
+
     // IPC interface for qdeck-launcher CLI compatibility
     IpcHandler {
         function open() : string {
@@ -147,19 +230,11 @@ PanelWindow {
     Rectangle {
         anchors.fill: parent
         color: Theme.withAlpha(Theme.darker_background, Theme.scrimOpacity)
-        opacity: root.isOpen ? 1 : 0
+        opacity: root.animProgress
 
         MouseArea {
             anchors.fill: parent
             onClicked: root.close()
-        }
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: Theme.animDuration
-                easing.type: Easing.OutCubic
-            }
-
         }
 
     }
@@ -194,8 +269,8 @@ PanelWindow {
         clarity: 0.78
         rimIllumination: 0.5
         specularIntensity: 0.75
-        opacity: root.isOpen ? 1 : 0
-        scale: root.isOpen ? 1 : 0.95
+        opacity: Math.min(1, root.animProgress * 1.6)
+        scale: 0.9 + (0.1 * root.animProgress)
 
         // Consume clicks inside card so backdrop doesn't trigger dismissal
         MouseArea {
@@ -255,7 +330,7 @@ PanelWindow {
                         Text {
                             anchors.fill: parent
                             verticalAlignment: Text.AlignVCenter
-                            text: "Search applications..."
+                            text: "Search apps, @windows, =math, >cmd..."
                             font.family: root.fontFamily
                             font.pixelSize: Fonts.sizeRegular
                             color: Theme.muted
@@ -436,9 +511,9 @@ PanelWindow {
 
                                     anchors.fill: parent
                                     fillMode: Image.PreserveAspectFit
-                                    source: LauncherModel.resolveIcon(modelData.icon)
+                                    source: root.resolveDelegateIcon(modelData)
                                     sourceSize: Qt.size(Appearance.launcherIconSize * 2, Appearance.launcherIconSize * 2)
-                                    visible: status === Image.Ready && (modelData.icon || "") !== ""
+                                    visible: status === Image.Ready && String(source) !== ""
                                     smooth: true
                                     mipmap: true
                                 }
@@ -456,13 +531,16 @@ PanelWindow {
                                     Text {
                                         anchors.centerIn: parent
                                         text: {
+                                            if (modelData.glyph)
+                                                return modelData.glyph;
+
                                             if (modelData.name && modelData.name.length > 0)
                                                 return modelData.name.charAt(0).toUpperCase();
 
                                             return Icons.apps;
                                         }
-                                        font.family: root.fontFamily
-                                        font.pixelSize: Fonts.sizeSmall
+                                        font.family: modelData.glyph ? Icons.effectiveFont(modelData.glyph) : root.fontFamily
+                                        font.pixelSize: modelData.glyph ? Fonts.sizeMedium : Fonts.sizeSmall
                                         font.weight: Fonts.weightBold
                                         color: element.isSelected ? Theme.accent : Theme.muted
                                     }
@@ -497,6 +575,30 @@ PanelWindow {
                             // Spacer to ensure left alignment
                             Item {
                                 Layout.fillWidth: true
+                            }
+
+                            // Subtle Type Tag (CALC / WINDOW / RUN)
+                            Rectangle {
+                                visible: Boolean(modelData.badge)
+                                Layout.preferredHeight: 18
+                                Layout.preferredWidth: badgeLbl.implicitWidth + 10
+                                Layout.alignment: Qt.AlignVCenter
+                                radius: 5
+                                color: Theme.withAlpha(Theme.accent, 0.16)
+                                border.width: 1
+                                border.color: Theme.withAlpha(Theme.accent, 0.35)
+
+                                Text {
+                                    id: badgeLbl
+
+                                    anchors.centerIn: parent
+                                    text: modelData.badge || ""
+                                    font.family: Fonts.monoFont
+                                    font.pixelSize: 9
+                                    font.weight: Font.Bold
+                                    color: Theme.accent
+                                }
+
                             }
 
                         }
@@ -564,21 +666,8 @@ PanelWindow {
 
         }
 
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 160
-                easing.type: Easing.OutCubic
-            }
-
-        }
-
-        Behavior on scale {
-            NumberAnimation {
-                duration: 220
-                easing.type: Easing.OutBack
-                easing.overshoot: 1.15
-            }
-
+        transform: Translate {
+            y: Math.round(-12 * (1 - root.animProgress))
         }
 
     }

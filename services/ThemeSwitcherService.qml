@@ -182,7 +182,9 @@ QtObject {
 
     themeWatcher: Connections {
         function on_CChanged() {
-            root.refresh();
+            if (root.isOpen)
+                root.refresh();
+
         }
 
         target: Theme

@@ -5,7 +5,6 @@ function normalizeText(text) {
 }
 
 var KNOWN_ICON_MAP = {
-    "whatsapp": "file:///home/pear/.local/share/icons/hicolor/256x256/apps/whatsapp.png",
     "antigravity": "file:///usr/share/pixmaps/antigravity.png",
     "antigravity-ide": "file:///usr/share/pixmaps/antigravity-ide.png",
     "antigravity-ide-url-handler": "file:///usr/share/pixmaps/antigravity-ide.png",
@@ -142,6 +141,7 @@ function parseWindows(rawJson, query) {
                 type: "window",
                 id: addr,
                 address: addr,
+                winClass: winClass,
                 name: name,
                 generic: generic,
                 icon: resolveIcon(winClass.toLowerCase()),
@@ -281,6 +281,191 @@ function launchAppEntry(item, execDetachedFn) {
     return false;
 }
 
+// Safe recursive-descent math expression evaluator (no eval / Function)
+function evaluateMath(rawQuery) {
+    var s = String(rawQuery || "").trim();
+    if (!s) return "";
+    var explicit = s.charAt(0) === "=";
+    if (explicit) s = s.slice(1).trim();
+    if (!s || !/[0-9]/.test(s)) return "";
+    if (!explicit && !(/[+\-*/%^()]/.test(s) || /^(sqrt|abs|sin|cos|tan|log|ln|round|floor|ceil|min|max)\s*\(/i.test(s)))
+        return "";
+
+    var pos = 0;
+    function skipWs() { while (pos < s.length && /\s/.test(s.charAt(pos))) pos++; }
+    function peek() { skipWs(); return pos < s.length ? s.charAt(pos) : ""; }
+
+    function parsePrimary() {
+        skipWs();
+        if (pos >= s.length) throw new Error("EOF");
+        var ch = s.charAt(pos);
+        if (ch === "(") {
+            pos++;
+            var val = parseExpr();
+            if (peek() !== ")") throw new Error("Missing )");
+            pos++;
+            return val;
+        }
+        if ((ch >= "0" && ch <= "9") || ch === ".") {
+            var start = pos;
+            var dots = 0;
+            while (pos < s.length) {
+                var c = s.charAt(pos);
+                if (c >= "0" && c <= "9") pos++;
+                else if (c === "." && dots === 0) { dots++; pos++; }
+                else break;
+            }
+            var numStr = s.slice(start, pos);
+            if (numStr === ".") throw new Error("Bad number");
+            return parseFloat(numStr);
+        }
+        if (/[a-zA-Z]/.test(ch)) {
+            var idStart = pos;
+            while (pos < s.length && /[a-zA-Z0-9]/.test(s.charAt(pos))) pos++;
+            var ident = s.slice(idStart, pos).toLowerCase();
+            if (ident === "pi") return Math.PI;
+            if (ident === "e") return Math.E;
+            if (ident === "tau") return Math.PI * 2;
+            if (peek() === "(") {
+                pos++;
+                var args = [parseExpr()];
+                while (peek() === ",") {
+                    pos++;
+                    args.push(parseExpr());
+                }
+                if (peek() !== ")") throw new Error("Missing )");
+                pos++;
+                if (ident === "sqrt" && args.length === 1) return Math.sqrt(args[0]);
+                if (ident === "abs" && args.length === 1) return Math.abs(args[0]);
+                if (ident === "sin" && args.length === 1) return Math.sin(args[0]);
+                if (ident === "cos" && args.length === 1) return Math.cos(args[0]);
+                if (ident === "tan" && args.length === 1) return Math.tan(args[0]);
+                if (ident === "log" && args.length === 1) return Math.log(args[0]) / Math.LN10;
+                if (ident === "ln" && args.length === 1) return Math.log(args[0]);
+                if (ident === "round" && args.length === 1) return Math.round(args[0]);
+                if (ident === "floor" && args.length === 1) return Math.floor(args[0]);
+                if (ident === "ceil" && args.length === 1) return Math.ceil(args[0]);
+                if (ident === "min" && args.length >= 1) return Math.min.apply(null, args);
+                if (ident === "max" && args.length >= 1) return Math.max.apply(null, args);
+            }
+            throw new Error("Unknown token");
+        }
+        throw new Error("Unexpected char");
+    }
+
+    function parseUnary() {
+        var c = peek();
+        if (c === "-") { pos++; return -parseUnary(); }
+        if (c === "+") { pos++; return parseUnary(); }
+        return parsePrimary();
+    }
+
+    function parsePower() {
+        var base = parseUnary();
+        if (peek() === "^") {
+            pos++;
+            return Math.pow(base, parsePower());
+        }
+        return base;
+    }
+
+    function parseTerm() {
+        var left = parsePower();
+        while (true) {
+            var op = peek();
+            if (op === "*") { pos++; left *= parsePower(); }
+            else if (op === "/") { pos++; var d = parsePower(); if (d === 0) throw new Error("Div0"); left /= d; }
+            else if (op === "%") { pos++; var m = parsePower(); if (m === 0) throw new Error("Div0"); left %= m; }
+            else break;
+        }
+        return left;
+    }
+
+    function parseExpr() {
+        var left = parseTerm();
+        while (true) {
+            var op = peek();
+            if (op === "+") { pos++; left += parseTerm(); }
+            else if (op === "-") { pos++; left -= parseTerm(); }
+            else break;
+        }
+        return left;
+    }
+
+    try {
+        var result = parseExpr();
+        skipWs();
+        if (pos !== s.length || typeof result !== "number" || !isFinite(result))
+            return "";
+        return String(Number(result.toPrecision(12)));
+    } catch (e) {
+        return "";
+    }
+}
+
+function buildSpotlightResults(apps, windowsJson, query) {
+    var raw = String(query || "");
+    var trimmed = raw.trim();
+
+    if (trimmed.indexOf(">") === 0) {
+        var cmdStr = trimmed.slice(1).trim();
+        if (!cmdStr) return [];
+        return [{
+            type: "command",
+            id: "cmd-custom",
+            name: cmdStr,
+            generic: "Run command",
+            badge: "RUN",
+            glyph: "󰆍",
+            icon: "",
+            cmd: cmdStr
+        }];
+    }
+
+    if (trimmed.indexOf("@") === 0) {
+        var winsOnly = parseWindows(windowsJson, trimmed.slice(1));
+        for (var wi = 0; wi < winsOnly.length; wi++) {
+            winsOnly[wi].badge = "WINDOW";
+            winsOnly[wi].glyph = "󰖯";
+        }
+        return winsOnly;
+    }
+
+    var results = [];
+    var mathRes = evaluateMath(trimmed);
+    if (mathRes !== "") {
+        results.push({
+            type: "math",
+            id: "math-result",
+            name: "= " + mathRes,
+            value: mathRes,
+            generic: "Press Enter to copy",
+            badge: "CALC",
+            glyph: "󰪚",
+            icon: ""
+        });
+    }
+
+    if (trimmed.indexOf("=") === 0 && results.length > 0)
+        return results;
+
+    var appMatches = filterApps(apps, trimmed);
+    for (var ai = 0; ai < appMatches.length; ai++)
+        results.push(appMatches[ai]);
+
+    if (trimmed.length > 0 && windowsJson) {
+        var winMatches = parseWindows(windowsJson, trimmed);
+        var cap = Math.min(4, winMatches.length);
+        for (var j = 0; j < cap; j++) {
+            winMatches[j].badge = "WINDOW";
+            winMatches[j].glyph = "󰖯";
+            results.push(winMatches[j]);
+        }
+    }
+
+    return results;
+}
+
 if (typeof module !== "undefined") {
     module.exports = {
         normalizeText: normalizeText,
@@ -289,6 +474,8 @@ if (typeof module !== "undefined") {
         parseWindows: parseWindows,
         filterCommands: filterCommands,
         parseFiles: parseFiles,
+        evaluateMath: evaluateMath,
+        buildSpotlightResults: buildSpotlightResults,
         launchAppEntry: launchAppEntry
     };
 }

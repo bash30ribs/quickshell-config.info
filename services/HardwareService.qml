@@ -6,6 +6,7 @@ QtObject {
     id: root
 
     // Live Resource Telemetry
+    property bool menuOpen: false
     property real cpuPercent: 0
     readonly property alias cpuUsage: root.cpuPercent
     property real ramPercent: 0
@@ -21,14 +22,50 @@ QtObject {
     property real _lastIdle: 0
     property real _lastTotal: 0
     property bool _hasFirstCpuSample: false
+    property Process cpuProc
+    property Process profileProc
     property Process telemetryProc
     property Timer refreshTimer
     property Timer pollTimer
 
-    function refresh() {
-        if (!telemetryProc.running)
-            telemetryProc.running = true;
+    function parseCpuLine(cpuLine) {
+        var cpuParts = String(cpuLine || "").trim().split(/\s+/);
+        if (cpuParts[0] === "cpu" && cpuParts.length >= 5) {
+            var user = parseFloat(cpuParts[1]) || 0;
+            var nice = parseFloat(cpuParts[2]) || 0;
+            var sys = parseFloat(cpuParts[3]) || 0;
+            var idle = parseFloat(cpuParts[4]) || 0;
+            var iowait = parseFloat(cpuParts[5]) || 0;
+            var irq = parseFloat(cpuParts[6]) || 0;
+            var softirq = parseFloat(cpuParts[7]) || 0;
+            var steal = parseFloat(cpuParts[8]) || 0;
+            var total = user + nice + sys + idle + iowait + irq + softirq + steal;
+            var idleTime = idle + iowait;
+            if (root._hasFirstCpuSample) {
+                var deltaTotal = total - root._lastTotal;
+                var deltaIdle = idleTime - root._lastIdle;
+                if (deltaTotal > 0) {
+                    var usage = Math.max(0, Math.min(100, Math.round(100 * (1 - (deltaIdle / deltaTotal)))));
+                    root.cpuPercent = usage;
+                }
+            } else {
+                root._hasFirstCpuSample = true;
+            }
+            root._lastTotal = total;
+            root._lastIdle = idleTime;
+        }
+    }
 
+    function refresh() {
+        if (root.menuOpen) {
+            if (!telemetryProc.running)
+                telemetryProc.running = true;
+
+        } else {
+            if (!cpuProc.running)
+                cpuProc.running = true;
+
+        }
     }
 
     function setPowerProfile(profile) {
@@ -48,7 +85,51 @@ QtObject {
         root.setPowerProfile(next);
     }
 
-    Component.onCompleted: root.refresh()
+    onMenuOpenChanged: {
+        if (root.menuOpen)
+            root.refresh();
+
+    }
+    Component.onCompleted: {
+        if (!profileProc.running)
+            profileProc.running = true;
+
+        root.refresh();
+    }
+
+    cpuProc: Process {
+        id: cpuProc
+
+        command: ["head", "-n", "1", "/proc/stat"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                var firstLine = String(text || "").trim().split("\n")[0];
+                if (firstLine)
+                    root.parseCpuLine(firstLine);
+
+            }
+        }
+
+    }
+
+    profileProc: Process {
+        id: profileProc
+
+        command: ["powerprofilesctl", "get"]
+
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                var prof = String(text || "").trim();
+                if (prof)
+                    root.powerProfile = prof;
+
+            }
+        }
+
+    }
 
     telemetryProc: Process {
         id: telemetryProc
@@ -63,31 +144,7 @@ QtObject {
                     return ;
 
                 // 1. CPU line
-                var cpuParts = lines[0].trim().split(/\s+/);
-                if (cpuParts[0] === "cpu" && cpuParts.length >= 5) {
-                    var user = parseFloat(cpuParts[1]) || 0;
-                    var nice = parseFloat(cpuParts[2]) || 0;
-                    var sys = parseFloat(cpuParts[3]) || 0;
-                    var idle = parseFloat(cpuParts[4]) || 0;
-                    var iowait = parseFloat(cpuParts[5]) || 0;
-                    var irq = parseFloat(cpuParts[6]) || 0;
-                    var softirq = parseFloat(cpuParts[7]) || 0;
-                    var steal = parseFloat(cpuParts[8]) || 0;
-                    var total = user + nice + sys + idle + iowait + irq + softirq + steal;
-                    var idleTime = idle + iowait;
-                    if (root._hasFirstCpuSample) {
-                        var deltaTotal = total - root._lastTotal;
-                        var deltaIdle = idleTime - root._lastIdle;
-                        if (deltaTotal > 0) {
-                            var usage = Math.max(0, Math.min(100, Math.round(100 * (1 - (deltaIdle / deltaTotal)))));
-                            root.cpuPercent = usage;
-                        }
-                    } else {
-                        root._hasFirstCpuSample = true;
-                    }
-                    root._lastTotal = total;
-                    root._lastIdle = idleTime;
-                }
+                root.parseCpuLine(lines[0]);
                 // 2. RAM line
                 var memTotalKb = 0;
                 var memAvailableKb = 0;
@@ -142,7 +199,7 @@ QtObject {
     }
 
     pollTimer: Timer {
-        interval: 2000
+        interval: root.menuOpen ? 2000 : 4000
         repeat: true
         running: true
         onTriggered: root.refresh()

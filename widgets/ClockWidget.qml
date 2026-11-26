@@ -67,7 +67,9 @@ Item {
     height: implicitHeight
 
     Timer {
-        interval: 1000
+        id: minuteSyncTimer
+
+        interval: Math.max(250, ((60 - new Date().getSeconds()) * 1000) - new Date().getMilliseconds() + 50)
         running: true
         repeat: true
         onTriggered: {
@@ -76,6 +78,7 @@ Item {
             if (current.getDate() !== root.today.getDate() || current.getMonth() !== root.today.getMonth() || current.getFullYear() !== root.today.getFullYear())
                 root.today = current;
 
+            interval = Math.max(250, ((60 - current.getSeconds()) * 1000) - current.getMilliseconds() + 50);
         }
     }
 

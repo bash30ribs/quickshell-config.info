@@ -71,7 +71,7 @@ QtObject {
     // Wallpaper Transition Animation (center circular bloom at 165Hz with Mitchell filtering)
     property string wallpaperTransitionType: "center"
     property real wallpaperTransitionDuration: 1
-    property int wallpaperTransitionFps: 60
+    property int wallpaperTransitionFps: 165
     property string wallpaperTransitionBezier: ".25,1,.5,1"
     property string wallpaperTransitionFilter: "Mitchell"
     // Bar widget display options

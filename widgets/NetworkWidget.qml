@@ -30,8 +30,8 @@ Item {
     onShowPasswordInputChanged: {
         if (root.showPasswordInput)
             Qt.callLater(function() {
-                pwInput.forceActiveFocus();
-            });
+            pwInput.forceActiveFocus();
+        });
 
     }
     implicitWidth: netButton.implicitWidth
@@ -83,6 +83,12 @@ Item {
                 root.showPasswordInput = false;
                 pwInput.text = "";
             }
+        }
+
+        Binding {
+            target: root.service
+            property: "menuOpen"
+            value: netPopup.open
         }
 
         Column {

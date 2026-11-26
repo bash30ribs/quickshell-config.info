@@ -11,8 +11,18 @@ PanelWindow {
 
     required property PowerService powerService
     readonly property bool isOpen: root.powerService && root.powerService.confirmOpen
+    property real animProgress: 0
 
-    visible: root.isOpen
+    onIsOpenChanged: {
+        if (root.isOpen) {
+            closeAnim.stop();
+            openAnim.restart();
+        } else {
+            openAnim.stop();
+            closeAnim.restart();
+        }
+    }
+    visible: root.isOpen || root.animProgress > 0.001
     screen: (root.powerService && root.powerService.targetScreen) ? root.powerService.targetScreen : null
     color: "transparent"
     WlrLayershell.namespace: "quickshell-confirm"
@@ -23,6 +33,29 @@ PanelWindow {
         if (visible)
             keyHandler.forceActiveFocus();
 
+    }
+
+    NumberAnimation {
+        id: openAnim
+
+        target: root
+        property: "animProgress"
+        from: root.animProgress
+        to: 1
+        duration: 210
+        easing.type: Easing.OutBack
+        easing.overshoot: 1.1
+    }
+
+    NumberAnimation {
+        id: closeAnim
+
+        target: root
+        property: "animProgress"
+        from: root.animProgress
+        to: 0
+        duration: 150
+        easing.type: Easing.OutCubic
     }
 
     anchors {
@@ -79,7 +112,7 @@ PanelWindow {
     Rectangle {
         anchors.fill: parent
         color: Theme.withAlpha(Theme.darker_background, Theme.scrimOpacity)
-        opacity: root.isOpen ? 1 : 0
+        opacity: root.animProgress
 
         MouseArea {
             anchors.fill: parent
@@ -88,14 +121,6 @@ PanelWindow {
                     root.powerService.cancelConfirm();
 
             }
-        }
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: Appearance.animDurationNormal
-                easing.type: Easing.OutCubic
-            }
-
         }
 
     }
@@ -109,8 +134,8 @@ PanelWindow {
         anchors.centerIn: parent
         radius: Appearance.dialogRadius
         baseColor: Theme.barBackground
-        opacity: root.isOpen ? 1 : 0
-        scale: root.isOpen ? 1 : 0.95
+        opacity: Math.min(1, root.animProgress * 1.5)
+        scale: 0.9 + 0.1 * root.animProgress
 
         // Prevent clicks on the card from falling through to the backdrop
         MouseArea {
@@ -293,22 +318,6 @@ PanelWindow {
 
                 }
 
-            }
-
-        }
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: Appearance.animDurationNormal
-                easing.type: Easing.OutCubic
-            }
-
-        }
-
-        Behavior on scale {
-            NumberAnimation {
-                duration: Appearance.animDurationNormal
-                easing.type: Easing.OutCubic
             }
 
         }

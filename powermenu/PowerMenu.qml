@@ -89,9 +89,10 @@ PanelWindow {
         closeAnim.stop();
         root.currentView = "power";
         root.powerIndex = 0;
-        if (root.powerService)
+        if (root.powerService) {
             root.powerService.powerMenuOpen = true;
-
+            root.powerService.refresh();
+        }
         root.isOpen = true;
         openAnim.restart();
         Qt.callLater(function() {
@@ -1202,9 +1203,9 @@ PanelWindow {
                         orientation: ListView.Horizontal
                         spacing: 12
                         clip: true
-                        cacheBuffer: 600
+                        cacheBuffer: 420
                         snapMode: ListView.SnapToItem
-                        model: root.themes
+                        model: (root.visible && root.currentView === "theme") ? root.themes : []
                         currentIndex: root.themeIndex
                         boundsBehavior: Flickable.StopAtBounds
                         onWidthChanged: {
@@ -1500,9 +1501,9 @@ PanelWindow {
                         orientation: ListView.Horizontal
                         spacing: 12
                         clip: true
-                        cacheBuffer: 1600
+                        cacheBuffer: 420
                         snapMode: ListView.SnapToItem
-                        model: root.wallpapers
+                        model: (root.visible && root.currentView === "wallpaper") ? root.wallpapers : []
                         currentIndex: root.wallpaperIndex
                         boundsBehavior: Flickable.StopAtBounds
                         onWidthChanged: {

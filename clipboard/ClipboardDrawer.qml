@@ -1261,9 +1261,9 @@ PanelWindow {
                             spacing: 10
                             clip: true
                             interactive: false
-                            cacheBuffer: 2400
+                            cacheBuffer: 600
                             snapMode: ListView.NoSnap
-                            model: root.imageItems
+                            model: (root.isVisibleSurface && root.stage === 1) ? root.imageItems : []
                             onModelChanged: {
                                 Qt.callLater(function() {
                                     if (!imgStripList || imgStripList.count <= 0)
@@ -1504,7 +1504,7 @@ PanelWindow {
                                 spacing: 5
 
                                 Repeater {
-                                    model: root.textItems
+                                    model: (root.isVisibleSurface && root.stage === 2) ? root.textItems : []
 
                                     delegate: ClipboardTextRow {
                                         clipboardService: root.clipboardService
@@ -1698,7 +1698,7 @@ PanelWindow {
                                 spacing: 5
 
                                 Repeater {
-                                    model: root.fileItems
+                                    model: (root.isVisibleSurface && root.stage === 3) ? root.fileItems : []
 
                                     delegate: ClipboardFileRow {
                                         clipboardService: root.clipboardService
