@@ -14,6 +14,7 @@ PanelWindow {
     property var anchorWindow: null
     property MediaController controller: null
     property AudioService audioService: null
+    property AudioSyncService audioSync: null
     property bool open: false
     property int contentWidth: Appearance.mediaIslandWidth
     property int contentHeight: Appearance.mediaIslandHeight
@@ -294,6 +295,7 @@ PanelWindow {
 
             mode: "island"
             playing: !!(root.controller && root.controller.isPlaying)
+            audioSync: root.audioSync
             activeVisible: root.open && root.animProgress > 0.1
             x: 132
             width: Math.max(0, parent.width - 144)

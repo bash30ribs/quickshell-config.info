@@ -19,6 +19,7 @@ PanelWindow {
     required property PowerService powerService
     required property HardwareService hardwareService
     property MediaController mediaController: null
+    property AudioSyncService audioSync: null
     property QtObject clipboardDrawer: null
     property real glideAccum: 0
     property real glideCooldownUntil: 0
@@ -549,6 +550,7 @@ PanelWindow {
                 NowBarPill {
                     controller: root.mediaController
                     audioService: root.audioService
+                    audioSync: root.audioSync
                 }
 
             }

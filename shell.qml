@@ -30,6 +30,7 @@ ShellRoot {
     property ClipboardService clipboardService
     property HardwareService hardwareService
     property MediaController mediaController
+    property AudioSyncService audioSyncService
     readonly property ClipboardDrawer clipboardDrawer: clipboardDrawerWindow
 
     IpcHandler {
@@ -142,6 +143,7 @@ ShellRoot {
         id: kittyWaveOverlay
 
         mediaController: root.mediaController
+        audioSync: root.audioSyncService
     }
 
     // Mount Bar on each screen
@@ -162,11 +164,16 @@ ShellRoot {
             clipboardDrawer: root.clipboardDrawer
             hardwareService: root.hardwareService
             mediaController: root.mediaController
+            audioSync: root.audioSyncService
         }
 
     }
 
     mediaController: MediaController {
+    }
+
+    audioSyncService: AudioSyncService {
+        active: !!(root.mediaController && root.mediaController.isPlaying && (Appearance.barVisible || kittyWaveOverlay.hasAnyKitty))
     }
 
     workspacesService: WorkspacesService {

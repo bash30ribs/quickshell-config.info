@@ -1,3 +1,5 @@
+import "../components"
+import "../services"
 import "../theme"
 import QtQuick
 import Quickshell
@@ -9,12 +11,18 @@ Item {
     id: root
 
     property MediaController mediaController: null
+    property AudioSyncService audioSync: null
     readonly property bool isPlaying: !!(root.mediaController && root.mediaController.isPlaying)
     property real waveEnergy: root.isPlaying ? 1 : 0
     property real phase: 0
+    property real _animAccum: 0
     property var kittyRectsByScreen: ({
     })
     property bool hasAnyKitty: false
+
+    function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+        return ax < (bx + bw) && (ax + aw) > bx && ay < (by + bh) && (ay + ah) > by;
+    }
 
     function refreshKittyWindows() {
         if (!root.isPlaying && root.waveEnergy <= 0.005)
@@ -30,10 +38,6 @@ Item {
             return [];
 
         return root.kittyRectsByScreen[screenName] || [];
-    }
-
-    function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
-        return ax < (bx + bw) && (ax + aw) > bx && ay < (by + bh) && (ay + ah) > by;
     }
 
     width: 0
@@ -205,7 +209,16 @@ Item {
     FrameAnimation {
         running: (root.isPlaying || root.waveEnergy > 0.01) && root.hasAnyKitty
         onTriggered: {
-            root.phase = (root.phase + frameTime * 2.35) % (Math.PI * 200);
+            root._animAccum += frameTime;
+            if (root._animAccum < 0.020)
+                return ;
+
+            var dt = root._animAccum;
+            root._animAccum = 0;
+            var liveSig = !!(root.audioSync && root.audioSync.hasSignal);
+            var spd = liveSig ? root.audioSync.speed : 0.75;
+            var rate = liveSig ? (0.75 + spd * 1.95) : 1.6;
+            root.phase = (root.phase + dt * rate) % (Math.PI * 200);
         }
     }
 
@@ -234,7 +247,7 @@ Item {
                 right: true
             }
 
-            // Strictly visual layer underneath Kitty's translucent glass: never intercepts clicks
+            // Strictly visual overlay: click-through
             mask: Region {
             }
 
@@ -245,6 +258,14 @@ Item {
                     id: kittyBounds
 
                     required property var modelData
+                    readonly property bool liveSig: !!(root.audioSync && root.audioSync.hasSignal)
+                    readonly property real lv: liveSig ? root.audioSync.level : 0.28
+                    readonly property real bs: liveSig ? root.audioSync.bass : 0.24
+                    readonly property real bt: liveSig ? root.audioSync.beat : 0
+                    readonly property real focusBoost: modelData.focused ? 1 : 0.78
+                    readonly property real groove: liveSig ? (0.42 + 0.62 * lv + 0.52 * bs + 0.35 * bt) : (0.76 + 0.20 * Math.sin(root.phase * 1.9))
+                    readonly property real ampScale: root.waveEnergy * groove * focusBoost
+                    readonly property real glowPulse: 1 + 0.35 * bt
 
                     x: modelData.x
                     y: modelData.y
@@ -252,87 +273,57 @@ Item {
                     height: modelData.h
                     clip: true
 
-                    Canvas {
-                        id: kittyWaveCanvas
-
-                        readonly property real wavePhase: root.phase
-                        readonly property real waveEnergy: root.waveEnergy
-                        readonly property color accentCol: Theme.accent
-                        readonly property color crestCol: Theme.bright_foreground
-
-                        function rgbaStr(col, alphaMul) {
-                            var c = Qt.color(col);
-                            var a = Math.max(0, Math.min(1, c.a * alphaMul));
-                            return "rgba(" + Math.round(c.r * 255) + "," + Math.round(c.g * 255) + "," + Math.round(c.b * 255) + "," + a.toFixed(3) + ")";
-                        }
-
-                        function drawLayer(ctx, w, h, baseFrac, ampPx, freq, phaseShift, col, fillAlpha, strokeAlpha, strokeWidth) {
-                            var steps = 48;
-                            var baseY = h * baseFrac;
-                            ctx.beginPath();
-                            for (var i = 0; i <= steps; i++) {
-                                var u = i / steps;
-                                var x = u * w;
-                                var taper = 0.35 + 0.65 * Math.sin(u * Math.PI);
-                                var s = Math.sin(u * freq + phaseShift) * 0.62 + Math.cos(u * (freq * 1.65) - phaseShift * 0.72) * 0.38;
-                                var y = baseY - s * ampPx * taper;
-                                if (i === 0)
-                                    ctx.moveTo(x, y);
-                                else
-                                    ctx.lineTo(x, y);
-                            }
-                            if (fillAlpha > 0.005) {
-                                ctx.save();
-                                ctx.lineTo(w, h);
-                                ctx.lineTo(0, h);
-                                ctx.closePath();
-                                var grad = ctx.createLinearGradient(0, Math.max(0, baseY - ampPx - 6), 0, h);
-                                grad.addColorStop(0, rgbaStr(col, fillAlpha));
-                                grad.addColorStop(0.55, rgbaStr(col, fillAlpha * 0.45));
-                                grad.addColorStop(1, rgbaStr(col, 0));
-                                ctx.fillStyle = grad;
-                                ctx.fill();
-                                ctx.restore();
-                            }
-                            ctx.strokeStyle = rgbaStr(col, strokeAlpha);
-                            ctx.lineWidth = strokeWidth;
-                            ctx.lineCap = "round";
-                            ctx.lineJoin = "round";
-                            ctx.stroke();
-                        }
-
+                    Item {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.bottom: parent.bottom
                         height: Math.min(130, Math.max(72, Math.round(kittyBounds.height * 0.14)))
-                        onWavePhaseChanged: requestPaint()
-                        onWaveEnergyChanged: requestPaint()
-                        onAccentColChanged: requestPaint()
-                        onCrestColChanged: requestPaint()
-                        onWidthChanged: requestPaint()
-                        onHeightChanged: requestPaint()
-                        Component.onCompleted: requestPaint()
-                        onPaint: {
-                            var ctx = getContext("2d");
-                            var w = width;
-                            var h = height;
-                            if (w <= 0 || h <= 0)
-                                return ;
 
-                            ctx.clearRect(0, 0, w, h);
-                            var e = waveEnergy;
-                            if (e <= 0.005)
-                                return ;
-
-                            var ph = wavePhase;
-                            var groove = 0.78 + 0.22 * Math.sin(ph * 1.9 + 0.4 * Math.sin(ph * 0.7));
-                            var focusBoost = kittyBounds.modelData.focused ? 1 : 0.78;
-                            var ampScale = e * groove * focusBoost;
-                            // Subtle ambient translucent wave gliding calmly across the bottom of Kitty
-                            drawLayer(ctx, w, h, 0.56, 12 * ampScale, 6.8, -ph * 0.85 + 1.2, accentCol, 0.08 * e * focusBoost, 0.20 * e * focusBoost, 1.4);
-                            drawLayer(ctx, w, h, 0.65, 15 * ampScale, 8.8, ph, accentCol, 0.13 * e * focusBoost, 0.48 * e * focusBoost, 2.0);
-                            drawLayer(ctx, w, h, 0.75, 10 * ampScale, 11.4, ph * 1.28 + 2.2, crestCol, 0.05 * e * focusBoost, 0.28 * e * focusBoost, 1.25);
+                        // Back ambient swell (GPU CurveRenderer — static gradient + GPU opacity)
+                        GlassWaveRibbon {
+                            anchors.fill: parent
+                            phase: -root.phase * 0.85 + 1.2
+                            baseFraction: 0.56
+                            frequency: 6.8
+                            amplitudePx: 12 * kittyBounds.ampScale
+                            edgeTaperBase: 0.35
+                            strokeColor: Theme.withAlpha(Theme.accent, 0.25)
+                            fillColor: Theme.accent
+                            fillAlpha: 0.09
+                            opacity: root.waveEnergy * kittyBounds.focusBoost * (0.72 + 0.28 * kittyBounds.glowPulse) * (0.7 + 0.3 * kittyBounds.lv)
+                            lineWidth: 1.4
                         }
+
+                        // Primary luminous wave synced to song tempo & bass (GPU CurveRenderer)
+                        GlassWaveRibbon {
+                            anchors.fill: parent
+                            phase: root.phase
+                            baseFraction: 0.65
+                            frequency: 8.8
+                            amplitudePx: 15 * kittyBounds.ampScale
+                            edgeTaperBase: 0.35
+                            strokeColor: Theme.withAlpha(Theme.accent, 0.54)
+                            fillColor: Theme.accent
+                            fillAlpha: 0.16
+                            opacity: root.waveEnergy * kittyBounds.focusBoost * (0.72 + 0.28 * kittyBounds.glowPulse) * (0.65 + 0.35 * kittyBounds.bs)
+                            lineWidth: 2
+                        }
+
+                        // Subtle bright crest highlight (GPU CurveRenderer)
+                        GlassWaveRibbon {
+                            anchors.fill: parent
+                            phase: root.phase * 1.28 + 2.2
+                            baseFraction: 0.75
+                            frequency: 11.4
+                            amplitudePx: 10 * kittyBounds.ampScale
+                            edgeTaperBase: 0.35
+                            strokeColor: Theme.withAlpha(Theme.bright_foreground, 0.30)
+                            fillColor: Theme.bright_foreground
+                            fillAlpha: 0.05
+                            opacity: root.waveEnergy * kittyBounds.focusBoost * (0.75 + 0.25 * kittyBounds.glowPulse)
+                            lineWidth: 1.25
+                        }
+
                     }
 
                 }

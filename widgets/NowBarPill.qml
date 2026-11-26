@@ -11,6 +11,7 @@ Item {
 
     property MediaController controller: null
     property AudioService audioService: null
+    property AudioSyncService audioSync: null
     property alias popup: mediaPopup
     readonly property MediaController effectiveController: root.controller ? root.controller : fallbackCtrlLoader.item
     readonly property bool hasMedia: effectiveController ? effectiveController.hasMedia : false
@@ -186,6 +187,7 @@ Item {
 
                 mode: root.isVertical ? "vertical" : "pill"
                 playing: root.isPlaying
+                audioSync: root.audioSync
                 activeVisible: root.visible && root.pillActive && Appearance.barVisible
                 pausedTransition: Appearance.barTransitioning
                 width: root.isVertical ? 24 : 48
@@ -281,6 +283,7 @@ Item {
         anchorWindow: root.QsWindow ? root.QsWindow.window : null
         controller: root.effectiveController
         audioService: root.audioService
+        audioSync: root.audioSync
     }
 
     Loader {
