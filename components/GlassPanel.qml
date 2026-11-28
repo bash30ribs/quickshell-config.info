@@ -179,19 +179,17 @@ Item {
             }
 
             // ─────────────────────────────────────────────────────────────────
-            // Curved Edge Specular Diffuse Sheen (follows active lightEdge)
+            // Curved Edge Specular Diffuse Sheen (matches exact container radii)
             // ─────────────────────────────────────────────────────────────────
             Rectangle {
                 id: specularSheen
 
-                readonly property real bandSize: root.isHorizontalLight ? Math.max(8, Math.min(22, parent.height * 0.32)) : Math.max(8, Math.min(18, parent.width * 0.32))
                 readonly property bool reverseStops: root.lightEdge === "bottom" || root.lightEdge === "right"
 
                 visible: root.mode === "liquid" || root.mode === "clear" || root.mode === "frosted"
-                x: root.isHorizontalLight ? 1 : (root.lightEdge === "left" ? 1 : Math.max(1, parent.width - 1 - bandSize))
-                y: root.isHorizontalLight ? (root.lightEdge === "top" ? 1 : Math.max(1, parent.height - 1 - bandSize)) : 1
-                width: root.isHorizontalLight ? Math.max(0, parent.width - 2) : bandSize
-                height: root.isHorizontalLight ? bandSize : Math.max(0, parent.height - 2)
+                anchors.fill: parent
+                anchors.margins: 1
+                radius: (root.topLeftRadius < 0 && root.topRightRadius < 0 && root.bottomLeftRadius < 0 && root.bottomRightRadius < 0) ? Math.max(0, root.radius - 1) : 0
                 topLeftRadius: Math.max(0, root.effectiveTopLeftRadius - 1)
                 topRightRadius: Math.max(0, root.effectiveTopRightRadius - 1)
                 bottomLeftRadius: Math.max(0, root.effectiveBottomLeftRadius - 1)
@@ -207,8 +205,13 @@ Item {
                     }
 
                     GradientStop {
-                        position: 0.5
-                        color: Qt.rgba(1, 1, 1, 0.02 * root.specularIntensity)
+                        position: specularSheen.reverseStops ? 0.66 : 0.16
+                        color: specularSheen.reverseStops ? "transparent" : Qt.rgba(1, 1, 1, 0.02 * root.specularIntensity)
+                    }
+
+                    GradientStop {
+                        position: specularSheen.reverseStops ? 0.84 : 0.34
+                        color: specularSheen.reverseStops ? Qt.rgba(1, 1, 1, 0.02 * root.specularIntensity) : "transparent"
                     }
 
                     GradientStop {
@@ -221,13 +224,13 @@ Item {
             }
 
             // ─────────────────────────────────────────────────────────────────
-            // Feathered Edge Rim Catch (merges invisibly into corner arcs)
+            // Feathered Edge Rim Catch (stays strictly within flat inner edge)
             // ─────────────────────────────────────────────────────────────────
             Rectangle {
                 id: illuminatedTopEdge
 
-                readonly property real insetA: root.isHorizontalLight ? Math.max(3, Math.round((root.lightEdge === "top" ? root.effectiveTopLeftRadius : root.effectiveBottomLeftRadius) * 0.45)) : Math.max(3, Math.round((root.lightEdge === "left" ? root.effectiveTopLeftRadius : root.effectiveTopRightRadius) * 0.45))
-                readonly property real insetB: root.isHorizontalLight ? Math.max(3, Math.round((root.lightEdge === "top" ? root.effectiveTopRightRadius : root.effectiveBottomRightRadius) * 0.45)) : Math.max(3, Math.round((root.lightEdge === "left" ? root.effectiveBottomLeftRadius : root.effectiveBottomRightRadius) * 0.45))
+                readonly property real insetA: root.isHorizontalLight ? Math.max(4, Math.round((root.lightEdge === "top" ? root.effectiveTopLeftRadius : root.effectiveBottomLeftRadius) * 0.92)) : Math.max(4, Math.round((root.lightEdge === "left" ? root.effectiveTopLeftRadius : root.effectiveTopRightRadius) * 0.92))
+                readonly property real insetB: root.isHorizontalLight ? Math.max(4, Math.round((root.lightEdge === "top" ? root.effectiveTopRightRadius : root.effectiveBottomRightRadius) * 0.92)) : Math.max(4, Math.round((root.lightEdge === "left" ? root.effectiveBottomLeftRadius : root.effectiveBottomRightRadius) * 0.92))
 
                 visible: root.mode === "liquid" || root.mode === "clear" || root.mode === "frosted"
                 x: root.isHorizontalLight ? insetA : (root.lightEdge === "left" ? 1 : Math.max(1, parent.width - 2))
@@ -274,8 +277,8 @@ Item {
             Rectangle {
                 id: illuminatedBottomEdge
 
-                readonly property real insetA: root.isHorizontalLight ? Math.max(4, Math.round(root.effectiveBottomLeftRadius * 0.5)) : Math.max(4, Math.round(root.effectiveTopRightRadius * 0.5))
-                readonly property real insetB: root.isHorizontalLight ? Math.max(4, Math.round(root.effectiveBottomRightRadius * 0.5)) : Math.max(4, Math.round(root.effectiveBottomRightRadius * 0.5))
+                readonly property real insetA: root.isHorizontalLight ? Math.max(4, Math.round((root.lightEdge === "top" ? root.effectiveBottomLeftRadius : root.effectiveTopLeftRadius) * 0.92)) : Math.max(4, Math.round((root.lightEdge === "left" ? root.effectiveTopRightRadius : root.effectiveTopLeftRadius) * 0.92))
+                readonly property real insetB: root.isHorizontalLight ? Math.max(4, Math.round((root.lightEdge === "top" ? root.effectiveBottomRightRadius : root.effectiveTopRightRadius) * 0.92)) : Math.max(4, Math.round((root.lightEdge === "left" ? root.effectiveBottomRightRadius : root.effectiveBottomLeftRadius) * 0.92))
 
                 visible: root.mode === "liquid" || root.mode === "clear"
                 x: root.isHorizontalLight ? insetA : (root.lightEdge === "left" ? Math.max(1, parent.width - 2) : 1)
