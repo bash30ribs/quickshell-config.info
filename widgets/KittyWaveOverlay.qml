@@ -216,8 +216,8 @@ Item {
             var dt = root._animAccum;
             root._animAccum = 0;
             var liveSig = !!(root.audioSync && root.audioSync.hasSignal);
-            var spd = liveSig ? root.audioSync.speed : 0.75;
-            var rate = liveSig ? (0.75 + spd * 1.95) : 1.6;
+            var bps = liveSig ? root.audioSync.speed : 1.15;
+            var rate = liveSig ? (0.45 + bps * 1.15) : 1.5;
             root.phase = (root.phase + dt * rate) % (Math.PI * 200);
         }
     }

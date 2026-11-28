@@ -23,7 +23,7 @@ Item {
     readonly property real liveLevel: liveHasSignal ? root.audioSync.level : 0.30
     readonly property real liveBass: liveHasSignal ? root.audioSync.bass : 0.25
     readonly property real liveBeat: liveHasSignal ? root.audioSync.beat : 0
-    readonly property real liveSpeed: liveHasSignal ? root.audioSync.speed : 0.85
+    readonly property real liveSpeed: liveHasSignal ? root.audioSync.speed : 1.15
     readonly property real waveBoost: 0.36 + 0.60 * root.liveLevel + 0.50 * root.liveBass + 0.36 * root.liveBeat
     readonly property bool showHappyKitty: root.energy > 0.35
     readonly property real kittyUnit: {
@@ -57,7 +57,7 @@ Item {
         var kinetic = 0.45 + 0.45 * root.liveLevel + 0.35 * root.liveBass + 0.65 * root.liveBeat;
         return (Math.sin(root.phase * 2.0) * 0.65 + (root.liveBeat * 0.72)) * (root.kittyUnit * 0.105) * root.energy * kinetic;
     }
-    readonly property real kittyTiltDeg: Math.sin(root.phase) * (4.5 + 3.4 * Math.min(2.2, root.liveSpeed)) * root.energy
+    readonly property real kittyTiltDeg: Math.sin(root.phase) * (4.2 + 2.4 * Math.min(3.2, root.liveSpeed)) * root.energy
 
     Behavior on energy {
         NumberAnimation {
@@ -76,7 +76,8 @@ Item {
 
             var dt = root._animAccum;
             root._animAccum = 0;
-            var rate = root.liveHasSignal ? (1.45 + root.liveSpeed * 3.15) : 2.1;
+            // Exact beat-locked cadence: pi * bps advances phase*2 by 2*pi per confirmed beat
+            var rate = root.liveHasSignal ? (Math.PI * root.liveSpeed) : 2.1;
             root.phase = (root.phase + dt * rate) % (Math.PI * 200);
         }
     }

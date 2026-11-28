@@ -9,14 +9,14 @@ Item {
     property real level: 0
     property real bass: 0
     property real beat: 0
-    property real speed: 0.85
+    property real speed: 1.15
     property bool hasSignal: false
 
     function resetState() {
         root.level = 0;
         root.bass = 0;
         root.beat = 0;
-        root.speed = 0.85;
+        root.speed = 1.15;
         root.hasSignal = false;
     }
 
@@ -67,7 +67,7 @@ Item {
                 root.level = Math.max(0, Math.min(1, lv));
                 root.bass = Math.max(0, Math.min(1, bs));
                 root.beat = Math.max(0, Math.min(1, bt));
-                root.speed = Math.max(0.35, Math.min(2.5, sp));
+                root.speed = Math.max(0.85, Math.min(3.2, sp));
                 root.hasSignal = (root.level > 0.005 || root.bass > 0.005 || root.beat > 0.005);
             }
         }
